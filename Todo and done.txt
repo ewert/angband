@@ -1,0 +1,17 @@
+Plan is to improve QoL
+
+Plan:
+Artifacts should not ever be too shallow to be created, they are artifacts
+Autopickup not picking up if disturbed on the same movement
+Another rebalance of item drop levels
+Look into other options to bypass annoying or dangerous monsters, especially non-uniques
+  - polymorph chances? beholders, hydras, etc. high hp high dmg no drop monsters should have other options
+Scare, confuse, hold spells, rebalance with the idea of making them escape-like
+  - Break on dmg, but stronger otherwise
+Consideration into other rarely used spells / items
+  - Wand vs staff vs rod of same items, strength of effect differences? Easy vs heavy vs rare considerations
+Options to pause game for x seconds if HP trigger reached?
+  - my playspeed is blazingly fast in real time, I feel having a stronger HP alarm would be nice to avoid the finger-taps-twice-dead mistakes
+
+Home inventory management
+  - just keeping my preference of having a big home to hoard all the artifacts in ;)
