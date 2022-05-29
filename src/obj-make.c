@@ -614,7 +614,7 @@ static struct object *make_artifact_special(int level, int tval)
 			if (randint0(d) != 0) continue;
 		}
 
-		/* Enforce maximum depth (strictly) EWERT: Disabled, artifacts can be always be created */
+		/* Enforce maximum depth (strictly) EWERT: Disabled, artifacts can always be created */
 		/* if (art->alloc_max < player->depth) continue; */
 
 		/* Artifact "rarity roll" */
@@ -695,7 +695,7 @@ static bool make_artifact(struct object *obj)
 			if (randint0(d) != 0) continue;
 		}
 
-		/* Enforce maximum depth (strictly) EWERT: Disabled, artifacts can be always be created */
+		/* Enforce maximum depth (strictly) EWERT: Disabled, artifacts can always be created */
 		/* if (art->alloc_max < player->depth) continue; */
 
 		/* We must make the "rarity roll" */
