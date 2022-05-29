@@ -15,3 +15,11 @@ Options to pause game for x seconds if HP trigger reached?
 
 Home inventory management
   - just keeping my preference of having a big home to hoard all the artifacts in ;)
+
+
+Done:
+
+Torches can be created at any level
+Object creation does NOT check for artifact maximum depth
+This completes Artifact creation issues as far as I see
+
