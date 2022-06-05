@@ -12,6 +12,8 @@ Consideration into other rarely used spells / items
   - Wand vs staff vs rod of same items, strength of effect differences? Easy vs heavy vs rare considerations
 Options to pause game for x seconds if HP trigger reached?
   - my playspeed is blazingly fast in real time, I feel having a stronger HP alarm would be nice to avoid the finger-taps-twice-dead mistakes
+Randart creation
+  - weighing or limiting certain bonuses to certain item slots?
 
 Home inventory management
   - just keeping my preference of having a big home to hoard all the artifacts in ;)
@@ -24,3 +26,4 @@ Object creation does NOT check for artifact maximum depth
 This completes Artifact creation issues as far as I see
 
 Added autopickup cmd hook to disturbing running, hopefully this was the issue in my gameplay causing missed gold pickups
+(will need to re-assess to make sure I am not using energy after a disturb, most likely will make gold pickup separate)
