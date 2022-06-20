@@ -346,6 +346,8 @@ bool square_isno_esp(struct chunk *c, struct loc grid);
 bool square_isproject(struct chunk *c, struct loc grid);
 bool square_isdtrap(struct chunk *c, struct loc grid);
 bool square_isno_stairs(struct chunk *c, struct loc grid);
+bool square_isexplorable(struct chunk *c, struct loc grid);
+bool square_isadjacenttounknown(struct chunk *c, struct loc grid);
 
 /* SQUARE BEHAVIOR PREDICATES */
 bool square_isopen(struct chunk *c, struct loc grid);
@@ -401,7 +403,8 @@ void square_sense_pile(struct chunk *c, struct loc grid);
 void square_know_pile(struct chunk *c, struct loc grid);
 int square_num_walls_adjacent(struct chunk *c, struct loc grid);
 int square_num_walls_diagonal(struct chunk *c, struct loc grid);
-
+int square_num_unknown_grids_adjacent(struct chunk *c, struct loc grid);
+int square_num_unknown_grids_diagonal(struct chunk *c, struct loc grid);
 
 /* Feature placers */
 void square_set_feat(struct chunk *c, struct loc grid, int feat);

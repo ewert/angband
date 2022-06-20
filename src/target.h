@@ -59,5 +59,8 @@ bool target_sighted(void);
 struct point_set *target_get_monsters(int mode, monster_predicate pred,
 	bool restrict_to_panel);
 bool target_set_closest(int mode, monster_predicate pred);
+struct point_set *autoexplore_get_passable_unknown_grids(bool restrict_to_panel);
+bool autoexplore_explore_closest(void);
+bool autocombat(void);
 
 #endif /* !TARGET_H */

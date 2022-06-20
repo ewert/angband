@@ -529,4 +529,143 @@ bool target_set_closest(int mode, monster_predicate pred)
 
 	point_set_dispose(targets);
 	return true;
+
+}
+
+#define AE_INITIAL_SIZE	5
+
+struct point_set *autoexplore_get_passable_unknown_grids(bool restrict_to_panel) {
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *targets = point_set_new(AE_INITIAL_SIZE);
+
+	if (restrict_to_panel) {
+		/* Get the current panel */
+		get_panel(&min_y, &min_x, &max_y, &max_x);
+	} else {
+		min_y = player->grid.y - z_info->max_range;
+		max_y = player->grid.y + z_info->max_range + 1;
+		min_x = player->grid.x - z_info->max_range;
+		max_x = player->grid.x + z_info->max_range + 1;
+	}
+
+	/* Scan for unknown grids in path */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(cave, grid)) continue;
+
+			/* Pass if the grid is unknown */
+			if (square_isnotknown(cave, grid)) continue;
+
+			/* Pass if the grid isn't a floor or open door */
+    			if (!square_isfloor(cave, grid) || square_iscloseddoor(cave, grid)) continue; 		
+
+			/* Pass if grid is not adjacent to unknown */
+			if (!square_isadjacenttounknown(cave, grid)) continue;
+
+			/* Save the location if unknown */
+			add_to_point_set(targets, grid);
+		}
+	}
+
+	sort(targets->pts, point_set_size(targets), sizeof(*(targets->pts)),
+		 cmp_distance);
+	return targets;
+
+}
+
+/**
+ * Run to nearest unknown grid
+ */
+bool autoexplore_explore_closest(void)
+{
+	struct point_set *unknown_grids;
+	int unknown_grid_size;
+
+	struct point_set *visible_monsters;
+	int visible_monsters_size;
+
+	if (player->timed[TMD_BLIND] || no_light(player)) {
+		msg("You cannot see!");
+		return false;
+	}
+
+	if (player->timed[TMD_CONFUSED]) {
+		msg("You are too confused!");
+		return false;
+	}
+
+	visible_monsters = target_get_monsters(TARGET_KILL, NULL, true);
+	visible_monsters_size = point_set_size(visible_monsters);
+
+	/* If monsters are visible, refuse to move. */
+	if (visible_monsters_size != 0) {
+		msg("You can't explore with visible monsters.");
+		point_set_dispose(visible_monsters);	
+		return false;
+	}
+
+	/* Cancel old target */
+	target_set_monster(NULL);
+
+	/* XXX - If on item, refuse to move. */
+
+	/* XXX - Move onto any visible items. */
+
+	/* Find candidate spaces to move into */
+	unknown_grids = autoexplore_get_passable_unknown_grids(false);
+	unknown_grid_size = point_set_size(unknown_grids);
+
+	/* If nothing was prepared, then return */
+	if (unknown_grid_size < 1) {
+		msg("Can't find uncharted territory.");
+		point_set_dispose(unknown_grids);
+		return false;
+	}
+
+	cmdq_push(CMD_PATHFIND);
+	cmd_set_arg_point(cmdq_peek(), "point", loc(unknown_grids->pts[0].x, 
+						    unknown_grids->pts[0].y));
+
+	point_set_dispose(unknown_grids);
+	return true;
+}
+
+/**
+ * Automate one round of combat by moving towards nearest enemy
+ */
+bool autocombat(void)
+{
+	struct point_set *visible_monsters;
+	int visible_monsters_size;
+
+	if (player->timed[TMD_BLIND] || no_light(player)) {
+		msg("You cannot see!");
+		return false;
+	}
+
+	if (player->timed[TMD_CONFUSED]) {
+		msg("You are too confused!");
+		return false;
+	}
+
+	visible_monsters = target_get_monsters(TARGET_KILL, NULL, true);
+	visible_monsters_size = point_set_size(visible_monsters);
+
+	if (visible_monsters_size < 1) {
+		msg("No Available Target.");
+		point_set_dispose(visible_monsters);	
+		return false;
+	}
+
+        cmdq_push(CMD_PATHFIND);
+	cmd_set_arg_point(cmdq_peek(), "point", loc(visible_monsters->pts[0].x, 
+						    visible_monsters->pts[0].y));
+
+	point_set_dispose(visible_monsters);
+	return true;
+
 }

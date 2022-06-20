@@ -139,6 +139,8 @@ struct cmd_info cmd_action[] =
 	{ "Look around", { 'l', 'x' }, CMD_NULL, do_cmd_look, NULL, 0, NULL, NULL, NULL, 0 },
 	{ "Target monster or location", { '*' }, CMD_NULL, textui_target, NULL, 0, NULL, NULL, NULL, 0 },
 	{ "Target closest monster", { '\'' }, CMD_NULL, textui_target_closest, NULL, 0, NULL, NULL, NULL, 0 },
+	{ "Auto-explore", { 'p' }, CMD_NULL, textui_autoexplore, NULL, 0, NULL, NULL, NULL, 0 },
+	{ "Autocombat", { 'f' }, CMD_NULL, textui_autocombat, NULL, 0, NULL, NULL, NULL, 0 },
 	{ "Dig a tunnel", { 'T', KTRL('T') }, CMD_TUNNEL, NULL, NULL, 0, NULL, NULL, NULL, 0 },
 	{ "Go up staircase", {'<' }, CMD_GO_UP, NULL, NULL, 0, NULL, NULL, NULL, 0 },
 	{ "Go down staircase", { '>' }, CMD_GO_DOWN, NULL, NULL, 0, NULL, NULL, NULL, 0 },
