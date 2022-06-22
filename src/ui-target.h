@@ -52,7 +52,4 @@ void target_display_help(bool monster, bool object, bool free);
 void textui_target(void);
 void textui_target_closest(void);
 bool target_set_interactive(int mode, int x, int y);
-void textui_autoexplore(void);
-void textui_autocombat(void);
-
 #endif /* UI_TARGET_H */

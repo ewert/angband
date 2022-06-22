@@ -468,7 +468,7 @@ int cave_monster_max(struct chunk *c);
 int cave_monster_count(struct chunk *c);
 
 int count_feats(struct loc *grid,
-				bool (*test)(struct chunk *c, struct loc grid), bool under);
+	bool (*test)(struct chunk *c, struct loc grid), bool under);
 int count_neighbors(struct loc *match, struct chunk *c, struct loc grid,
 	bool (*test)(struct chunk *c, struct loc grid), bool under);
 struct loc cave_find_decoy(struct chunk *c);

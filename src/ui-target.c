@@ -1506,18 +1506,3 @@ bool target_set_interactive(int mode, int x, int y)
 
 	return target_is_set();
 }
-
-void textui_autoexplore(void)
-{
-	/* XXX - Create all base conditions and change this to while loop */
-	if (autoexplore_explore_closest()){
-
-	}
-}
-
-void textui_autocombat(void)
-{
-	if (autocombat()) {
-
-	}
-}

@@ -1324,6 +1324,103 @@ void do_cmd_pathfind(struct command *cmd)
 	}
 }
 
+/**
+ * Start auto-exploring.
+ *
+ * Exploring while confused, blind, or hallucinating is disallowed.
+ */
+void do_cmd_explore(struct command *cmd)
+{
+	struct point_set *unknown_grids;
+	int unknown_grid_size;
+
+        /* XXX - Refactor these out into "sane mind" function */
+
+	if (player->timed[TMD_BLIND] || no_light(player)) {
+		msg("You cannot see!");
+		return;
+	}
+
+	if (player->timed[TMD_CONFUSED]) {
+		msg("You are too confused!");
+		return;
+	}
+	
+	/* Handle hallucination */
+	if (player->timed[TMD_IMAGE]) {
+		msg("You are too intoxicated!");
+		return;
+	}
+
+	/* If monsters are visible, refuse to move. */
+	if (player_can_see_monster(cave)) {
+		msg("You can't explore with visible monsters.");
+		return;
+	}
+
+	/* XXX - Move onto any visible items and return false. */
+
+	/* XXX - If on item, refuse to move return false. */
+
+	/* Find candidate spaces to move into */
+	unknown_grids = passable_unknown_grids();
+	unknown_grid_size = point_set_size(unknown_grids);
+
+	/* If nothing was found, then return */
+	if (unknown_grid_size < 1) {
+		msg("Can't find uncharted territory.");
+		point_set_dispose(unknown_grids);
+		return;
+	}
+
+	cmdq_push(CMD_PATHFIND);
+	cmd_set_arg_point(cmdq_peek(), "point", loc(unknown_grids->pts[0].x, 
+						    unknown_grids->pts[0].y));
+
+	point_set_dispose(unknown_grids);
+	return;
+}
+
+/**
+ * Automate one round of combat.
+ */
+void do_cmd_fight(struct command *cmd)
+{
+	struct point_set *visible_monsters;
+	int visible_monsters_size;
+
+	if (player->timed[TMD_BLIND] || no_light(player)) {
+		msg("You cannot see!");
+		return;
+	}
+
+	if (player->timed[TMD_CONFUSED]) {
+		msg("You are too confused!");
+		return;
+	}
+
+	if (player->timed[TMD_IMAGE]) {
+		msg("You are too intoxicated!");
+		return;
+	}
+
+	visible_monsters = player_visible_monsters(cave);
+	visible_monsters_size = point_set_size(visible_monsters);
+
+	if (visible_monsters_size < 1) {
+		msg("No Available Target.");
+		point_set_dispose(visible_monsters);	
+		return;
+	}
+
+        cmdq_push(CMD_PATHFIND);
+	cmd_set_arg_point(cmdq_peek(), "point", loc(visible_monsters->pts[0].x, 
+						    visible_monsters->pts[0].y));
+
+	point_set_dispose(visible_monsters);
+	return;
+
+}
 
 
 /**

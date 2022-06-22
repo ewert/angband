@@ -872,8 +872,90 @@ void run_step(int dir)
 
 	/* Prepare the next step */
 	if (player->upkeep->running) {
+
 		cmdq_push(CMD_RUN);
 		cmd_set_arg_direction(cmdq_peek(), "direction", 0);
 	}
 }
 
+#define AE_INITIAL_SIZE	20
+
+/*
+ * Produce point set of unknown grids adjacent to known floors
+ *
+ */
+struct point_set *passable_unknown_grids(void) {
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *targets = point_set_new(AE_INITIAL_SIZE);
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for unknown grids in path */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(cave, grid)) continue;
+
+			/* Pass if the grid is unknown */
+			if (square_isnotknown(cave, grid)) continue;
+
+			/* Pass if the grid isn't a floor or open door */
+    			if (!square_isfloor(cave, grid) || square_iscloseddoor(cave, grid)) continue; 		
+
+			/* Pass if grid is not adjacent to unknown */
+			if (!square_isadjacenttounknown(cave, grid)) continue;
+
+			/* Save the location if unknown */
+			add_to_point_set(targets, grid);
+		}
+	}
+
+	sort(targets->pts, point_set_size(targets), sizeof(*(targets->pts)),
+		 player_cmp_distance);
+	return targets;
+
+}
+
+/**
+ * Sorting hook -- comp function -- by "distance to player"
+ *
+ * We use "u" and "v" to point to arrays of "x" and "y" positions,
+ * and sort the arrays by double-distance to the player.
+ */
+int player_cmp_distance(const void *a, const void *b)
+{
+	int py = player->grid.y;
+	int px = player->grid.x;
+
+	const struct loc *pa = a;
+	const struct loc *pb = b;
+
+	int da, db, kx, ky;
+
+	/* Absolute distance components */
+	kx = pa->x; kx -= px; kx = ABS(kx);
+	ky = pa->y; ky -= py; ky = ABS(ky);
+
+	/* Approximate Double Distance to the first point */
+	da = ((kx > ky) ? (kx + kx + ky) : (ky + ky + kx));
+
+	/* Absolute distance components */
+	kx = pb->x; kx -= px; kx = ABS(kx);
+	ky = pb->y; ky -= py; ky = ABS(ky);
+
+	/* Approximate Double Distance to the first point */
+	db = ((kx > ky) ? (kx + kx + ky) : (ky + ky + kx));
+
+	/* Compare the distances */
+	if (da < db)
+		return -1;
+	if (da > db)
+		return 1;
+	return 0;
+}

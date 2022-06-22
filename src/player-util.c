@@ -1597,3 +1597,120 @@ void search(struct player *p)
 		}
 	}
 }
+
+/**
+ * The current number of monsters visible to the player.
+ */
+int player_visible_monster_count(struct chunk *c) 
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	int count = 0;
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+
+	/* Scan for monsters */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Don't include player */
+			if (square(c, grid)->mon < 0) continue;
+
+			/* Obvious monsters */
+			if (square(c, grid)->mon > 0) {
+				struct monster *mon = square_monster(c, grid);
+				if (!monster_is_obvious(mon)) continue;
+			}
+
+			count++;
+		}
+	}
+
+	return count;
+}
+
+/**
+ * Produce true if player can see a monster.
+ */
+bool player_can_see_monster(struct chunk *c) 
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+
+	/* Scan for monsters */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Don't include player */
+			if (square(c, grid)->mon < 0) continue;
+
+			/* Obvious monsters */
+			if (square(c, grid)->mon > 0) {
+				struct monster *mon = square_monster(c, grid);
+				if (monster_is_obvious(mon)) return true;
+			}
+
+		}
+	}
+
+	return false;
+}
+
+#define TS_INITIAL_SIZE	20
+struct point_set* player_visible_monsters (struct chunk *c) 
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *targets = point_set_new(TS_INITIAL_SIZE);
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for monsters */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(cave, grid)) continue;
+
+			struct monster *mon = square_monster(c, grid);
+
+			/* Must contain a monster */
+			if (mon == NULL) continue;
+
+			/* Don't include player */
+			if (square(c, grid)->mon < 0) continue;
+
+			/* Must be a targettable monster */
+			if (!target_able(mon)) continue;
+
+			/* Save the location */
+			add_to_point_set(targets, grid);
+		}
+	}
+
+	sort(targets->pts, point_set_size(targets), sizeof(*(targets->pts)),
+		 cmp_distance);
+	return targets;
+}
