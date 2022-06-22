@@ -49,7 +49,6 @@ void target_set_location(int y, int x);
 bool target_is_set(void);
 void target_fix(void);
 void target_release(void);
-int cmp_distance(const void *a, const void *b);
 int16_t target_pick(int y1, int x1, int dy, int dx, struct point_set *targets);
 bool target_accept(int y, int x);
 void coords_desc(char *buf, int size, int y, int x);

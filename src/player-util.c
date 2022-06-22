@@ -33,6 +33,7 @@
 #include "player-attack.h"
 #include "player-calcs.h"
 #include "player-history.h"
+#include "player-path.h"
 #include "player-quest.h"
 #include "player-spell.h"
 #include "player-timed.h"
@@ -1711,6 +1712,6 @@ struct point_set* player_visible_monsters (struct chunk *c)
 	}
 
 	sort(targets->pts, point_set_size(targets), sizeof(*(targets->pts)),
-		 cmp_distance);
+		 player_cmp_distance);
 	return targets;
 }
