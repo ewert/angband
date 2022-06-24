@@ -905,8 +905,8 @@ struct point_set *passable_unknown_grids(void) {
 			/* Pass if the grid is unknown */
 			if (square_isnotknown(cave, grid)) continue;
 
-			/* Pass if the grid isn't a floor or open door */
-    			if (!square_isfloor(cave, grid) || square_iscloseddoor(cave, grid)) continue; 		
+			/* Pass if the grid isn't passable */
+			if (!square_ispassable(cave, grid)) continue; 		
 
 			/* Pass if grid is not adjacent to unknown */
 			if (!square_isadjacenttounknown(cave, grid)) continue;
