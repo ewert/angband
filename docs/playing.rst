@@ -95,13 +95,13 @@ Original Keyset Command Summary
 ``g``  Get objects on floor          ``G``  Gain new spells/prayers
 ``h``  Fire default ammo at target   ``H``  (unused)
 ``i``  List contents of pack         ``I``  Inspect an item
-``j``  (unused)                      ``J``  (unused)
+``j``  Fight nearest monster         ``J``  (unused)
 ``k``  Ignore an item                ``K``  Toggle ignore
 ``l``  Look around                   ``L``  Locate player on map
 ``m``  Cast a spell                  ``M``  Display map of entire level
 ``n``  Repeat previous command       ``N``  (unused)
 ``o``  Open a door or chest          ``O``  (unused)
-``p``  (unused)                      ``P``  (unused)
+``p``  Auto-explore                  ``P``  (unused)
 ``q``  Quaff a potion                ``Q``  Kill character & quit
 ``r``  Read a scroll                 ``R``  Rest for a period
 ``s``  Steal (rogues only)           ``S``  See abilities
@@ -153,7 +153,7 @@ Roguelike Keyset Command Summary
  ``c``  Close a door                  ``C``  Display character sheet
  ``d``  Drop an item                  ``D``  Disarm a trap or lock a door
  ``e``  List equipped items           ``E``  Eat some food
- ``f``  (unused)                      ``F``  Fuel your lantern/torch
+ ``f``  Fight nearest monster         ``F``  Fuel your lantern/torch
  ``g``  Get objects on floor          ``G``  Gain new spells/prayers
  ``h``  (walk - west)                 ``H``  (run - west)
  ``i``  List contents of pack         ``I``  Inspect an item
@@ -163,7 +163,7 @@ Roguelike Keyset Command Summary
  ``m``  Cast a spell                  ``M``  Display map of entire level
  ``n``  (walk - south east)           ``N``  (run - south east)
  ``o``  Open a door or chest          ``O``  Toggle ignore
- ``p``  (unused)                      ``P``  Browse a book
+ ``p``  Auto-explore                  ``P``  Browse a book
  ``q``  Quaff a potion                ``Q``  Kill character & quit
  ``r``  Read a scroll                 ``R``  Rest for a period
  ``s``  Steal (rogues only)           ``S``  See abilities
