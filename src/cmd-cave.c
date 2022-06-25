@@ -1378,7 +1378,7 @@ void do_cmd_explore(struct command *cmd)
 	}
 
 	/* XXX - If current on item, announce what it is and return. */
-	if (square(c, player->grid)->obj) {
+	if (square(cave, player->grid)->obj) {
 		cmdq_push(CMD_HOLD);
 		cmd_set_arg_point(cmdq_peek(), "point", grid);
 		return;
