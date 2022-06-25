@@ -1332,9 +1332,9 @@ void do_cmd_pathfind(struct command *cmd)
 void do_cmd_explore(struct command *cmd)
 {
 	struct point_set *unknown_grids;
-	int unknown_grid_size;
+	struct point_set *visible_objects;
 
-        /* XXX - Refactor these out into "sane mind" function */
+	struct loc grid;
 
 	if (player->timed[TMD_BLIND] || no_light(player)) {
 		msg("You cannot see!");
@@ -1358,27 +1358,32 @@ void do_cmd_explore(struct command *cmd)
 		return;
 	}
 
-	/* XXX - Move onto any visible items and return false. */
-
+	/* XXX - If moved on item, announce what it is. */
 	/* XXX - If on item, refuse to move return false. */
 
+	/* Move to nearest object */
+	visible_objects = player_visible_objects();
+	unknown_grids = reachable_unknown_grids();
+	if (point_set_size(visible_objects)) {
+		grid = visible_objects->pts[0];
 	/* Find candidate spaces to move into */
-	unknown_grids = passable_unknown_grids();
-	unknown_grid_size = point_set_size(unknown_grids);
-
-	/* If nothing was found, then return */
-	if (unknown_grid_size < 1) {
+	} else if ((point_set_size(unknown_grids))) {
+		grid = unknown_grids->pts[0];
+	} else {
 		msg("Can't find uncharted territory.");
-		point_set_dispose(unknown_grids);
 		return;
 	}
 
 	cmdq_push(CMD_PATHFIND);
-	cmd_set_arg_point(cmdq_peek(), "point", loc(unknown_grids->pts[0].x, 
-						    unknown_grids->pts[0].y));
-
-	point_set_dispose(unknown_grids);
-	return;
+	cmd_set_arg_point(cmdq_peek(), "point", grid);
+	if (point_set_size(unknown_grids))
+	{
+		point_set_dispose(unknown_grids);
+	}
+	if (point_set_size(visible_objects))
+	{
+		point_set_dispose(visible_objects);
+	}
 }
 
 /**
@@ -1386,8 +1391,8 @@ void do_cmd_explore(struct command *cmd)
  */
 void do_cmd_fight(struct command *cmd)
 {
+	struct loc grid;
 	struct point_set *visible_monsters;
-	int visible_monsters_size;
 
 	if (player->timed[TMD_BLIND] || no_light(player)) {
 		msg("You cannot see!");
@@ -1405,17 +1410,15 @@ void do_cmd_fight(struct command *cmd)
 	}
 
 	visible_monsters = player_visible_monsters(cave);
-	visible_monsters_size = point_set_size(visible_monsters);
-
-	if (visible_monsters_size < 1) {
+	if (point_set_size(visible_monsters)) {
+		grid = visible_monsters->pts[0];
+	} else {
 		msg("No Available Target.");
-		point_set_dispose(visible_monsters);	
 		return;
 	}
 
-        cmdq_push(CMD_PATHFIND);
-	cmd_set_arg_point(cmdq_peek(), "point", loc(visible_monsters->pts[0].x, 
-						    visible_monsters->pts[0].y));
+	cmdq_push(CMD_PATHFIND);
+	cmd_set_arg_point(cmdq_peek(), "point", grid);
 
 	point_set_dispose(visible_monsters);
 	return;

@@ -884,7 +884,7 @@ void run_step(int dir)
  * Produce point set of unknown grids adjacent to known floors
  *
  */
-struct point_set *passable_unknown_grids(void) {
+struct point_set *reachable_unknown_grids(void) {
 	int y, x;
 	int min_y, min_x, max_y, max_x;
 	struct point_set *targets = point_set_new(AE_INITIAL_SIZE);

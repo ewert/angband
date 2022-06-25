@@ -1675,12 +1675,12 @@ bool player_can_see_monster(struct chunk *c)
 	return false;
 }
 
-#define TS_INITIAL_SIZE	20
+#define VM_INITIAL_SIZE	20
 struct point_set* player_visible_monsters (struct chunk *c) 
 {
 	int y, x;
 	int min_y, min_x, max_y, max_x;
-	struct point_set *targets = point_set_new(TS_INITIAL_SIZE);
+	struct point_set *targets = point_set_new(VM_INITIAL_SIZE);
 
 	min_y = player->grid.y - z_info->max_range;
 	max_y = player->grid.y + z_info->max_range + 1;
@@ -1714,4 +1714,39 @@ struct point_set* player_visible_monsters (struct chunk *c)
 	sort(targets->pts, point_set_size(targets), sizeof(*(targets->pts)),
 		 player_cmp_distance);
 	return targets;
+}
+
+#define VO_INITIAL_SIZE	20
+struct point_set *player_visible_objects(void){
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *targets = point_set_new(VO_INITIAL_SIZE);
+	struct object *obj;
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for objects */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(cave, grid)) continue;
+			/* Scan all objects in the grid */
+			for (obj = square_object(player->cave, grid); obj; obj = obj->next) {
+				/* Memorized object */
+				if (obj->kind == unknown_item_kind || !ignore_known_item_ok(player, obj)) {
+				add_to_point_set(targets, grid);
+				}
+			}
+		}
+	}
+
+	sort(targets->pts, point_set_size(targets), sizeof(*(targets->pts)),
+		 player_cmp_distance);
+	return targets;
+
 }
