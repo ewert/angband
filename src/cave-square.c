@@ -934,6 +934,31 @@ bool square_allows_summon(struct chunk *c, struct loc grid)
 		&& !square_isdecoyed(c, grid);
 }
 
+#define AG_INITIAL_SIZE 8
+struct point_set *adjacent_passable_grids(struct chunk *c, struct loc grid)
+{
+	assert(square_in_bounds(c, grid));
+	struct point_set *results = point_set_new(AG_INITIAL_SIZE);
+
+    if (square_ispassable(c, next_grid(grid, DIR_N))) 
+		add_to_point_set(results, next_grid(grid, DIR_N));
+    if (square_ispassable(c, next_grid(grid, DIR_NE))) 
+		add_to_point_set(results, next_grid(grid, DIR_NE));
+    if (square_ispassable(c, next_grid(grid, DIR_E))) 
+		add_to_point_set(results, next_grid(grid, DIR_E));
+    if (square_ispassable(c, next_grid(grid, DIR_SE))) 
+		add_to_point_set(results, next_grid(grid, DIR_SE));
+    if (square_ispassable(c, next_grid(grid, DIR_S))) 
+		add_to_point_set(results, next_grid(grid, DIR_S));
+    if (square_ispassable(c, next_grid(grid, DIR_SW))) 
+		add_to_point_set(results, next_grid(grid, DIR_SW));
+    if (square_ispassable(c, next_grid(grid, DIR_W))) 
+		add_to_point_set(results, next_grid(grid, DIR_W));
+    if (square_ispassable(c, next_grid(grid, DIR_NW))) 
+		add_to_point_set(results, next_grid(grid, DIR_NW));
+
+	return results;
+}
 
 
 /**

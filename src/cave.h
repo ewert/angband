@@ -387,7 +387,7 @@ bool square_isbelievedwall(struct chunk *c, struct loc grid);
 bool square_suits_stairs_well(struct chunk *c, struct loc grid);
 bool square_suits_stairs_ok(struct chunk *c, struct loc grid);
 bool square_allows_summon(struct chunk *c, struct loc grid);
-
+bool square_isadjacenttopassable(struct chunk *c, struct loc grid);
 
 const struct square *square(struct chunk *c, struct loc grid);
 struct feature *square_feat(struct chunk *c, struct loc grid);
@@ -405,6 +405,7 @@ int square_num_walls_adjacent(struct chunk *c, struct loc grid);
 int square_num_walls_diagonal(struct chunk *c, struct loc grid);
 int square_num_unknown_grids_adjacent(struct chunk *c, struct loc grid);
 int square_num_unknown_grids_diagonal(struct chunk *c, struct loc grid);
+struct point_set *adjacent_passable_grids(struct chunk *c, struct loc grid);
 
 /* Feature placers */
 void square_set_feat(struct chunk *c, struct loc grid, int feat);

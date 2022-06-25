@@ -878,50 +878,6 @@ void run_step(int dir)
 	}
 }
 
-#define AE_INITIAL_SIZE	20
-
-/*
- * Produce point set of unknown grids adjacent to known floors
- *
- */
-struct point_set *reachable_unknown_grids(void) {
-	int y, x;
-	int min_y, min_x, max_y, max_x;
-	struct point_set *targets = point_set_new(AE_INITIAL_SIZE);
-
-	min_y = player->grid.y - z_info->max_range;
-	max_y = player->grid.y + z_info->max_range + 1;
-	min_x = player->grid.x - z_info->max_range;
-	max_x = player->grid.x + z_info->max_range + 1;
-
-	/* Scan for unknown grids in path */
-	for (y = min_y; y < max_y; y++) {
-		for (x = min_x; x < max_x; x++) {
-			struct loc grid = loc(x, y);
-
-			/* Check bounds */
-			if (!square_in_bounds_fully(cave, grid)) continue;
-
-			/* Pass if the grid is unknown */
-			if (square_isnotknown(cave, grid)) continue;
-
-			/* Pass if the grid isn't passable */
-			if (!square_ispassable(cave, grid)) continue; 		
-
-			/* Pass if grid is not adjacent to unknown */
-			if (!square_isadjacenttounknown(cave, grid)) continue;
-
-			/* Save the location if unknown */
-			add_to_point_set(targets, grid);
-		}
-	}
-
-	sort(targets->pts, point_set_size(targets), sizeof(*(targets->pts)),
-		 player_cmp_distance);
-	return targets;
-
-}
-
 /**
  * Sorting hook -- comp function -- by "distance to player"
  *

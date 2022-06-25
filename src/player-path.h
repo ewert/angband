@@ -25,6 +25,5 @@
 int pathfind_direction_to(struct loc from, struct loc to);
 bool find_path(struct loc grid);
 void run_step(int dir);
-struct point_set *reachable_unknown_grids(void);
 int player_cmp_distance(const void *a, const void *b);
 #endif /* !PLAYER_PATH_H */

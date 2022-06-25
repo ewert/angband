@@ -1307,13 +1307,30 @@ void do_cmd_run(struct command *cmd)
  */
 void do_cmd_pathfind(struct command *cmd)
 {
+	int i;
 	struct loc grid;
+	struct point_set *adjacent_grids;
 
 	/* XXX-AS Add better arg checking */
 	cmd_get_arg_point(cmd, "point", &grid);
 
 	if (player->timed[TMD_CONFUSED])
 		return;
+
+	if (square_isknown(cave, grid) && !square_ispassable(cave, grid)) {
+		adjacent_grids = adjacent_passable_grids(cave, grid);
+		sort(adjacent_grids->pts, point_set_size(adjacent_grids), 
+			sizeof(*(adjacent_grids->pts)), player_cmp_distance);
+
+		for (i = 0; i < point_set_size(adjacent_grids); i++) {
+			if (find_path(adjacent_grids->pts[i])) { 
+				grid = adjacent_grids->pts[i];
+			    point_set_dispose(adjacent_grids);
+				break;
+			}
+		}
+	}
+
 
 	if (find_path(grid)) {
 		player->upkeep->running = 1000;
@@ -1322,6 +1339,7 @@ void do_cmd_pathfind(struct command *cmd)
 		player->upkeep->running_withpathfind = true;
 		run_step(0);
 	}
+
 }
 
 /**
@@ -1333,6 +1351,7 @@ void do_cmd_explore(struct command *cmd)
 {
 	struct point_set *unknown_grids;
 	struct point_set *visible_objects;
+	struct point_set *closed_stairs;
 
 	struct loc grid;
 
@@ -1358,17 +1377,25 @@ void do_cmd_explore(struct command *cmd)
 		return;
 	}
 
-	/* XXX - If moved on item, announce what it is. */
-	/* XXX - If on item, refuse to move return false. */
+	/* XXX - If current on item, announce what it is and return. */
+	if (square(c, player->grid)->obj) {
+		cmdq_push(CMD_HOLD);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		return;
+	}
 
 	/* Move to nearest object */
-	visible_objects = player_visible_objects();
-	unknown_grids = reachable_unknown_grids();
+	visible_objects = player_visible_objects(cave);
+	unknown_grids = player_reachable_unknown_grids(cave);
+	closed_stairs = player_reachable_closed_doors(cave);
+
 	if (point_set_size(visible_objects)) {
 		grid = visible_objects->pts[0];
 	/* Find candidate spaces to move into */
 	} else if ((point_set_size(unknown_grids))) {
 		grid = unknown_grids->pts[0];
+	} else if ((point_set_size(closed_stairs))) {
+		grid = closed_stairs->pts[0];
 	} else {
 		msg("Can't find uncharted territory.");
 		return;
@@ -1376,14 +1403,9 @@ void do_cmd_explore(struct command *cmd)
 
 	cmdq_push(CMD_PATHFIND);
 	cmd_set_arg_point(cmdq_peek(), "point", grid);
-	if (point_set_size(unknown_grids))
-	{
-		point_set_dispose(unknown_grids);
-	}
-	if (point_set_size(visible_objects))
-	{
-		point_set_dispose(visible_objects);
-	}
+	if (point_set_size(unknown_grids)) point_set_dispose(unknown_grids);
+	if (point_set_size(visible_objects)) point_set_dispose(visible_objects);
+	if (point_set_size(closed_stairs)) point_set_dispose(closed_stairs);
 }
 
 /**
