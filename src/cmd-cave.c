@@ -1355,6 +1355,10 @@ void do_cmd_explore(struct command *cmd)
 
 	struct loc grid;
 
+	struct loc last_grid;
+	struct loc last_last_grid;
+	bool more = false;
+	while(!more) {
 	if (player->timed[TMD_BLIND] || no_light(player)) {
 		msg("You cannot see!");
 		return;
@@ -1373,8 +1377,8 @@ void do_cmd_explore(struct command *cmd)
 
 	/* If monsters are visible, refuse to move. */
 	if (player_can_see_monster(cave)) {
-		msg("You can't explore with visible monsters.");
-		return;
+		cmdq_push(CMD_FIGHT);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
 	}
 
 	/* XXX - If current on item, announce what it is and return. */
@@ -1392,7 +1396,10 @@ void do_cmd_explore(struct command *cmd)
 	if (point_set_size(visible_objects)) {
 		grid = visible_objects->pts[0];
 	/* Find candidate spaces to move into */
-	} else if ((point_set_size(unknown_grids))) {
+	} else if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
+		msg("Suddenly, you feel confused.");
+		return;
+	} else if ((point_set_size(unknown_grids)) && find_path(unknown_grids->pts[0])) {
 		grid = unknown_grids->pts[0];
 	} else if ((point_set_size(closed_stairs))) {
 		grid = closed_stairs->pts[0];
@@ -1406,6 +1413,11 @@ void do_cmd_explore(struct command *cmd)
 	if (point_set_size(unknown_grids)) point_set_dispose(unknown_grids);
 	if (point_set_size(visible_objects)) point_set_dispose(visible_objects);
 	if (point_set_size(closed_stairs)) point_set_dispose(closed_stairs);
+
+	last_last_grid = last_grid;
+	last_grid = player->grid;
+	run_game_loop();
+	}
 }
 
 /**
