@@ -1383,7 +1383,8 @@ void do_cmd_explore(struct command *cmd)
 	}
 
 	/* XXX - If current on item, announce what it is and return. */
-	if (square(cave, player->grid)->obj) {
+	if (square(cave, player->grid)->obj && 
+	    !ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
 		disturb(player);
 		return;
 	}
