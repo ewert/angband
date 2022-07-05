@@ -1375,6 +1375,17 @@ void do_cmd_explore(struct command *cmd)
 		return;
 	}
 
+	/* Handle cuts */
+	if (player->timed[TMD_CUT]) {
+		msg("You are bleeding too much.");
+		return;
+	}
+
+	/* Handle poison */
+	if (player->timed[TMD_POISONED]) {
+		msg("You are too poisoned.");
+		return;
+	}
 	/* If monsters are visible, refuse to move. */
 	if (player_can_see_monster(cave)) {
 		disturb(player);
