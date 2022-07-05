@@ -1379,6 +1379,7 @@ void do_cmd_explore(struct command *cmd)
 	if (player_can_see_monster(cave)) {
 		disturb(player);
 		msg("You can't explore with visible monsters.");
+		return;
 	}
 
 	/* XXX - If current on item, announce what it is and return. */
