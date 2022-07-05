@@ -1735,6 +1735,7 @@ struct point_set *player_visible_objects(struct chunk *c){
 
 			/* Check bounds */
 			if (!square_in_bounds_fully(c, grid)) continue;
+			if (!square_isknown(c, grid)) continue;
 			/* Scan all objects in the grid */
 			for (obj = square_object(player->cave, grid); obj; obj = obj->next) {
 				/* Memorized object */
