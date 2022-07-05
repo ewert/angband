@@ -1786,6 +1786,9 @@ struct point_set *player_reachable_unknown_grids(struct chunk *c)
 			/* Pass if grid is not adjacent to unknown */
 			if (!square_isadjacenttounknown(c, grid)) continue;
 
+			/* Make sure a path can be found */
+			if (!find_path(grid)) continue;
+
 			/* Save the location if unknown */
 			add_to_point_set(results, grid);
 		}
