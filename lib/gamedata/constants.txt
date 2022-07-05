@@ -172,10 +172,10 @@ store:magic-level:5
 obj-make:max-depth:100
 
 # 1/chance of inflating the requested object level
-obj-make:great-obj:20
+obj-make:great-obj:1
 
 # 1/chance of inflating the requested ego item level
-obj-make:great-ego:20
+obj-make:great-ego:1
 
 # Maximum amount of fuel in a torch
 obj-make:fuel-torch:5000
