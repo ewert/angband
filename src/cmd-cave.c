@@ -1377,14 +1377,15 @@ void do_cmd_explore(struct command *cmd)
 
 	/* If monsters are visible, refuse to move. */
 	if (player_can_see_monster(cave)) {
-		cmdq_push(CMD_FIGHT);
-		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		disturb(player);
+		msg("You can't explore with visible monsters.");
 	}
 
 	/* XXX - If current on item, announce what it is and return. */
 	if (square(cave, player->grid)->obj) {
 		cmdq_push(CMD_HOLD);
 		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		disturb(player);
 		return;
 	}
 
@@ -1397,6 +1398,7 @@ void do_cmd_explore(struct command *cmd)
 		grid = visible_objects->pts[0];
 	/* Find candidate spaces to move into */
 	} else if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
+		disturb(player);
 		msg("Suddenly, you feel confused.");
 		return;
 	} else if ((point_set_size(unknown_grids)) && find_path(unknown_grids->pts[0])) {
@@ -1404,6 +1406,7 @@ void do_cmd_explore(struct command *cmd)
 	} else if ((point_set_size(closed_stairs))) {
 		grid = closed_stairs->pts[0];
 	} else {
+		disturb(player);
 		msg("Can't find uncharted territory.");
 		return;
 	}
