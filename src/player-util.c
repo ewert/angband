@@ -1646,11 +1646,10 @@ bool player_can_see_monster(struct chunk *c)
 	int y, x;
 	int min_y, min_x, max_y, max_x;
 
-	min_y = player->grid.y - z_info->max_range;
-	max_y = player->grid.y + z_info->max_range + 1;
-	min_x = player->grid.x - z_info->max_range;
-	max_x = player->grid.x + z_info->max_range + 1;
-
+	min_y = player->grid.y - z_info->max_sight;
+	max_y = player->grid.y + z_info->max_sight + 1;
+	min_x = player->grid.x - z_info->max_sight;
+	max_x = player->grid.x + z_info->max_sight + 1;
 
 	/* Scan for monsters */
 	for (y = min_y; y < max_y; y++) {
@@ -1663,7 +1662,7 @@ bool player_can_see_monster(struct chunk *c)
 			/* Don't include player */
 			if (square(c, grid)->mon < 0) continue;
 
-			if(square_isnotknown(c, grid)) continue;
+			if(!square_isview(c, grid)) continue;
 
 			/* Obvious monsters */
 			if (square(c, grid)->mon > 0) {
