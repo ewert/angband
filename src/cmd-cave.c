@@ -1396,11 +1396,7 @@ void do_cmd_explore(struct command *cmd)
 	if (point_set_size(visible_objects)) {
 		grid = visible_objects->pts[0];
 	/* Find candidate spaces to move into */
-	} else if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
-		disturb(player);
-		msg("Suddenly, you feel confused.");
-		return;
-	} else if ((point_set_size(unknown_grids)) && find_path(unknown_grids->pts[0])) {
+	} else  if ((point_set_size(unknown_grids)) && find_path(unknown_grids->pts[0])) {
 		grid = unknown_grids->pts[0];
 	} else if ((point_set_size(closed_stairs))) {
 		grid = closed_stairs->pts[0];
@@ -1410,6 +1406,13 @@ void do_cmd_explore(struct command *cmd)
 		return;
 	}
 
+	if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
+		disturb(player);
+		msg("Suddenly, you feel confused.");
+		return;
+	}
+	/* disturb when below HP warning */
+	/* find out loop */
 	cmdq_push(CMD_PATHFIND);
 	cmd_set_arg_point(cmdq_peek(), "point", grid);
 	if (point_set_size(unknown_grids)) point_set_dispose(unknown_grids);
