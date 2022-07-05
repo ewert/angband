@@ -1663,6 +1663,8 @@ bool player_can_see_monster(struct chunk *c)
 			/* Don't include player */
 			if (square(c, grid)->mon < 0) continue;
 
+			if(square_isnotknown(c, grid)) continue;
+
 			/* Obvious monsters */
 			if (square(c, grid)->mon > 0) {
 				struct monster *mon = square_monster(c, grid);
