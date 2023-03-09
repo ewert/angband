@@ -1359,7 +1359,7 @@ void do_cmd_pathfind(struct command *cmd)
  */
 void do_cmd_explore(struct command *cmd)
 {
-	if (player_is_healthy()) return;
+	if (player_is_healthy(player)) return;
 
 	struct point_set *unexplored_locations;
 	struct point_set *visible_items;
@@ -1373,14 +1373,14 @@ void do_cmd_explore(struct command *cmd)
 		if (player_can_see_monster(cave)) {
 			disturb(player);
 			msg("You can't explore with visible monsters.");
-			return;
+			break;
 		}
 
 		/* XXX - If current on item, announce what it is and return. */
 		if (square(cave, player->grid)->obj && 
 			!ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
 			disturb(player);
-			return;
+			break;
 		}
 
 		/* Move to nearest object */
@@ -1398,13 +1398,13 @@ void do_cmd_explore(struct command *cmd)
 		} else {
 			disturb(player);
 			msg("Can't find uncharted territory.");
-			return;
+			break;
 		}
 
 		if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
 			disturb(player);
 			msg("Suddenly, you feel confused.");
-			return;
+			break;
 		}
 		/* disturb when below HP warning */
 		/* find out loop */
