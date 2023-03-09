@@ -1350,6 +1350,35 @@ void do_cmd_pathfind(struct command *cmd)
 
 }
 
+bool check_status_conditions(void) {
+    if (player->timed[TMD_BLIND] || no_light(player)) {
+        msg("You cannot see!");
+        return true;
+    }
+
+    if (player->timed[TMD_CONFUSED]) {
+        msg("You are too confused!");
+        return true;
+    }
+
+    if (player->timed[TMD_IMAGE]) {
+        msg("You are too intoxicated!");
+        return true;
+    }
+
+    if (player->timed[TMD_CUT]) {
+        msg("You are bleeding too much.");
+        return true;
+    }
+
+    if (player->timed[TMD_POISONED]) {
+        msg("You are too poisoned.");
+        return true;
+    }
+
+    return false;
+}
+
 /**
  * Start auto-exploring.
  *
@@ -1357,92 +1386,65 @@ void do_cmd_pathfind(struct command *cmd)
  */
 void do_cmd_explore(struct command *cmd)
 {
-	struct point_set *unknown_grids;
-	struct point_set *visible_objects;
-	struct point_set *closed_stairs;
+	if (check_status_conditions()) return;
+
+	struct point_set *unexplored_locations;
+	struct point_set *visible_items;
+	struct point_set *closed_doors;
 
 	struct loc grid;
 
-	struct loc last_grid;
-	struct loc last_last_grid;
-	bool more = false;
-	while(!more) {
-	if (player->timed[TMD_BLIND] || no_light(player)) {
-		msg("You cannot see!");
-		return;
-	}
+	struct loc last_grid = {-1, -1};
+	struct loc last_last_grid = {-1, -1};
+	while(true) {
+		if (player_can_see_monster(cave)) {
+			disturb(player);
+			msg("You can't explore with visible monsters.");
+			return;
+		}
 
-	if (player->timed[TMD_CONFUSED]) {
-		msg("You are too confused!");
-		return;
-	}
-	
-	/* Handle hallucination */
-	if (player->timed[TMD_IMAGE]) {
-		msg("You are too intoxicated!");
-		return;
-	}
+		/* XXX - If current on item, announce what it is and return. */
+		if (square(cave, player->grid)->obj && 
+			!ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
+			disturb(player);
+			return;
+		}
 
-	/* Handle cuts */
-	if (player->timed[TMD_CUT]) {
-		msg("You are bleeding too much.");
-		return;
-	}
+		/* Move to nearest object */
+		visible_items = player_visible_objects(cave);
+		unexplored_locations = player_reachable_unknown_grids(cave);
+		closed_doors = player_reachable_closed_doors(cave);
 
-	/* Handle poison */
-	if (player->timed[TMD_POISONED]) {
-		msg("You are too poisoned.");
-		return;
-	}
-	/* If monsters are visible, refuse to move. */
-	if (player_can_see_monster(cave)) {
-		disturb(player);
-		msg("You can't explore with visible monsters.");
-		return;
-	}
+		if (point_set_size(visible_items)) {
+			grid = visible_items->pts[0];
+		/* Find candidate spaces to move into */
+		} else  if ((point_set_size(unexplored_locations)) && find_path(unexplored_locations->pts[0])) {
+			grid = unexplored_locations->pts[0];
+		} else if ((point_set_size(closed_doors))) {
+			grid = closed_doors->pts[0];
+		} else {
+			disturb(player);
+			msg("Can't find uncharted territory.");
+			return;
+		}
 
-	/* XXX - If current on item, announce what it is and return. */
-	if (square(cave, player->grid)->obj && 
-	    !ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
-		disturb(player);
-		return;
-	}
+		if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
+			disturb(player);
+			msg("Suddenly, you feel confused.");
+			return;
+		}
+		/* disturb when below HP warning */
+		/* find out loop */
+		cmdq_push(CMD_PATHFIND);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		if (point_set_size(unexplored_locations)) point_set_dispose(unexplored_locations);
+		if (point_set_size(visible_items)) point_set_dispose(visible_items);
+		if (point_set_size(closed_doors)) point_set_dispose(closed_doors);
 
-	/* Move to nearest object */
-	visible_objects = player_visible_objects(cave);
-	unknown_grids = player_reachable_unknown_grids(cave);
-	closed_stairs = player_reachable_closed_doors(cave);
-
-	if (point_set_size(visible_objects)) {
-		grid = visible_objects->pts[0];
-	/* Find candidate spaces to move into */
-	} else  if ((point_set_size(unknown_grids)) && find_path(unknown_grids->pts[0])) {
-		grid = unknown_grids->pts[0];
-	} else if ((point_set_size(closed_stairs))) {
-		grid = closed_stairs->pts[0];
-	} else {
-		disturb(player);
-		msg("Can't find uncharted territory.");
-		return;
-	}
-
-	if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
-		disturb(player);
-		msg("Suddenly, you feel confused.");
-		return;
-	}
-	/* disturb when below HP warning */
-	/* find out loop */
-	cmdq_push(CMD_PATHFIND);
-	cmd_set_arg_point(cmdq_peek(), "point", grid);
-	if (point_set_size(unknown_grids)) point_set_dispose(unknown_grids);
-	if (point_set_size(visible_objects)) point_set_dispose(visible_objects);
-	if (point_set_size(closed_stairs)) point_set_dispose(closed_stairs);
-
-	last_last_grid = last_grid;
-	last_grid = player->grid;
-	run_game_loop();
-	}
+		last_last_grid = last_grid;
+		last_grid = player->grid;
+		run_game_loop();
+		}
 }
 
 /**
