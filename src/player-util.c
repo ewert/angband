@@ -1598,6 +1598,35 @@ void search(struct player *p)
 	}
 }
 
+bool player_is_healthy(struct player *p) {
+    if (player->timed[TMD_BLIND] || no_light(player)) {
+        msg("You cannot see!");
+        return true;
+    }
+
+    if (player->timed[TMD_CONFUSED]) {
+        msg("You are too confused!");
+        return true;
+    }
+
+    if (player->timed[TMD_IMAGE]) {
+        msg("You are too intoxicated!");
+        return true;
+    }
+
+    if (player->timed[TMD_CUT]) {
+        msg("You are bleeding too much.");
+        return true;
+    }
+
+    if (player->timed[TMD_POISONED]) {
+        msg("You are too poisoned.");
+        return true;
+    }
+
+    return false;
+}
+
 /**
  * The current number of monsters visible to the player.
  */

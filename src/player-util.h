@@ -118,6 +118,7 @@ void player_handle_post_move(struct player *p, bool eval_trap,
 void disturb(struct player *p);
 void search(struct player *p);
 
+bool player_is_healthy(struct player *p); 
 int player_visible_monster_count(struct chunk *c);
 bool player_can_see_monster(struct chunk *c);
 struct point_set *player_visible_monsters(struct chunk *c); 

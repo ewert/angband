@@ -1350,34 +1350,7 @@ void do_cmd_pathfind(struct command *cmd)
 
 }
 
-bool check_status_conditions(void) {
-    if (player->timed[TMD_BLIND] || no_light(player)) {
-        msg("You cannot see!");
-        return true;
-    }
 
-    if (player->timed[TMD_CONFUSED]) {
-        msg("You are too confused!");
-        return true;
-    }
-
-    if (player->timed[TMD_IMAGE]) {
-        msg("You are too intoxicated!");
-        return true;
-    }
-
-    if (player->timed[TMD_CUT]) {
-        msg("You are bleeding too much.");
-        return true;
-    }
-
-    if (player->timed[TMD_POISONED]) {
-        msg("You are too poisoned.");
-        return true;
-    }
-
-    return false;
-}
 
 /**
  * Start auto-exploring.
@@ -1386,7 +1359,7 @@ bool check_status_conditions(void) {
  */
 void do_cmd_explore(struct command *cmd)
 {
-	if (check_status_conditions()) return;
+	if (player_is_healthy()) return;
 
 	struct point_set *unexplored_locations;
 	struct point_set *visible_items;
