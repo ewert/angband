@@ -1357,7 +1357,7 @@ bool effect_handler_EARTHQUAKE(effect_handler_context_t *context)
 		}
 	}
 
-	/* First, affect the player (if necessary) */
+	/* First, determine the effects on the player (if necessary) */
 	if (hurt) {
 		/* Check around the player */
 		for (i = 0; i < 8; i++) {
@@ -1431,9 +1431,6 @@ bool effect_handler_EARTHQUAKE(effect_handler_context_t *context)
 			monster_swap(pgrid, safe_grid);
 			player_handle_post_move(player, true, true);
 		}
-
-		/* Take some damage */
-		if (damage) take_hit(player, damage, "an earthquake");
 	}
 
 
@@ -1454,6 +1451,7 @@ bool effect_handler_EARTHQUAKE(effect_handler_context_t *context)
 				if (!flags_test(mon->race->flags, RF_SIZE, RF_KILL_WALL,
 								RF_PASS_WALL, FLAG_END)) {
 					char m_name[80];
+					int m_dam;
 
 					/* Assume not safe */
 					safe_grids = 0;
@@ -1492,17 +1490,17 @@ bool effect_handler_EARTHQUAKE(effect_handler_context_t *context)
 					msg("%s wails out in pain!", m_name);
 
 					/* Take damage from the quake */
-					damage = (safe_grids ? damroll(4, 8) : (mon->hp + 1));
+					m_dam = (safe_grids ? damroll(4, 8) : (mon->hp + 1));
 
 					/* Monster is certainly awake, not thinking about player */
 					monster_wake(mon, false, 0);
 
 					/* If the quake finished the monster off, show message */
-					if (mon->hp < damage && mon->hp >= 0)
+					if (mon->hp < m_dam && mon->hp >= 0)
 						msg("%s is embedded in the rock!", m_name);
 
 					/* Apply damage directly */
-					mon->hp -= damage;
+					mon->hp -= m_dam;
 
 					/* Delete (not kill) "dead" monsters */
 					if (mon->hp < 0) {
@@ -1549,6 +1547,12 @@ bool effect_handler_EARTHQUAKE(effect_handler_context_t *context)
 			}
 		}
 	}
+
+	/*
+	 * Apply damage to player; done here so messages are ordered properly
+	 * if the player dies.
+	 */
+	if (damage) take_hit(player, damage, "an earthquake");
 
 	/* Fully update the visuals */
 	player->upkeep->update |= (PU_UPDATE_VIEW | PU_MONSTERS);

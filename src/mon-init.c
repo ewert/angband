@@ -174,10 +174,12 @@ static enum parser_error parse_meth_message_type(struct parser *p)
 static enum parser_error parse_meth_act_msg(struct parser *p) {
 	const char *message = parser_getstr(p, "act");
 	struct blow_method *meth = parser_priv(p);
-	struct blow_message *msg = mem_zalloc(sizeof(*msg));
-	if (!meth)
-		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	struct blow_message *msg;
 
+	if (!meth) {
+		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
+	msg = mem_zalloc(sizeof(*msg));
 	msg->act_msg = string_make(message);
 	msg->next = meth->messages;
 	meth->messages = msg;
@@ -580,12 +582,16 @@ struct file_parser pain_parser = {
 
 static enum parser_error parse_mon_spell_name(struct parser *p) {
 	struct monster_spell *h = parser_priv(p);
-	struct monster_spell *s = mem_zalloc(sizeof *s);
 	const char *name = parser_getstr(p, "name");
+	struct monster_spell *s;
 	int index;
-	s->next = h;
-	if (grab_name("monster spell", name, r_info_spell_flags, N_ELEMENTS(r_info_spell_flags), &index))
+
+	if (grab_name("monster spell", name, r_info_spell_flags,
+			N_ELEMENTS(r_info_spell_flags) - 1, &index)) {
 		return PARSE_ERROR_INVALID_SPELL_NAME;
+	}
+	s = mem_zalloc(sizeof(*s));
+	s->next = h;
 	s->index = index;
 	s->level = mem_zalloc(sizeof(*(s->level)));
 	parser_setpriv(p, s);
@@ -595,45 +601,48 @@ static enum parser_error parse_mon_spell_name(struct parser *p) {
 
 static enum parser_error parse_mon_spell_message_type(struct parser *p)
 {
-	int msg_index;
-	const char *type;
 	struct monster_spell *s = parser_priv(p);
-	assert(s);
+	const char *type = parser_getsym(p, "type");
+	int msg_index = message_lookup_by_name(type);
 
-	type = parser_getsym(p, "type");
-
-	msg_index = message_lookup_by_name(type);
-
-	if (msg_index < 0)
+	if (!s) {
+		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
+	if (msg_index < 0) {
 		return PARSE_ERROR_INVALID_MESSAGE;
-
+	}
 	s->msgt = msg_index;
 	return PARSE_ERROR_NONE;
 }
 
 static enum parser_error parse_mon_spell_hit(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
-	assert(s);
+
+	if (!s) {
+		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 	s->hit = parser_getuint(p, "hit");
 	return PARSE_ERROR_NONE;
 }
 
 static enum parser_error parse_mon_spell_effect(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
-	struct effect *effect;
-	struct effect *new_effect = mem_zalloc(sizeof(*new_effect));
+	struct effect *effect, *new_effect;
 
-	if (!s)
+	if (!s) {
 		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
+	new_effect = mem_zalloc(sizeof(*new_effect));
 	/* Go to the next vacant effect and set it to the new one  */
 	if (s->effect) {
 		effect = s->effect;
 		while (effect->next)
 			effect = effect->next;
 		effect->next = new_effect;
-	} else
+	} else {
 		s->effect = new_effect;
+	}
 
 	/* Fill in the detail */
 	return grab_effect_data(p, new_effect);
@@ -641,104 +650,112 @@ static enum parser_error parse_mon_spell_effect(struct parser *p) {
 
 static enum parser_error parse_mon_spell_effect_yx(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
-	struct effect *effect = s->effect;
+	struct effect *effect;
 
-	if (!s)
+	if (!s) {
 		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	/* If there is no effect, assume that this is human and not parser error. */
-	if (effect == NULL)
+	effect = s->effect;
+	if (effect == NULL) {
 		return PARSE_ERROR_NONE;
-
+	}
 	while (effect->next) effect = effect->next;
+
 	effect->y = parser_getint(p, "y");
 	effect->x = parser_getint(p, "x");
-
 	return PARSE_ERROR_NONE;
 }
 
 static enum parser_error parse_mon_spell_dice(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
-	dice_t *dice = NULL;
-	struct effect *effect = s->effect;
-	const char *string = NULL;
+	struct effect *effect;
+	dice_t *dice;
+	const char *string;
 
-	if (!s)
+	if (!s) {
 		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	/* If there is no effect, assume that this is human and not parser error. */
-	if (effect == NULL)
+	effect = s->effect;
+	if (effect == NULL) {
 		return PARSE_ERROR_NONE;
-
+	}
 	while (effect->next) effect = effect->next;
 
 	dice = dice_new();
-
-	if (dice == NULL)
+	if (dice == NULL) {
 		return PARSE_ERROR_INVALID_DICE;
-
-	string = parser_getstr(p, "dice");
-
-	if (dice_parse_string(dice, string)) {
-		effect->dice = dice;
 	}
-	else {
+	string = parser_getstr(p, "dice");
+	if (dice_parse_string(dice, string)) {
+		dice_free(effect->dice);
+		effect->dice = dice;
+	} else {
 		dice_free(dice);
 		return PARSE_ERROR_INVALID_DICE;
 	}
-
 	return PARSE_ERROR_NONE;
 }
 
 static enum parser_error parse_mon_spell_expr(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
-	struct effect *effect = s->effect;
-	expression_t *expression = NULL;
+	struct effect *effect;
+	expression_t *expression;
 	expression_base_value_f function = NULL;
 	const char *name;
 	const char *base;
 	const char *expr;
 
-	if (!s)
+	if (!s) {
 		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	/* If there is no effect, assume that this is human and not parser error. */
-	if (effect == NULL)
+	effect = s->effect;
+	if (effect == NULL) {
 		return PARSE_ERROR_NONE;
-
+	}
 	while (effect->next) effect = effect->next;
 
 	/* If there are no dice, assume that this is human and not parser error. */
-	if (effect->dice == NULL)
+	if (effect->dice == NULL) {
 		return PARSE_ERROR_NONE;
+	}
 
+	expression = expression_new();
+	if (expression == NULL) {
+		return PARSE_ERROR_INVALID_EXPRESSION;
+	}
 	name = parser_getsym(p, "name");
 	base = parser_getsym(p, "base");
 	expr = parser_getstr(p, "expr");
-	expression = expression_new();
-
-	if (expression == NULL)
-		return PARSE_ERROR_INVALID_EXPRESSION;
-
 	function = effect_value_base_by_name(base);
 	expression_set_base_value(expression, function);
-
-	if (expression_add_operations_string(expression, expr) < 0)
+	if (expression_add_operations_string(expression, expr) < 0) {
+		expression_free(expression);
 		return PARSE_ERROR_BAD_EXPRESSION_STRING;
-
-	if (dice_bind_expression(effect->dice, name, expression) < 0)
+	}
+	if (dice_bind_expression(effect->dice, name, expression) < 0) {
+		expression_free(expression);
 		return PARSE_ERROR_UNBOUND_EXPRESSION;
+	}
 
 	/* The dice object makes a deep copy of the expression, so we can free it */
 	expression_free(expression);
-
 	return PARSE_ERROR_NONE;
 }
 
 static enum parser_error parse_mon_spell_power_cutoff(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
 	struct monster_spell_level *l, *new;
-	assert(s);
+
+	if (!s) {
+		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
+
 	new = mem_zalloc(sizeof(*new));
 	new->power = parser_getint(p, "power");
 	l = s->level;
@@ -752,14 +769,16 @@ static enum parser_error parse_mon_spell_power_cutoff(struct parser *p) {
 static enum parser_error parse_mon_spell_lore_desc(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
 	struct monster_spell_level *l;
-	assert(s);
+
+	if (!s) {
+		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
+
 	l = s->level;
 	while (l->next) {
 		l = l->next;
 	}
-
-	l->lore_desc = string_append(l->lore_desc,
-										parser_getstr(p, "text"));
+	l->lore_desc = string_append(l->lore_desc, parser_getstr(p, "text"));
 	return PARSE_ERROR_NONE;
 }
 
@@ -769,16 +788,19 @@ static enum parser_error parse_mon_spell_lore_color(struct parser *p) {
 	const char *color;
 	int attr;
 
-	if (!s)
+	if (!s) {
 		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	color = parser_getsym(p, "color");
-	if (strlen(color) > 1)
+	if (strlen(color) > 1) {
 		attr = color_text_to_attr(color);
-	else
+	} else {
 		attr = color_char_to_attr(color[0]);
-	if (attr < 0)
+	}
+	if (attr < 0) {
 		return PARSE_ERROR_INVALID_COLOR;
+	}
 	l = s->level;
 	while (l->next) {
 		l = l->next;
@@ -793,16 +815,19 @@ static enum parser_error parse_mon_spell_lore_color_resist(struct parser *p) {
 	const char *color;
 	int attr;
 
-	if (!s)
+	if (!s) {
 		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	color = parser_getsym(p, "color");
-	if (strlen(color) > 1)
+	if (strlen(color) > 1) {
 		attr = color_text_to_attr(color);
-	else
+	} else {
 		attr = color_char_to_attr(color[0]);
-	if (attr < 0)
+	}
+	if (attr < 0) {
 		return PARSE_ERROR_INVALID_COLOR;
+	}
 	l = s->level;
 	while (l->next) {
 		l = l->next;
@@ -817,16 +842,19 @@ static enum parser_error parse_mon_spell_lore_color_immune(struct parser *p) {
 	const char *color;
 	int attr;
 
-	if (!s)
+	if (!s) {
 		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	color = parser_getsym(p, "color");
-	if (strlen(color) > 1)
+	if (strlen(color) > 1) {
 		attr = color_text_to_attr(color);
-	else
+	} else {
 		attr = color_char_to_attr(color[0]);
-	if (attr < 0)
+	}
+	if (attr < 0) {
 		return PARSE_ERROR_INVALID_COLOR;
+	}
 	l = s->level;
 	while (l->next) {
 		l = l->next;
@@ -838,7 +866,10 @@ static enum parser_error parse_mon_spell_lore_color_immune(struct parser *p) {
 static enum parser_error parse_mon_spell_message(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
 	struct monster_spell_level *l;
-	assert(s);
+
+	if (!s) {
+		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	l = s->level;
 	while (l->next) {
@@ -851,7 +882,10 @@ static enum parser_error parse_mon_spell_message(struct parser *p) {
 static enum parser_error parse_mon_spell_blind_message(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
 	struct monster_spell_level *l;
-	assert(s);
+
+	if (!s) {
+		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	l = s->level;
 	while (l->next) {
@@ -864,7 +898,10 @@ static enum parser_error parse_mon_spell_blind_message(struct parser *p) {
 static enum parser_error parse_mon_spell_miss_message(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
 	struct monster_spell_level *l;
-	assert(s);
+
+	if (!s) {
+		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	l = s->level;
 	while (l->next) {
@@ -877,7 +914,10 @@ static enum parser_error parse_mon_spell_miss_message(struct parser *p) {
 static enum parser_error parse_mon_spell_save_message(struct parser *p) {
 	struct monster_spell *s = parser_priv(p);
 	struct monster_spell_level *l;
-	assert(s);
+
+	if (!s) {
+		return PARSE_ERROR_MISSING_RECORD_HEADER;
+	}
 
 	l = s->level;
 	while (l->next) {
@@ -1005,14 +1045,14 @@ static enum parser_error parse_mon_base_flags(struct parser *p) {
 	s = strtok(flags, " |");
 	while (s) {
 		if (grab_flag(rb->flags, RF_SIZE, r_info_flags, s)) {
-			mem_free(flags);
-			quit_fmt("bad f-flag: %s", s);
+			plog(format("bad monster base flag: %s", s));
+			string_free(flags);
 			return PARSE_ERROR_INVALID_FLAG;
 		}
 		s = strtok(NULL, " |");
 	}
 
-	mem_free(flags);
+	string_free(flags);
 	return PARSE_ERROR_NONE;
 }
 
@@ -1162,7 +1202,7 @@ static enum parser_error parse_monster_hearing(struct parser *p) {
 	if (!r)
 		return PARSE_ERROR_MISSING_RECORD_HEADER;
 	/* Assumes max_sight is 20, so we adjust in case it isn't */
-	r->hearing = parser_getint(p, "hearing") * 20 / z_info->max_sight;
+	r->hearing = parser_getint(p, "hearing") * z_info->max_sight / 20;
 	return PARSE_ERROR_NONE;
 }
 
@@ -1172,7 +1212,7 @@ static enum parser_error parse_monster_smell(struct parser *p) {
 	if (!r)
 		return PARSE_ERROR_MISSING_RECORD_HEADER;
 	/* Assumes max_sight is 20, so we adjust in case it isn't */
-	r->smell = parser_getint(p, "smell") * 20 / z_info->max_sight;
+	r->smell = parser_getint(p, "smell") * z_info->max_sight / 20;
 	return PARSE_ERROR_NONE;
 }
 
@@ -1272,14 +1312,14 @@ static enum parser_error parse_monster_flags(struct parser *p) {
 	s = strtok(flags, " |");
 	while (s) {
 		if (grab_flag(r->flags, RF_SIZE, r_info_flags, s)) {
-			mem_free(flags);
-			quit_fmt("bad f2-flag: %s", s);
+			plog(format("bad monster race flag: %s", s));
+			string_free(flags);
 			return PARSE_ERROR_INVALID_FLAG;
 		}
 		s = strtok(NULL, " |");
 	}
 
-	mem_free(flags);
+	string_free(flags);
 	return PARSE_ERROR_NONE;
 }
 
@@ -1296,14 +1336,14 @@ static enum parser_error parse_monster_flags_off(struct parser *p) {
 	s = strtok(flags, " |");
 	while (s) {
 		if (remove_flag(r->flags, RF_SIZE, r_info_flags, s)) {
-			mem_free(flags);
-			quit_fmt("bad mf-flag: %s", s);
+			plog(format("bad monster race flag: %s", s));
+			string_free(flags);
 			return PARSE_ERROR_INVALID_FLAG;
 		}
 		s = strtok(NULL, " |");
 	}
 
-	mem_free(flags);
+	string_free(flags);
 	return PARSE_ERROR_NONE;
 }
 
@@ -1364,16 +1404,12 @@ static enum parser_error parse_monster_spells(struct parser *p) {
 	s = strtok(flags, " |");
 	while (s) {
 		if (grab_flag(r->spell_flags, RSF_SIZE, r_info_spell_flags, s)) {
-			quit_fmt("bad spell flag: %s", s);
+			plog(format("bad monster spell flag: %s", s));
 			ret = PARSE_ERROR_INVALID_FLAG;
 			break;
 		}
 		s = strtok(NULL, " |");
 	}
-
-	/* Add the "base monster" flags to the monster */
-	if (r->base)
-		rsf_union(r->spell_flags, r->base->spell_flags);
 
 	/* Make sure innate frequency is set if necessary */
 	create_mon_spell_mask(current_flags, RST_INNATE, RST_NONE);
@@ -1383,7 +1419,7 @@ static enum parser_error parse_monster_spells(struct parser *p) {
 		r->freq_innate = 4;
 	}
 
-	/* Make sure innate frequency is set if necessary */
+	/* Make sure non-innate frequency is set if necessary */
 	rsf_copy(current_flags, r->spell_flags);
 	create_mon_spell_mask(test_flags, RST_BREATH, RST_INNATE, RST_NONE);
 	rsf_diff(current_flags, test_flags);
@@ -1392,7 +1428,7 @@ static enum parser_error parse_monster_spells(struct parser *p) {
 		r->freq_spell = 4;
 	}
 
-	mem_free(flags);
+	string_free(flags);
 	return ret;
 }
 
@@ -1422,7 +1458,7 @@ static enum parser_error parse_monster_msg_vis(struct parser *p) {
 
 	if (!r) return PARSE_ERROR_MISSING_RECORD_HEADER;
 	if (grab_name("monster spell", spell, r_info_spell_flags,
-			N_ELEMENTS(r_info_spell_flags), &s_idx))
+			N_ELEMENTS(r_info_spell_flags) - 1, &s_idx))
 			return PARSE_ERROR_INVALID_SPELL_NAME;
 	add_alternate_spell_message(r, s_idx, MON_ALTMSG_SEEN, msg);
 
@@ -1438,7 +1474,7 @@ static enum parser_error parse_monster_msg_invis(struct parser *p) {
 
 	if (!r) return PARSE_ERROR_MISSING_RECORD_HEADER;
 	if (grab_name("monster spell", spell, r_info_spell_flags,
-			N_ELEMENTS(r_info_spell_flags), &s_idx))
+			N_ELEMENTS(r_info_spell_flags) - 1, &s_idx))
 			return PARSE_ERROR_INVALID_SPELL_NAME;
 	add_alternate_spell_message(r, s_idx, MON_ALTMSG_UNSEEN, msg);
 
@@ -1454,7 +1490,7 @@ static enum parser_error parse_monster_msg_miss(struct parser *p) {
 
 	if (!r) return PARSE_ERROR_MISSING_RECORD_HEADER;
 	if (grab_name("monster spell", spell, r_info_spell_flags,
-			N_ELEMENTS(r_info_spell_flags), &s_idx))
+			N_ELEMENTS(r_info_spell_flags) - 1, &s_idx))
 			return PARSE_ERROR_INVALID_SPELL_NAME;
 	add_alternate_spell_message(r, s_idx, MON_ALTMSG_MISS, msg);
 
@@ -1529,7 +1565,6 @@ static enum parser_error parse_monster_friends(struct parser *p) {
 	f->number_dice = number.dice;
 	f->number_side = number.sides;
 	f->percent_chance = parser_getuint(p, "chance");
-	f->name = string_make(parser_getsym(p, "name"));
 	if (parser_hasval(p, "role")) {
 		const char *role_name = parser_getsym(p, "role");
 		if (streq(role_name, "servant")) {
@@ -1537,11 +1572,13 @@ static enum parser_error parse_monster_friends(struct parser *p) {
 		} else if (streq(role_name, "bodyguard")) {
 			f->role = MON_GROUP_BODYGUARD;
 		} else {
+			mem_free(f);
 			return PARSE_ERROR_INVALID_MONSTER_ROLE;
 		}
 	} else {
 		f->role = MON_GROUP_MEMBER;
 	}
+	f->name = string_make(parser_getsym(p, "name"));
 	f->next = r->friends;
 	r->friends = f;
 
@@ -1561,7 +1598,10 @@ static enum parser_error parse_monster_friends_base(struct parser *p) {
 	f->number_side = number.sides;
 	f->percent_chance = parser_getuint(p, "chance");
 	f->base = lookup_monster_base(parser_getsym(p, "name"));
-	if (!f->base) return PARSE_ERROR_UNRECOGNISED_TVAL;
+	if (!f->base) {
+		mem_free(f);
+		return PARSE_ERROR_INVALID_MONSTER_BASE;
+	}
 	if (parser_hasval(p, "role")) {
 		const char *role_name = parser_getsym(p, "role");
 		if (streq(role_name, "servant")) {
@@ -1569,6 +1609,7 @@ static enum parser_error parse_monster_friends_base(struct parser *p) {
 		} else if (streq(role_name, "bodyguard")) {
 			f->role = MON_GROUP_BODYGUARD;
 		} else {
+			mem_free(f);
 			return PARSE_ERROR_INVALID_MONSTER_ROLE;
 		}
 	} else {
@@ -2526,7 +2567,6 @@ static errr finish_parse_lore(struct parser *p) {
 		/* Base flag knowledge */
 		if (r->base) {
 			rf_union(l->flags, r->base->flags);
-			rsf_union(l->spell_flags, r->base->spell_flags);
 		}
 
 		/* Remove blows data for non-blows */

@@ -202,7 +202,6 @@ static bool uncurse_object(struct object *obj, int strength, char *dice_string)
 			struct object *destroyed;
 			bool none_left = false;
 			msg("There is a bang and a flash!");
-			take_hit(player, damroll(5, 5), "Failed uncursing");
 			if (object_is_carried(player, obj)) {
 				destroyed = gear_object_for_use(player, obj,
 					1, false, &none_left);
@@ -215,6 +214,7 @@ static bool uncurse_object(struct object *obj, int strength, char *dice_string)
 			} else {
 				square_delete_object(cave, obj->grid, obj, true, true);
 			}
+			take_hit(player, damroll(5, 5), "Failed uncursing");
 		} else {
 			/* Non-destructive failure */
 			msg("The removal fails.");
@@ -1573,7 +1573,7 @@ static void forget_remembered_objects(struct chunk *c, struct chunk *knownc, str
 			object_delete(player->cave, NULL, &obj);
 			original->known = NULL;
 			delist_object(c, original);
-			object_delete(cave, player->cave, &original);
+			object_delete(c, player->cave, &original);
 		}
 		obj = next;
 	}
@@ -3513,5 +3513,28 @@ bool effect_handler_SET_VALUE(effect_handler_context_t *context)
 bool effect_handler_CLEAR_VALUE(effect_handler_context_t *context)
 {
 	set_value = 0;
+	return true;
+}
+
+/**
+ * Scramble the player's stats.  This is only intended for use by the
+ * timed effect, TMD_SCRAMBLE.  Other effect chains wanting to incur a
+ * scrambling effect should use TIMED_INC:SCRAMBLE or TIMED_INC_NO_RES:SCRAMBLE.
+ */
+bool effect_handler_SCRAMBLE_STATS(effect_handler_context_t *context)
+{
+	player_scramble_stats(player);
+	return true;
+}
+
+/**
+ * Unscramble the player's stats.  This is only intended for use by the
+ * timed effect, TMD_SCRAMBLE.  Other effect chains wanting to undo a
+ * scrambling effect should use CURE:SCRAMBLE (or perhaps TIMED_DEC:SCRAMBLE
+ * to merely reduce the duration of an existing scramble effect).
+ */
+bool effect_handler_UNSCRAMBLE_STATS(effect_handler_context_t *context)
+{
+	player_fix_scramble(player);
 	return true;
 }
