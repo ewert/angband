@@ -5286,4 +5286,3 @@ flags:INSTA_ART | QUEST_ART
 
 
 #The "Special Artifacts" are now automatically generated from artifact.txt
-
