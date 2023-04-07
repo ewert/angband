@@ -780,6 +780,14 @@ bool square_islockeddoor(struct chunk *c, struct loc grid)
 }
 
 /**
+ * True if the square is a closed, unlocked door.
+ */
+bool square_isunlockeddoor(struct chunk *c, struct loc grid)
+{
+	return square_iscloseddoor(c, grid) && square_door_power(c, grid) == 0;
+}
+
+/**
  * True if there is a player trap (known or unknown) in this square.
  */
 bool square_isplayertrap(struct chunk *c, struct loc grid)
@@ -1407,7 +1415,7 @@ int square_shopnum(struct chunk *c, struct loc grid) {
 }
 
 int square_digging(struct chunk *c, struct loc grid) {
-	if (square_isdiggable(c, grid) || square_iscloseddoor(cave, grid))
+	if (square_isdiggable(c, grid) || square_iscloseddoor(c, grid))
 		return f_info[square(c, grid)->feat].dig;
 	return 0;
 }
@@ -1422,9 +1430,9 @@ int square_digging(struct chunk *c, struct loc grid) {
  */
 const char *square_apparent_name(struct chunk *c, struct loc grid) {
 	int actual = square(c, grid)->feat;
-	char *mimic_name = f_info[actual].mimic;
-	int f = mimic_name ? lookup_feat(mimic_name) : actual;
-	return f_info[f].name;
+	const struct feature *fp = f_info[actual].mimic ?
+		f_info[actual].mimic : &f_info[actual];
+	return fp->name;
 }
 
 /*
@@ -1439,10 +1447,10 @@ const char *square_apparent_name(struct chunk *c, struct loc grid) {
  */
 const char *square_apparent_look_prefix(struct chunk *c, struct loc grid) {
 	int actual = square(c, grid)->feat;
-	char *mimic_name = f_info[actual].mimic;
-	int f = mimic_name ? lookup_feat(mimic_name) : actual;
-	return (f_info[f].look_prefix) ? f_info[f].look_prefix :
-		(is_a_vowel(f_info[f].name[0]) ? "an " : "a ");
+	const struct feature *fp = f_info[actual].mimic ?
+		f_info[actual].mimic : &f_info[actual];
+	return (fp->look_prefix) ? fp->look_prefix :
+		(is_a_vowel(fp->name[0]) ? "an " : "a ");
 }
 
 /*
@@ -1456,10 +1464,9 @@ const char *square_apparent_look_prefix(struct chunk *c, struct loc grid) {
  */
 const char *square_apparent_look_in_preposition(struct chunk *c, struct loc grid) {
 	int actual = square(c, grid)->feat;
-	char *mimic_name = f_info[actual].mimic;
-	int f = mimic_name ? lookup_feat(mimic_name) : actual;
-	return (f_info[f].look_in_preposition) ?
-		 f_info[f].look_in_preposition : "on ";
+	const struct feature *fp = f_info[actual].mimic ?
+		f_info[actual].mimic : &f_info[actual];
+	return (fp->look_in_preposition) ?  fp->look_in_preposition : "on ";
 }
 
 /* Memorize the terrain */

@@ -81,7 +81,7 @@
 
 #define uint unsigned int
 
-#if (defined(WINDOWS) && !defined(USE_SDL)) && !defined(USE_SDL2)
+#if defined(WINDOWS) && !defined(USE_SDL) && !defined(USE_SDL2)
 
 #include "sound.h"
 #include "snd-win.h"
@@ -568,51 +568,123 @@ static void term_getsize(term_data *td)
 	if (td->rows < 1) td->rows = 1;
 
 	if (use_graphics_nice) {
+		/*
+		 * This is the gamut of multipliers available in the
+		 * IDM_OPTIONS_TILE_* constants, sorted in increasing order
+		 * of the area of the scaled up block.
+		 */
+		const struct { int w, h; } multipliers[] = {
+			{ 1, 1 },
+			{ 2, 1 },
+			{ 3, 1 },
+			{ 2, 2 },
+			{ 4, 2 },
+			{ 3, 3 },
+			{ 4, 4 },
+			{ 6, 3 },
+			{ 8, 4 },
+			{ 6, 6 },
+			{ 8, 8 },
+			{ 16, 8 },
+			{ 16, 16 },
+		};
+		long best;
+		int ibest, i;
+
 		if (current_graphics_mode && current_graphics_mode->grafID) {
 			if (current_graphics_mode->file[0]) {
-                char *end;
-                td->tile_wid = strtol(current_graphics_mode->file,&end,10);
-                td->tile_hgt = strtol(end+1,NULL,10);
+				char *end;
+				td->tile_wid = strtol(
+					current_graphics_mode->file,&end,10);
+				td->tile_hgt = strtol(end+1,NULL,10);
 			} else {
-                td->tile_wid = current_graphics_mode->cell_width;
-                td->tile_hgt = current_graphics_mode->cell_height;
+				td->tile_wid =
+					current_graphics_mode->cell_width;
+				td->tile_hgt =
+					current_graphics_mode->cell_height;
 			}
 			if ((td->tile_wid == 0) || (td->tile_hgt == 0)) {
-                td->tile_wid = current_graphics_mode->cell_width;
-                td->tile_hgt = current_graphics_mode->cell_height;
+				td->tile_wid =
+					current_graphics_mode->cell_width;
+				td->tile_hgt =
+					current_graphics_mode->cell_height;
 			}
 			if ((td->tile_wid == 0) || (td->tile_hgt == 0)) {
-                td->tile_wid = td->font_wid;
-                td->tile_hgt = td->font_hgt;
+				td->tile_wid = td->font_wid;
+				td->tile_hgt = td->font_hgt;
 			}
 		} else {
 			/* Reset the tile info */
 			td->tile_wid = td->font_wid;
 			td->tile_hgt = td->font_hgt;
 		}
-		
-	    tile_width = 1;
-	    tile_height = 1;
-		
-		if ((td->tile_hgt >= td->font_hgt * 3) &&
-			(td->tile_wid >= td->font_wid * 3)) {
-			tile_width = 3;
-			tile_height = 3;
-			td->tile_wid /= 3;
-			td->tile_hgt /= 3;
-		} else if ((td->tile_hgt >= td->font_hgt * 2) &&
-				   (td->tile_wid >= td->font_wid * 2)) {
-			tile_width = 2;
-			tile_height = 2;
-			td->tile_wid /= 2;
-			td->tile_hgt /= 2;
+
+		/*
+		 * If the tile is enough smaller than the font in either
+		 * dimension, consider using a scaled up version (preserving
+		 * the aspect ratio) of the tile as the target size.
+		 */
+		if (td->tile_wid <= (2 * td->font_wid) / 3
+				|| td->tile_hgt <= (2 * td->font_wid) / 3) {
+			int area_ratio = (int) (((long) td->font_wid
+				* (long) td->font_hgt + ((long) td->tile_wid
+				* (long) td->tile_hgt) / 2)
+				/ ((long) td->tile_wid * (long) td->tile_hgt));
+
+			best = abs((long) td->font_wid * (long) td->font_hgt
+				 - (long) td->tile_wid * (long) td->tile_hgt);
+			ibest = 1;
+			i = 2;
+			while (!best && (i - 1) * (i - 1) <= area_ratio) {
+				int try_best = abs((long) td->font_wid
+					* (long) td->font_hgt
+					- ((long) td->tile_wid * i)
+					* ((long) td->tile_hgt * i));
+
+				if (best > try_best) {
+					best = try_best;
+					ibest = i;
+				}
+				++i;
+			}
+			td->tile_wid *= i;
+			td->tile_hgt *= i;
 		}
-		
-		if (td->tile_wid >= td->font_wid * 2) {
-			tile_width *= 2;
-			td->tile_wid /= 2;
+
+		/*
+		 * Find the best multiplier (size of the scaled up font does
+		 * not exceed the tile size in either dimension, and the area
+		 * of the scaled up font is closest to the area of the tile).
+		 */
+		ibest = -1;
+		best = (long) td->tile_wid * (long) td->tile_hgt;
+		for (i = 0; i < (int) N_ELEMENTS(multipliers) && best; ++i) {
+			uint sclw = td->font_wid * multipliers[i].w;
+			uint sclh = td->font_hgt * multipliers[i].h;
+
+			if (sclw <= td->tile_wid && sclh <= td->tile_hgt) {
+				int try_best = abs(
+					(long) td->tile_wid
+					* (long) td->tile_hgt
+					- (long) sclw * (long) sclh);
+
+				if (best > try_best) {
+					best = try_best;
+					ibest = i;
+				}
+			}
 		}
-		
+
+		if (ibest >= 0) {
+			tile_width = multipliers[ibest].w;
+			tile_height = multipliers[ibest].h;
+			td->tile_wid /= tile_width;
+			td->tile_hgt /= tile_height;
+		} else {
+			tile_width = 1;
+			tile_height = 1;
+		}
+
 		if (td->tile_wid < td->font_wid) td->tile_wid = td->font_wid;
 		if (td->tile_hgt < td->font_hgt) td->tile_hgt = td->font_hgt;
 	}
@@ -661,32 +733,32 @@ static void save_prefs_aux(term_data *td, const char *sec_name)
 	if (!td->w) return;
 
 	/* Visible */
-	strcpy(buf, td->visible ? "1" : "0");
-	WritePrivateProfileString(sec_name, "Visible", buf, ini_file);
+	my_strcpy(buf, td->visible ? "1" : "0", sizeof(buf));
+	WritePrivateProfileStringA(sec_name, "Visible", buf, ini_file);
 
 	/* Font */
-	strcpy(buf, td->font_file ? td->font_file : DEFAULT_FONT);
-	WritePrivateProfileString(sec_name, "Font", buf, ini_file);
+	my_strcpy(buf, td->font_file ? td->font_file : DEFAULT_FONT, sizeof(buf));
+	WritePrivateProfileStringA(sec_name, "Font", buf, ini_file);
 
 	/* Bizarre */
-	strcpy(buf, td->bizarre ? "1" : "0");
-	WritePrivateProfileString(sec_name, "Bizarre", buf, ini_file);
+	my_strcpy(buf, td->bizarre ? "1" : "0", sizeof(buf));
+	WritePrivateProfileStringA(sec_name, "Bizarre", buf, ini_file);
 
 	/* Tile size (x) */
-	wsprintf(buf, "%d", td->tile_wid);
-	WritePrivateProfileString(sec_name, "TileWid", buf, ini_file);
+	strnfmt(buf, sizeof(buf), "%d", td->tile_wid);
+	WritePrivateProfileStringA(sec_name, "TileWid", buf, ini_file);
 
 	/* Tile size (y) */
-	wsprintf(buf, "%d", td->tile_hgt);
-	WritePrivateProfileString(sec_name, "TileHgt", buf, ini_file);
+	strnfmt(buf, sizeof(buf), "%d", td->tile_hgt);
+	WritePrivateProfileStringA(sec_name, "TileHgt", buf, ini_file);
 
 	/* Window size (x) */
-	wsprintf(buf, "%d", td->cols);
-	WritePrivateProfileString(sec_name, "NumCols", buf, ini_file);
+	strnfmt(buf, sizeof(buf), "%d", td->cols);
+	WritePrivateProfileStringA(sec_name, "NumCols", buf, ini_file);
 
 	/* Window size (y) */
-	wsprintf(buf, "%d", td->rows);
-	WritePrivateProfileString(sec_name, "NumRows", buf, ini_file);
+	strnfmt(buf, sizeof(buf), "%d", td->rows);
+	WritePrivateProfileStringA(sec_name, "NumRows", buf, ini_file);
 
 	/* Get window placement and dimensions */
 	lpwndpl.length = sizeof(WINDOWPLACEMENT);
@@ -702,16 +774,16 @@ static void save_prefs_aux(term_data *td, const char *sec_name)
 		td->maximized = false;
 
 	/* Window position (x) */
-	wsprintf(buf, "%d", rc.left);
-	WritePrivateProfileString(sec_name, "PositionX", buf, ini_file);
+	strnfmt(buf, sizeof(buf), "%ld", rc.left);
+	WritePrivateProfileStringA(sec_name, "PositionX", buf, ini_file);
 
 	/* Window position (y) */
-	wsprintf(buf, "%d", rc.top);
-	WritePrivateProfileString(sec_name, "PositionY", buf, ini_file);
+	strnfmt(buf, sizeof(buf), "%ld", rc.top);
+	WritePrivateProfileStringA(sec_name, "PositionY", buf, ini_file);
 
 	/* Maximized */
-	strcpy(buf, td->maximized ? "1" : "0");
-	WritePrivateProfileString(sec_name, "Maximized", buf, ini_file);
+	my_strcpy(buf, td->maximized ? "1" : "0", sizeof(buf));
+	WritePrivateProfileStringA(sec_name, "Maximized", buf, ini_file);
 }
 
 
@@ -727,26 +799,26 @@ static void save_prefs(void)
 	char buf[128];
 
 	/* Save the "arg_graphics" flag */
-	sprintf(buf, "%d", arg_graphics);
-	WritePrivateProfileString("Angband", "Graphics", buf, ini_file);
+	strnfmt(buf, sizeof(buf), "%d", arg_graphics);
+	WritePrivateProfileStringA("Angband", "Graphics", buf, ini_file);
 
         /* Save the "use_graphics_nice" flag */
-        strcpy(buf, arg_graphics_nice ? "1" : "0");
-        WritePrivateProfileString("Angband", "Graphics_Nice", buf, ini_file);
+        my_strcpy(buf, arg_graphics_nice ? "1" : "0", sizeof(buf));
+        WritePrivateProfileStringA("Angband", "Graphics_Nice", buf, ini_file);
 
         /* Save the tile width */
-        wsprintf(buf, "%d", tile_width);
-        WritePrivateProfileString("Angband", "TileWidth", buf, ini_file);
+        strnfmt(buf, sizeof(buf), "%d", tile_width);
+        WritePrivateProfileStringA("Angband", "TileWidth", buf, ini_file);
 
         /* Save the tile height */
-        wsprintf(buf, "%d", tile_height);
-        WritePrivateProfileString("Angband", "TileHeight", buf, ini_file);
+        strnfmt(buf, sizeof(buf), "%d", tile_height);
+        WritePrivateProfileStringA("Angband", "TileHeight", buf, ini_file);
 
 	/* Save window prefs */
 	for (i = 0; i < MAX_TERM_DATA; i++) {
 		term_data *td = &data[i];
 
-		sprintf(buf, "Term-%d", i);
+		strnfmt(buf, sizeof(buf), "Term-%d", i);
 
 		save_prefs_aux(td, buf);
 	}
@@ -763,36 +835,37 @@ static void load_prefs_aux(term_data *td, const char *sec_name)
 	int wid, hgt;
 
 	/* Visible */
-	td->visible = (GetPrivateProfileInt(sec_name, "Visible", td->visible,
-										ini_file) != 0);
+	td->visible = (GetPrivateProfileIntA(sec_name, "Visible", td->visible,
+		ini_file) != 0);
 
 	/* Maximized */
-	td->maximized = (GetPrivateProfileInt(sec_name, "Maximized", td->maximized,
-										  ini_file) != 0);
+	td->maximized = (GetPrivateProfileIntA(sec_name, "Maximized",
+		td->maximized, ini_file) != 0);
 
 	/* Desired font, with default */
-	GetPrivateProfileString(sec_name, "Font", DEFAULT_FONT, tmp, 127, ini_file);
+	GetPrivateProfileStringA(sec_name, "Font", DEFAULT_FONT, tmp, 127,
+		ini_file);
 
 	/* Bizarre */
 	td->bizarre = (GetPrivateProfileInt(sec_name, "Bizarre", true,
-										ini_file) != 0);
+		ini_file) != 0);
 
 	/* Analyze font, save desired font name */
 	td->font_want = string_make(analyze_font(tmp, &wid, &hgt));
 
 	/* Tile size */
-	td->tile_wid = GetPrivateProfileInt(sec_name, "TileWid", wid, ini_file);
-	td->tile_hgt = GetPrivateProfileInt(sec_name, "TileHgt", hgt, ini_file);
+	td->tile_wid = GetPrivateProfileIntA(sec_name, "TileWid", wid, ini_file);
+	td->tile_hgt = GetPrivateProfileIntA(sec_name, "TileHgt", hgt, ini_file);
 
 	/* Window size */
-	td->cols = GetPrivateProfileInt(sec_name, "NumCols", td->cols, ini_file);
-	td->rows = GetPrivateProfileInt(sec_name, "NumRows", td->rows, ini_file);
+	td->cols = GetPrivateProfileIntA(sec_name, "NumCols", td->cols, ini_file);
+	td->rows = GetPrivateProfileIntA(sec_name, "NumRows", td->rows, ini_file);
 
 	/* Window position */
-	td->pos_x = GetPrivateProfileInt(sec_name, "PositionX", td->pos_x,
-									 ini_file);
-	td->pos_y = GetPrivateProfileInt(sec_name, "PositionY", td->pos_y,
-									 ini_file);
+	td->pos_x = GetPrivateProfileIntA(sec_name, "PositionX", td->pos_x,
+		ini_file);
+	td->pos_y = GetPrivateProfileIntA(sec_name, "PositionY", td->pos_y,
+		ini_file);
 }
 
 
@@ -813,32 +886,33 @@ static void load_prefs(void)
 	}
 
 	/* Extract the "arg_graphics" flag */
-	arg_graphics = GetPrivateProfileInt("Angband", "Graphics", GRAPHICS_NONE,
-										ini_file);
+	arg_graphics = GetPrivateProfileIntA("Angband", "Graphics",
+		GRAPHICS_NONE, ini_file);
 
 	/* Extract the "arg_graphics_nice" flag */
-	arg_graphics_nice = GetPrivateProfileInt("Angband", "Graphics_Nice", true,
-											 ini_file);
+	arg_graphics_nice = GetPrivateProfileIntA("Angband", "Graphics_Nice",
+		true, ini_file);
 
 	/* Extract the tile width */
-	tile_width = GetPrivateProfileInt("Angband", "TileWidth", false, ini_file);
+	tile_width = GetPrivateProfileIntA("Angband", "TileWidth", false,
+		ini_file);
 
 	/* Extract the tile height */
-	tile_height = GetPrivateProfileInt("Angband", "TileHeight", false,
-									   ini_file);
+	tile_height = GetPrivateProfileIntA("Angband", "TileHeight", false,
+		ini_file);
 
 	/* Extract the "arg_wizard" flag */
-	arg_wizard = (GetPrivateProfileInt("Angband", "Wizard", 0, ini_file) != 0);
+	arg_wizard = (GetPrivateProfileIntA("Angband", "Wizard", 0, ini_file) != 0);
 
 	/* Extract the gamma correction */
-	gamma_correction = GetPrivateProfileInt("Angband", "Gamma", 0, ini_file);
+	gamma_correction = GetPrivateProfileIntA("Angband", "Gamma", 0, ini_file);
 
 
 	/* Load window prefs */
 	for (i = 0; i < MAX_TERM_DATA; i++) {
 		term_data *td = &data[i];
 
-		sprintf(buf, "Term-%d", i);
+		strnfmt(buf, sizeof(buf), "Term-%d", i);
 
 		load_prefs_aux(td, buf);
 	}
@@ -1045,12 +1119,14 @@ static bool init_graphics(void)
 			char *ext;
 			char modname[1024];
 			bool have_space = 0;
-			my_strcpy(modname, buf,1024);
-			ext = strstr(modname,".png");
+			my_strcpy(modname, buf, sizeof(modname));
+			ext = strstr(modname, ".png");
 			/* make sure we have enough space to make the desired name */
-			if (ext && ((ext-buf) < 1019)) {
+			if (ext && ((size_t)(ext - modname)
+					< sizeof(modname) - 9)) {
 				have_space = true;
-				strcpy(ext, "_pre.png");
+				my_strcpy(ext, "_pre.png",
+					sizeof(modname) - (ext - buf));
 				if (!file_exists(modname)) {
 					/* if the file does not exist, mark that we need to 
 					 * create it, so clear the extension pointer */
@@ -1111,7 +1187,7 @@ static bool init_graphics(void)
 	return (can_use_graphics);
 }
 
-#ifdef SOUND
+#if defined(SOUND) && !defined(SOUND_SDL) && !defined(SOUND_SDL2)
 
 /* Supported file types */
 enum {
@@ -1156,9 +1232,9 @@ static bool load_sound_win(const char *filename, int file_type, struct sound_dat
 				mciSendCommand(0, MCI_OPEN, MCI_OPEN_ELEMENT | MCI_WAIT, (size_t)(&sample->op));
 			}
 
-			data->loaded = (0 != sample->op.wDeviceID);
-
-			if (!data->loaded) {
+			if (0 != sample->op.wDeviceID) {
+				data->status = SOUND_ST_LOADED;
+			} else {
 				mem_free(sample);
 				sample = NULL;
 			}
@@ -1170,12 +1246,11 @@ static bool load_sound_win(const char *filename, int file_type, struct sound_dat
 
 			sample->filename = mem_zalloc(strlen(filename) + 1);
 			my_strcpy(sample->filename, filename, strlen(filename) + 1);
-			data->loaded = true;
+			data->status = SOUND_ST_LOADED;
 			break;
 
 		default:
 			plog_fmt("Sound: Oops - Unsupported file type");
-			data->loaded = false;
 			break;
 	}
 
@@ -1247,7 +1322,7 @@ static bool unload_sound_win(struct sound_data *data)
 
 		mem_free(sample);
 		data->plat_data = NULL;
-		data->loaded = false;
+		data->status = SOUND_ST_UNKNOWN;
 	}
 
 	return true;
@@ -1283,7 +1358,7 @@ errr init_sound_win(struct sound_hooks *hooks, int argc, char **argv)
 	/* Success */
 	return (0);
 }
-#endif /* SOUND */
+#endif /* SOUND && !SOUND_SDL && !SOUND_SDL2 */
 
 
 /**
@@ -1444,7 +1519,7 @@ static void term_change_font(term_data *td)
 	char tmp[1024] = "";
 
 	/* Extract a default if possible */
-	if (td->font_file) strcpy(tmp, td->font_file);
+	if (td->font_file) my_strcpy(tmp, td->font_file, sizeof(tmp));
 
 	/* Ask for a choice */
 	memset(&ofn, 0, sizeof(ofn));
@@ -2041,7 +2116,7 @@ static errr Term_text_win(int x, int y, int n, int a, const wchar_t *s)
 			SetTextColor(hdc, win_clr[a % MAX_COLORS]);
 
 		/* Determine the background colour - from Sil */
-		switch (a / MAX_COLORS)
+		switch (a / MULT_BG)
 		{
 			case BG_SAME:
 				/* Background same as foreground*/
@@ -2573,10 +2648,6 @@ static void term_data_link(term_data *td)
 	/* Use "Term_pict" for "graphic" data */
 	t->higher_pict = true;
 
-	/* Erase with "white space" */
-	t->attr_blank = COLOUR_WHITE;
-	t->char_blank = ' ';
-
 #if 0
 	/* Prepare the init/nuke hooks */
 	t->init_hook = Term_init_win;
@@ -2977,7 +3048,7 @@ static void setup_menus(void)
 	EnableMenuItem(hm, IDM_OPTIONS_GRAPHICS_NICE,
 				   MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
 
-	for (i = IDM_OPTIONS_TILE_1x1; i < IDM_OPTIONS_TILE_16x16; i++) {
+	for (i = IDM_OPTIONS_TILE_1x1; i <= IDM_OPTIONS_TILE_16x16; i++) {
 		EnableMenuItem(hm, i, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
 	}
 	for (i = IDM_TILE_FONT; i < IDM_TILE_12X13; i++) {
@@ -3110,8 +3181,12 @@ static void setup_menus(void)
 
 		EnableMenuItem(hm, IDM_OPTIONS_GRAPHICS_NICE, MF_ENABLED);
 
-		for (i = IDM_OPTIONS_TILE_1x1; i < IDM_OPTIONS_TILE_16x16; i++) {
-			EnableMenuItem(hm, i, MF_ENABLED);
+		/* Only enable the multiplier entries if using a tile set. */
+		if (current_graphics_mode && current_graphics_mode->grafID) {
+			for (i = IDM_OPTIONS_TILE_1x1;
+					i <= IDM_OPTIONS_TILE_16x16; i++) {
+				EnableMenuItem(hm, i, MF_ENABLED);
+			}
 		}
 		for (i = IDM_TILE_FONT; i < IDM_TILE_12X13; i++) {
 			EnableMenuItem(hm, i, MF_ENABLED);
@@ -4945,20 +5020,20 @@ static void init_stuff(void)
 	argv0 = string_make(path);
 
 	/* Get the name of the "*.ini" file */
-	strcpy(path + strlen(path) - 4, ".INI");
+	my_strcpy(path + strlen(path) - 4, ".INI", 5);
 
 #ifdef USE_SAVER
 
 	/* Try to get the path to the Angband folder */
 	if (screensaver) {
 		/* Extract the filename of the savefile for the screensaver */
-		GetPrivateProfileString("Angband", "SaverFile", "", saverfilename,
-								sizeof(saverfilename), path);
+		GetPrivateProfileStringA("Angband", "SaverFile", "",
+			saverfilename, sizeof(saverfilename), path);
 
-		GetPrivateProfileString("Angband", "AngbandPath", "", tmp,
-								sizeof(tmp), path);
+		GetPrivateProfileStringA("Angband", "AngbandPath", "", tmp,
+			sizeof(tmp), path);
 
-		sprintf(path, "%sangband.ini", tmp);
+		strnfmt(path, sizeof(path), "%sangband.ini", tmp);
 	}
 
 #endif /* USE_SAVER */
@@ -4978,7 +5053,7 @@ static void init_stuff(void)
 	}
 
 	/* Add "lib" to the path */
-	strcpy(path + i + 1, "lib\\");
+	my_strcpy(path + i + 1, "lib\\", sizeof(path) - i - 1);
 
 	/* Validate the path */
 	validate_dir(path);
@@ -5026,8 +5101,14 @@ static void init_stuff(void)
  */
 static void win_reinit(void)
 {
-	/* Initialise sound. */
+/* Initialise sound. */
+#ifdef SOUND
+#if defined(SOUND_SDL) || defined(SOUND_SOUND_SDL2)
+	init_sound("sdl", 0, NULL);
+#else
 	init_sound("win", 0, NULL);
+#endif /* else SOUND_SDL || SOUND_SDL2 */
+#endif /* SOUND */
 
 	/*
 	 * Watch for these events to set up and tear down protection against

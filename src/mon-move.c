@@ -994,14 +994,14 @@ bool multiply_monster(const struct monster *mon)
 		result = place_new_monster(cave, grid, mon->race, false, false,
 			info, ORIGIN_DROP_BREED);
 		/*
-		 * Fix so multiplying a revealed mimic creates another
-		 * revealed mimic.
+		 * Fix so multiplying a revealed camouflaged monster creates
+		 * another revealed camouflaged monster.
 		 */
 		if (result) {
 			struct monster *child = square_monster(cave, grid);
 
-			if (child && monster_is_mimicking(child)
-					&& !monster_is_mimicking(mon)) {
+			if (child && monster_is_camouflaged(child)
+					&& !monster_is_camouflaged(mon)) {
 				become_aware(cave, child);
 			}
 		}
@@ -1343,8 +1343,8 @@ static bool monster_turn_try_push(struct monster *mon, const char *m_name,
 			rf_on(lore->flags, RF_MOVE_BODY);
 		}
 
-		/* Reveal mimics */
-		if (monster_is_mimicking(mon1))
+		/* Reveal camouflaged monsters */
+		if (monster_is_camouflaged(mon1))
 			become_aware(cave, mon1);
 
 		/* Note if visible */
@@ -1945,6 +1945,12 @@ void process_monsters(int minimum_energy)
 			/* The monster takes its turn */
 			monster_turn(mon);
 
+			/*
+			 * For symmetry with the player, monster can take
+			 * terrain damage after its turn.
+			 */
+			monster_take_terrain_damage(mon);
+
 			/* Monster is no longer current */
 			cave->mon_current = -1;
 		}
@@ -1969,9 +1975,6 @@ void reset_monsters(void)
 	for (i = cave_monster_max(cave) - 1; i >= 1; i--) {
 		/* Access the monster */
 		mon = cave_monster(cave, i);
-
-		/* Dungeon hurts monsters */
-		monster_take_terrain_damage(mon);
 
 		/* Monster is ready to go again */
 		mflag_off(mon->mflag, MFLAG_HANDLED);

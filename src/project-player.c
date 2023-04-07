@@ -252,7 +252,10 @@ static int project_player_handler_LIGHT(project_player_handler_context_t *contex
 
 	/* Confusion for strong unresisted light */
 	if (context->dam > 300) {
-		msg("You are dazzled!");
+		/* Check for resistance before issuing a message. */
+		if (player_inc_check(player, TMD_CONFUSED, false)) {
+			msg("You are dazzled!");
+		}
 		(void)player_inc_timed(player, TMD_CONFUSED,
 			2 + randint1(context->dam / 100), true, true, true);
 	}
@@ -318,7 +321,10 @@ static int project_player_handler_SOUND(project_player_handler_context_t *contex
 
 	/* Confusion for strong unresisted sound */
 	if (context->dam > 300) {
-		msg("The noise disorients you.");
+		/* Check for resistance before issuing a message. */
+		if (player_inc_check(player, TMD_CONFUSED, false)) {
+			msg("The noise disorients you.");
+		}
 		(void)player_inc_timed(player, TMD_CONFUSED,
 			2 + randint1(context->dam / 100), true, true, true);
 	}
@@ -820,7 +826,8 @@ bool project_p(struct source origin, int r, struct loc grid, int dam, int typ,
 		case SRC_PLAYER: {
 			/* Don't affect projector unless explicitly allowed */
 			if (!self) return false;
-
+			/* Use the same message as the DAMAGE handler. */
+			my_strcpy(killer, "yourself", sizeof(killer));
 			break;
 		}
 
@@ -866,7 +873,8 @@ bool project_p(struct source origin, int r, struct loc grid, int dam, int typ,
 		}
 
 		case SRC_NONE: {
-			/* Assume the caller has set the killer variable */
+			/* Use the same message as the DAMAGE handler. */
+			my_strcpy(killer, "a bug", sizeof(killer));
 			break;
 		}
 	}

@@ -242,7 +242,7 @@ void keypress_to_text(char *buf, size_t len, const struct keypress *src,
 		const char *desc = keycode_find_desc(i);
 
 		/* un-ktrl control characters if they don't have a description */
-		/* this is so that Tab (^I) doesn't get turned into ^I but gets
+		/* this is so that Tab (^i) doesn't get turned into ^i but gets
 		 * displayed as [Tab] */
 		if (i < 0x20 && !desc) {
 			mods |= KC_MOD_CONTROL;
@@ -280,9 +280,9 @@ void keypress_to_text(char *buf, size_t len, const struct keypress *src,
 				case '{': strnfcat(buf, len, &end, "\\{"); break;
 				default: {
 					if (i < 127)
-						strnfcat(buf, len, &end, "%c", i);
+						strnfcat(buf, len, &end, "%c", (int)i);
 					else
-						strnfcat(buf, len, &end, "\\x%02x", (int)i);
+						strnfcat(buf, len, &end, "\\x%02lx", (unsigned long)i);
 					break;
 				}
 			}
@@ -307,7 +307,7 @@ void keypress_to_readable(char *buf, size_t len, struct keypress src)
 	const char *desc = keycode_find_desc(i);
 
 	/* un-ktrl control characters if they don't have a description */
-	/* this is so that Tab (^I) doesn't get turned into ^I but gets
+	/* this is so that Tab (^i) doesn't get turned into ^i but gets
 	 * displayed as [Tab] */
 	if (i < 0x20 && !desc) {
 		mods |= KC_MOD_CONTROL;
@@ -330,7 +330,13 @@ void keypress_to_readable(char *buf, size_t len, struct keypress src)
 	if (desc) {
 		strnfcat(buf, len, &end, "%s", desc);
 	} else {
-		strnfcat(buf, len, &end, "%c", i);
+		char out[5];
+
+		if (utf32_to_utf8(out, sizeof(out), &i, 1, NULL) > 0) {
+			strnfcat(buf, len, &end, "%s", out);
+		} else {
+			strnfcat(buf, len, &end, "Unknown");
+		}
 	}
 
 	/* Terminate */

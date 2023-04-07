@@ -27,6 +27,7 @@
 #include "obj-util.h"
 #include "object.h"
 #include "player-calcs.h"
+#include "ui-birth.h"
 #include "ui-display.h"
 #include "ui-input.h"
 #include "ui-keymap.h"
@@ -633,7 +634,7 @@ static void ui_keymap_create(const char *title, int row)
 		c_prt(color, format("Action: %s", tmp), 15, 0);
 
 		c_prt(COLOUR_L_BLUE, "  Press '=' when finished.", 17, 0);
-		c_prt(COLOUR_L_BLUE, "  Use 'CTRL-U' to reset.", 18, 0);
+		c_prt(COLOUR_L_BLUE, "  Use 'CTRL-u' to reset.", 18, 0);
 		c_prt(COLOUR_L_BLUE, format("(Maximum keymap length is %d keys.)",
 									KEYMAP_ACTION_MAX), 19, 0);
 
@@ -918,10 +919,18 @@ static void colors_modify(const char *title, int row)
 		if (cx.code == ESCAPE) break;
 
 		/* Analyze */
-		if (cx.code == 'n')
+		if (cx.code == 'n') {
 			a = (uint8_t)(a + 1);
-		if (cx.code == 'N')
+			if (a >= MAX_COLORS) {
+				a = 0;
+			}
+		}
+		if (cx.code == 'N') {
 			a = (uint8_t)(a - 1);
+			if (a >= MAX_COLORS) {
+				a = MAX_COLORS - 1;
+			}
+		}
 		if (cx.code == 'k')
 			angband_color_table[a][0] =
 				(uint8_t)(angband_color_table[a][0] + 1);
@@ -1044,8 +1053,7 @@ static void do_cmd_delay(const char *name, int unused)
 	prt("", 19, 0);
 	prt("Command: Base Delay Factor", 20, 0);
 	prt("New base delay factor (0-255): ", 21, 0);
-	prt(format("Current base delay factor: %d msec",
-		player->opts.delay_factor, msec), 22, 0);
+	prt(format("Current base delay factor: %d msec", msec), 22, 0);
 	prt("", 23, 0);
 
 	/* Ask for a numeric value */
@@ -1884,7 +1892,7 @@ static char tag_options_item(struct menu *menu, int oid)
 	size_t line = (size_t) oid;
 
 	if (line < N_ELEMENTS(sval_dependent))
-		return I2A(oid);
+		return all_letters_nohjkl[oid];
 
 	/* Separator - blank line. */
 	if (line == N_ELEMENTS(sval_dependent))
@@ -1980,7 +1988,6 @@ void do_cmd_options_item(const char *title, int row)
 				 N_ELEMENTS(extra_item_options) + 1, NULL);
 
 	menu.title = title;
-	menu.selections = all_letters_nohjkl;
 	menu_layout(&menu, &SCREEN_REGION);
 
 	screen_save();

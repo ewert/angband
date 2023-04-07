@@ -234,8 +234,13 @@ void flavor_init(void)
 		/* Skip "empty" objects */
 		if (!kind->name) continue;
 
-		/* No flavor yields aware */
-		if (!kind->flavor) kind->aware = true;
+		/*
+		 * No flavor and not kind that only has one instance,
+		 * an artifact, yields aware
+		 */
+		if (!kind->flavor && kind->kidx < z_info->ordinary_kind_max) {
+			kind->aware = true;
+		}
 	}
 }
 
@@ -490,24 +495,25 @@ struct ego_item *lookup_ego_item(const char *name, int tval, int sval)
 int lookup_sval(int tval, const char *name)
 {
 	int k;
-	unsigned int r;
+	char *pe;
+	unsigned long r = strtoul(name, &pe, 10);
 
-	if (sscanf(name, "%u", &r) == 1)
-		return r;
+	if (pe != name) {
+		return (contains_only_spaces(pe) && r < INT_MAX) ? (int)r : -1;
+	}
 
 	/* Look for it */
 	for (k = 0; k < z_info->k_max; k++) {
 		struct object_kind *kind = &k_info[k];
 		char cmp_name[1024];
 
-		if (!kind || !kind->name) continue;
+		if (!kind || !kind->name || kind->tval != tval) continue;
 
 		obj_desc_name_format(cmp_name, sizeof cmp_name, 0, kind->name, 0,
 							 false);
 
 		/* Found a match */
-		if (kind->tval == tval && !my_stricmp(cmp_name, name))
-			return kind->sval;
+		if (!my_stricmp(cmp_name, name)) return kind->sval;
 	}
 
 	return -1;
@@ -1009,7 +1015,8 @@ void print_custom_message(struct object *obj, const char *string, int msg_type,
 	next = strchr(string, '{');
 	while (next) {
 		/* Copy the text leading up to this { */
-		strnfcat(buf, 1024, &end, "%.*s", next - string, string); 
+		strnfcat(buf, 1024, &end, "%.*s", (int) (next - string),
+			string);
 
 		s = next + 1;
 		while (*s && isalpha((unsigned char) *s)) s++;
@@ -1057,7 +1064,7 @@ void print_custom_message(struct object *obj, const char *string, int msg_type,
 
 		next = strchr(string, '{');
 	}
-	strnfcat(buf, 1024, &end, string);
+	strnfcat(buf, 1024, &end, "%s", string);
 
 	msgt(msg_type, "%s", buf);
 }

@@ -2414,7 +2414,7 @@ static void build_store(struct chunk *c, int n, struct loc xroads,
 	fill_rectangle(c, build_n, build_w, build_s, build_e, FEAT_PERM, SQUARE_NONE);
 
 	/* Clear previous contents, add a store door */
-	for (feat = 0; feat < z_info->f_max; feat++)
+	for (feat = 0; feat < FEAT_MAX; feat++)
 		if (feat_is_shop(feat) && (f_info[feat].shopnum == n + 1))
 			square_set_feat(c, door, feat);
 }
@@ -2550,7 +2550,7 @@ static void town_gen_layout(struct chunk *c, struct player *p)
 
 		/* place stores along the streets */
 		num_attempts = 0;
-		for (n = 0; n < MAX_STORES; n++) {
+		for (n = 0; n < z_info->store_max; n++) {
 			struct loc store_lot;
 			bool found_spot = false;
 			while (!found_spot && num_attempts < max_attempts) {
@@ -3624,11 +3624,13 @@ struct chunk *gauntlet_gen(struct player *p, int min_height, int min_width) {
 	struct chunk *left;
 	struct chunk *gauntlet;
 	struct chunk *right;
+	struct chunk *arrival;
 	int gauntlet_hgt = 2 * randint1(5) + 3;
 	int gauntlet_wid = 2 * randint1(10) + 19;
 	int y_size = z_info->dungeon_hgt - randint0(25 - gauntlet_hgt);
 	int x_size = (z_info->dungeon_wid - gauntlet_wid) / 2 -
 		randint0(45 - gauntlet_wid);
+	struct loc p_loc_in_r, p_loc_in_l;
 	int line1, line2;
 
 	/* No persistent levels of this type for now */
@@ -3714,11 +3716,27 @@ struct chunk *gauntlet_gen(struct player *p, int min_height, int min_width) {
 	k = MAX(MIN(p->depth / 3, 10), 2) / 2;
 
 	/* Put the character in the arrival cavern */
-	if (!new_player_spot(p->upkeep->create_down_stair ? right : left, p)) {
+	arrival = (p->upkeep->create_down_stair) ? right : left;
+	if (!new_player_spot(arrival, p)) {
 		cave_free(gauntlet);
 		cave_free(left);
 		cave_free(right);
 		return NULL;
+	}
+	/*
+	 * Account for the player's location relative to the right and left
+	 * chunks for use in pick_and_place_distant_monster().  The
+	 * transformations here have to match what the calls to chunk_copy()
+	 * below do.
+	 */
+	if (arrival == right) {
+		p_loc_in_r = p->grid;
+		p_loc_in_l.x = line2 + p->grid.x;
+		p_loc_in_l.y = p->grid.y;
+	} else {
+		p_loc_in_l = p->grid;
+		p_loc_in_r.x = p->grid.x - line2;
+		p_loc_in_r.y = p->grid.y;
 	}
 
 	/* Pick some monsters for the left cavern */
@@ -3726,7 +3744,7 @@ struct chunk *gauntlet_gen(struct player *p, int min_height, int min_width) {
 
 	/* Place the monsters */
 	for (; i > 0; i--) {
-		pick_and_place_distant_monster(left, p->grid, 0, true,
+		pick_and_place_distant_monster(left, p_loc_in_l, 0, true,
 			left->depth);
 	}
 
@@ -3735,7 +3753,7 @@ struct chunk *gauntlet_gen(struct player *p, int min_height, int min_width) {
 
 	/* Place the monsters */
 	for (; i > 0; i--) {
-		pick_and_place_distant_monster(right, p->grid, 0, true,
+		pick_and_place_distant_monster(right, p_loc_in_r, 0, true,
 			right->depth);
 	}
 

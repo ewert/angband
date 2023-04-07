@@ -22,6 +22,7 @@
 #include "cmd-core.h"
 #include "effects-info.h"
 #include "game-input.h"
+#include "game-world.h"
 #include "obj-chest.h"
 #include "obj-desc.h"
 #include "obj-tval.h"
@@ -47,126 +48,127 @@ struct command_info
 	const char *verb;
 	cmd_handler_fn fn;
 	bool repeat_allowed;
+	bool can_use_energy;
 	int auto_repeat_n;
 };
 
 static const struct command_info game_cmds[] =
 {
-	{ CMD_LOADFILE, "load a savefile", NULL, false, 0 },
-	{ CMD_NEWGAME, "start a new game", NULL, false, 0 },
+	{ CMD_LOADFILE, "load a savefile", NULL, false, false, 0 },
+	{ CMD_NEWGAME, "start a new game", NULL, false, false, 0 },
 
-	{ CMD_BIRTH_INIT, "start the character birth process", do_cmd_birth_init, false, 0 },
-	{ CMD_BIRTH_RESET, "go back to the beginning", do_cmd_birth_reset, false, 0 },
-	{ CMD_CHOOSE_RACE, "select race", do_cmd_choose_race, false, 0 },
-	{ CMD_CHOOSE_CLASS, "select class", do_cmd_choose_class, false, 0 },
-	{ CMD_BUY_STAT, "buy points in a stat", do_cmd_buy_stat, false, 0 },
-	{ CMD_SELL_STAT, "sell points in a stat", do_cmd_sell_stat, false, 0 },
-	{ CMD_RESET_STATS, "reset stats", do_cmd_reset_stats, false, 0 },
-	{ CMD_REFRESH_STATS, "refresh stats", do_cmd_refresh_stats, false, 0 },
-	{ CMD_ROLL_STATS, "roll new stats", do_cmd_roll_stats, false, 0 },
-	{ CMD_PREV_STATS, "use previously rolled stats", do_cmd_prev_stats, false, 0 },
-	{ CMD_NAME_CHOICE, "choose name", do_cmd_choose_name, false, 0 },
-	{ CMD_HISTORY_CHOICE, "write history", do_cmd_choose_history, false, 0 },
-	{ CMD_ACCEPT_CHARACTER, "accept character", do_cmd_accept_character, false, 0 },
+	{ CMD_BIRTH_INIT, "start the character birth process", do_cmd_birth_init, false, false, 0 },
+	{ CMD_BIRTH_RESET, "go back to the beginning", do_cmd_birth_reset, false, false, 0 },
+	{ CMD_CHOOSE_RACE, "select race", do_cmd_choose_race, false, false, 0 },
+	{ CMD_CHOOSE_CLASS, "select class", do_cmd_choose_class, false, false, 0 },
+	{ CMD_BUY_STAT, "buy points in a stat", do_cmd_buy_stat, false, false, 0 },
+	{ CMD_SELL_STAT, "sell points in a stat", do_cmd_sell_stat, false, false, 0 },
+	{ CMD_RESET_STATS, "reset stats", do_cmd_reset_stats, false, false, 0 },
+	{ CMD_REFRESH_STATS, "refresh stats", do_cmd_refresh_stats, false, false,  0 },
+	{ CMD_ROLL_STATS, "roll new stats", do_cmd_roll_stats, false, false, 0 },
+	{ CMD_PREV_STATS, "use previously rolled stats", do_cmd_prev_stats, false, false, 0 },
+	{ CMD_NAME_CHOICE, "choose name", do_cmd_choose_name, false, false, 0 },
+	{ CMD_HISTORY_CHOICE, "write history", do_cmd_choose_history, false, false, 0 },
+	{ CMD_ACCEPT_CHARACTER, "accept character", do_cmd_accept_character, false, false, 0 },
 
-	{ CMD_GO_UP, "go up stairs", do_cmd_go_up, false, 0 },
-	{ CMD_GO_DOWN, "go down stairs", do_cmd_go_down, false, 0 },
-	{ CMD_WALK, "walk", do_cmd_walk, true, 0 },
-	{ CMD_RUN, "run", do_cmd_run, true, 0 },
-	{ CMD_JUMP, "jump", do_cmd_jump, false, 0 },
-	{ CMD_OPEN, "open", do_cmd_open, true, 99 },
-	{ CMD_CLOSE, "close", do_cmd_close, true, 99 },
-	{ CMD_TUNNEL, "tunnel", do_cmd_tunnel, true, 99 },
-	{ CMD_HOLD, "stay still", do_cmd_hold, true, 0 },
-	{ CMD_DISARM, "disarm", do_cmd_disarm, true, 99 },
-	{ CMD_ALTER, "alter", do_cmd_alter, true, 99 },
-	{ CMD_STEAL, "steal", do_cmd_steal, false, 0 },
-	{ CMD_REST, "rest", do_cmd_rest, false, 0 },
-	{ CMD_SLEEP, "sleep", do_cmd_sleep, false, 0 },
-	{ CMD_PATHFIND, "walk", do_cmd_pathfind, false, 0 },
-	{ CMD_PICKUP, "pickup", do_cmd_pickup, false, 0 },
-	{ CMD_AUTOPICKUP, "autopickup", do_cmd_autopickup, false, 0 },
-	{ CMD_WIELD, "wear or wield", do_cmd_wield, false, 0 },
-	{ CMD_TAKEOFF, "take off", do_cmd_takeoff, false, 0 },
-	{ CMD_DROP, "drop", do_cmd_drop, false, 0 },
-	{ CMD_UNINSCRIBE, "un-inscribe", do_cmd_uninscribe, false, 0 },
-	{ CMD_AUTOINSCRIBE, "autoinscribe", do_cmd_autoinscribe, false, 0 },
-	{ CMD_EAT, "eat", do_cmd_eat_food, false, 0 },
-	{ CMD_QUAFF, "quaff", do_cmd_quaff_potion, false, 0 },
-	{ CMD_USE_ROD, "zap", do_cmd_zap_rod, false, 0 },
-	{ CMD_USE_STAFF, "use", do_cmd_use_staff, false, 0 },
-	{ CMD_USE_WAND, "aim", do_cmd_aim_wand, false, 0 },
-	{ CMD_READ_SCROLL, "read", do_cmd_read_scroll, false, 0 },
-	{ CMD_ACTIVATE, "activate", do_cmd_activate, false, 0 },
-	{ CMD_REFILL, "refuel with", do_cmd_refill, false, 0 },
-	{ CMD_FIRE, "fire", do_cmd_fire, false, 0 },
-	{ CMD_THROW, "throw", do_cmd_throw, false, 0 },
-	{ CMD_INSCRIBE, "inscribe", do_cmd_inscribe, false, 0 },
-	{ CMD_STUDY, "study", do_cmd_study, false, 0 },
-	{ CMD_CAST, "cast", do_cmd_cast, false, 0 },
-	{ CMD_SELL, "sell", do_cmd_sell, false, 0 },
-	{ CMD_STASH, "stash", do_cmd_stash, false, 0 },
-	{ CMD_BUY, "buy", do_cmd_buy, false, 0 },
-	{ CMD_RETRIEVE, "retrieve", do_cmd_retrieve, false, 0 },
-	{ CMD_USE, "use", do_cmd_use, false, 0 },
-	{ CMD_SUICIDE, "kill character", do_cmd_suicide, false, 0 },
-	{ CMD_HELP, "help", NULL, false, 0 },
-	{ CMD_REPEAT, "repeat", NULL, false, 0 },
+	{ CMD_GO_UP, "go up stairs", do_cmd_go_up, false, true, 0 },
+	{ CMD_GO_DOWN, "go down stairs", do_cmd_go_down, false, true, 0 },
+	{ CMD_WALK, "walk", do_cmd_walk, true, true, 0 },
+	{ CMD_RUN, "run", do_cmd_run, true, true, 0 },
+	{ CMD_JUMP, "jump", do_cmd_jump, false, true, 0 },
+	{ CMD_OPEN, "open", do_cmd_open, true, true, 99 },
+	{ CMD_CLOSE, "close", do_cmd_close, true, true, 99 },
+	{ CMD_TUNNEL, "tunnel", do_cmd_tunnel, true, true, 99 },
+	{ CMD_HOLD, "stay still", do_cmd_hold, true, true, 0 },
+	{ CMD_DISARM, "disarm", do_cmd_disarm, true, true, 99 },
+	{ CMD_ALTER, "alter", do_cmd_alter, true, true, 99 },
+	{ CMD_STEAL, "steal", do_cmd_steal, false, true, 0 },
+	{ CMD_REST, "rest", do_cmd_rest, false, true, 0 },
+	{ CMD_SLEEP, "sleep", do_cmd_sleep, false, true, 0 },
+	{ CMD_PATHFIND, "walk", do_cmd_pathfind, false, true, 0 },
+	{ CMD_PICKUP, "pickup", do_cmd_pickup, false, true, 0 },
+	{ CMD_AUTOPICKUP, "autopickup", do_cmd_autopickup, false, true, 0 },
+	{ CMD_WIELD, "wear or wield", do_cmd_wield, false, false, 0 },
+	{ CMD_TAKEOFF, "take off", do_cmd_takeoff, false, true, 0 },
+	{ CMD_DROP, "drop", do_cmd_drop, false, true, 0 },
+	{ CMD_UNINSCRIBE, "un-inscribe", do_cmd_uninscribe, false, false, 0 },
+	{ CMD_AUTOINSCRIBE, "autoinscribe", do_cmd_autoinscribe, false, false, 0 },
+	{ CMD_EAT, "eat", do_cmd_eat_food, false, true, 0 },
+	{ CMD_QUAFF, "quaff", do_cmd_quaff_potion, false, true, 0 },
+	{ CMD_USE_ROD, "zap", do_cmd_zap_rod, false, true, 0 },
+	{ CMD_USE_STAFF, "use", do_cmd_use_staff, false, true, 0 },
+	{ CMD_USE_WAND, "aim", do_cmd_aim_wand, false, true, 0 },
+	{ CMD_READ_SCROLL, "read", do_cmd_read_scroll, false, true, 0 },
+	{ CMD_ACTIVATE, "activate", do_cmd_activate, false, true, 0 },
+	{ CMD_REFILL, "refuel with", do_cmd_refill, false, true, 0 },
+	{ CMD_FIRE, "fire", do_cmd_fire, false, true, 0 },
+	{ CMD_THROW, "throw", do_cmd_throw, false, true, 0 },
+	{ CMD_INSCRIBE, "inscribe", do_cmd_inscribe, false, false, 0 },
+	{ CMD_STUDY, "study", do_cmd_study, false, true, 0 },
+	{ CMD_CAST, "cast", do_cmd_cast, false, true, 0 },
+	{ CMD_SELL, "sell", do_cmd_sell, false, false, 0 },
+	{ CMD_STASH, "stash", do_cmd_stash, false, false, 0 },
+	{ CMD_BUY, "buy", do_cmd_buy, false, false, 0 },
+	{ CMD_RETRIEVE, "retrieve", do_cmd_retrieve, false, false, 0 },
+	{ CMD_USE, "use", do_cmd_use, false, true, 0 },
+	{ CMD_SUICIDE, "kill character", do_cmd_suicide, false, false, 0 },
+	{ CMD_HELP, "help", NULL, false, false, 0 },
+	{ CMD_REPEAT, "repeat", NULL, false, false, 0 },
 
-	{ CMD_COMMAND_MONSTER, "make a monster act", do_cmd_mon_command, false, 0 },
+	{ CMD_COMMAND_MONSTER, "make a monster act", do_cmd_mon_command, false, true, 0 },
 
-	{ CMD_SPOIL_ARTIFACT, "generate spoiler file for artifacts", do_cmd_spoil_artifact, false, 0 },
-	{ CMD_SPOIL_MON, "generate spoiler file for monsters", do_cmd_spoil_monster, false, 0 },
-	{ CMD_SPOIL_MON_BRIEF, "generate brief spoiler file for monsters", do_cmd_spoil_monster_brief, false, 0 },
-	{ CMD_SPOIL_OBJ, "generate spoiler file for objects", do_cmd_spoil_obj, false, 0 },
+	{ CMD_SPOIL_ARTIFACT, "generate spoiler file for artifacts", do_cmd_spoil_artifact, false, false, 0 },
+	{ CMD_SPOIL_MON, "generate spoiler file for monsters", do_cmd_spoil_monster, false, false, 0 },
+	{ CMD_SPOIL_MON_BRIEF, "generate brief spoiler file for monsters", do_cmd_spoil_monster_brief, false, false, 0 },
+	{ CMD_SPOIL_OBJ, "generate spoiler file for objects", do_cmd_spoil_obj, false, false, 0 },
 
-	{ CMD_WIZ_ACQUIRE, "acquire objects", do_cmd_wiz_acquire, false, 0 },
-	{ CMD_WIZ_ADVANCE, "make character powerful", do_cmd_wiz_advance, false, 0 },
-	{ CMD_WIZ_BANISH, "banish nearby monsters", do_cmd_wiz_banish, false, 0 },
-	{ CMD_WIZ_CHANGE_ITEM_QUANTITY, "change number of an item", do_cmd_wiz_change_item_quantity, false, 0 },
-	{ CMD_WIZ_COLLECT_DISCONNECT_STATS, "collect statistics about disconnected levels", do_cmd_wiz_collect_disconnect_stats, false, 0 },
-	{ CMD_WIZ_COLLECT_OBJ_MON_STATS, "collect object/monster statistics", do_cmd_wiz_collect_obj_mon_stats, false, 0 },
-	{ CMD_WIZ_COLLECT_PIT_STATS, "collect pit statistics", do_cmd_wiz_collect_pit_stats, false, 0 },
-	{ CMD_WIZ_CREATE_ALL_ARTIFACT, "create all artifacts", do_cmd_wiz_create_all_artifact, false, 0 },
-	{ CMD_WIZ_CREATE_ALL_ARTIFACT_FROM_TVAL, "create all artifacts of a tval", do_cmd_wiz_create_all_artifact_from_tval, false, 0 },
-	{ CMD_WIZ_CREATE_ALL_OBJ, "create all objects", do_cmd_wiz_create_all_obj, false, 0 },
-	{ CMD_WIZ_CREATE_ALL_OBJ_FROM_TVAL, "create all objects of a tval", do_cmd_wiz_create_all_obj_from_tval, false, 0 },
-	{ CMD_WIZ_CREATE_ARTIFACT, "create artifact", do_cmd_wiz_create_artifact, false, 0 },
-	{ CMD_WIZ_CREATE_OBJ, "create object", do_cmd_wiz_create_obj, false, 0 },
-	{ CMD_WIZ_CREATE_TRAP, "create trap", do_cmd_wiz_create_trap, false, 0 },
-	{ CMD_WIZ_CURE_ALL, "cure everything", do_cmd_wiz_cure_all, false, 0 },
-	{ CMD_WIZ_CURSE_ITEM, "change a curse on an item", do_cmd_wiz_curse_item, false, 0 },
-	{ CMD_WIZ_DETECT_ALL_LOCAL, "detect everything nearby", do_cmd_wiz_detect_all_local, false, 0 },
-	{ CMD_WIZ_DETECT_ALL_MONSTERS, "detect all monsters", do_cmd_wiz_detect_all_monsters, false, 0 },
-	{ CMD_WIZ_DISPLAY_KEYLOG, "display keystroke log", do_cmd_wiz_display_keylog, false, 0 },
-	{ CMD_WIZ_DUMP_LEVEL_MAP, "write map of level", do_cmd_wiz_dump_level_map, false, 0 },
-	{ CMD_WIZ_EDIT_PLAYER_EXP, "change the player's experience", do_cmd_wiz_edit_player_exp, false, 0 },
-	{ CMD_WIZ_EDIT_PLAYER_GOLD, "change the player's gold", do_cmd_wiz_edit_player_gold, false, 0 },
-	{ CMD_WIZ_EDIT_PLAYER_START, "start editing the player", do_cmd_wiz_edit_player_start, false, 0 },
-	{ CMD_WIZ_EDIT_PLAYER_STAT, "edit one of the player's stats", do_cmd_wiz_edit_player_stat, false, 0 },
-	{ CMD_WIZ_HIT_ALL_LOS, "hit all monsters in LOS", do_cmd_wiz_hit_all_los, false, 0 },
-	{ CMD_WIZ_INCREASE_EXP, "increase experience", do_cmd_wiz_increase_exp, false, 0 },
-	{ CMD_WIZ_JUMP_LEVEL, "jump to a level", do_cmd_wiz_jump_level, false, 0 },
-	{ CMD_WIZ_LEARN_OBJECT_KINDS, "learn about kinds of objects", do_cmd_wiz_learn_object_kinds, false, 0 },
-	{ CMD_WIZ_MAGIC_MAP, "map local area", do_cmd_wiz_magic_map, false, 0 },
-	{ CMD_WIZ_PEEK_NOISE_SCENT, "peek at noise and scent", do_cmd_wiz_peek_noise_scent, false, 0 },
-	{ CMD_WIZ_PERFORM_EFFECT, "perform an effect", do_cmd_wiz_perform_effect, false, 0 },
-	{ CMD_WIZ_PLAY_ITEM, "play with item", do_cmd_wiz_play_item, false, 0 },
-	{ CMD_WIZ_PUSH_OBJECT, "push objects from square", do_cmd_wiz_push_object, false, 0 },
-	{ CMD_WIZ_QUERY_FEATURE, "highlight specific feature", do_cmd_wiz_query_feature, false, 0 },
-	{ CMD_WIZ_QUERY_SQUARE_FLAG, "query square flag", do_cmd_wiz_query_square_flag, false, 0 },
-	{ CMD_WIZ_QUIT_NO_SAVE, "quit without saving", do_cmd_wiz_quit_no_save, false, 0 },
-	{ CMD_WIZ_RECALL_MONSTER, "recall monster", do_cmd_wiz_recall_monster, false, 0 },
-	{ CMD_WIZ_RERATE, "rerate hitpoints", do_cmd_wiz_rerate, false, 0 },
-	{ CMD_WIZ_REROLL_ITEM, "reroll an item", do_cmd_wiz_reroll_item, false, 0 },
-	{ CMD_WIZ_STAT_ITEM, "get statistics for an item", do_cmd_wiz_stat_item, false, 0 },
-	{ CMD_WIZ_SUMMON_NAMED, "summon specific monster", do_cmd_wiz_summon_named, false, 0 },
-	{ CMD_WIZ_SUMMON_RANDOM, "summon random monsters", do_cmd_wiz_summon_random, false, 0 },
-	{ CMD_WIZ_TELEPORT_RANDOM, "teleport", do_cmd_wiz_teleport_random, false, 0 },
-	{ CMD_WIZ_TELEPORT_TO, "teleport to location", do_cmd_wiz_teleport_to, false, 0 },
-	{ CMD_WIZ_TWEAK_ITEM, "modify item attributes", do_cmd_wiz_tweak_item, false, 0 },
-	{ CMD_WIZ_WIPE_RECALL, "erase monster recall", do_cmd_wiz_wipe_recall, false, 0 },
-	{ CMD_WIZ_WIZARD_LIGHT, "wizard light the level", do_cmd_wiz_wizard_light, false, 0 },
+	{ CMD_WIZ_ACQUIRE, "acquire objects", do_cmd_wiz_acquire, false, false, 0 },
+	{ CMD_WIZ_ADVANCE, "make character powerful", do_cmd_wiz_advance, false, false, 0 },
+	{ CMD_WIZ_BANISH, "banish nearby monsters", do_cmd_wiz_banish, false, false, 0 },
+	{ CMD_WIZ_CHANGE_ITEM_QUANTITY, "change number of an item", do_cmd_wiz_change_item_quantity, false, false, 0 },
+	{ CMD_WIZ_COLLECT_DISCONNECT_STATS, "collect statistics about disconnected levels", do_cmd_wiz_collect_disconnect_stats, false, false, 0 },
+	{ CMD_WIZ_COLLECT_OBJ_MON_STATS, "collect object/monster statistics", do_cmd_wiz_collect_obj_mon_stats, false, false, 0 },
+	{ CMD_WIZ_COLLECT_PIT_STATS, "collect pit statistics", do_cmd_wiz_collect_pit_stats, false, false, 0 },
+	{ CMD_WIZ_CREATE_ALL_ARTIFACT, "create all artifacts", do_cmd_wiz_create_all_artifact, false, false, 0 },
+	{ CMD_WIZ_CREATE_ALL_ARTIFACT_FROM_TVAL, "create all artifacts of a tval", do_cmd_wiz_create_all_artifact_from_tval, false, false, 0 },
+	{ CMD_WIZ_CREATE_ALL_OBJ, "create all objects", do_cmd_wiz_create_all_obj, false, false, 0 },
+	{ CMD_WIZ_CREATE_ALL_OBJ_FROM_TVAL, "create all objects of a tval", do_cmd_wiz_create_all_obj_from_tval, false, false, 0 },
+	{ CMD_WIZ_CREATE_ARTIFACT, "create artifact", do_cmd_wiz_create_artifact, false, false, 0 },
+	{ CMD_WIZ_CREATE_OBJ, "create object", do_cmd_wiz_create_obj, false, false, 0 },
+	{ CMD_WIZ_CREATE_TRAP, "create trap", do_cmd_wiz_create_trap, false, false, 0 },
+	{ CMD_WIZ_CURE_ALL, "cure everything", do_cmd_wiz_cure_all, false, false, 0 },
+	{ CMD_WIZ_CURSE_ITEM, "change a curse on an item", do_cmd_wiz_curse_item, false, false, 0 },
+	{ CMD_WIZ_DETECT_ALL_LOCAL, "detect everything nearby", do_cmd_wiz_detect_all_local, false, false, 0 },
+	{ CMD_WIZ_DETECT_ALL_MONSTERS, "detect all monsters", do_cmd_wiz_detect_all_monsters, false, false, 0 },
+	{ CMD_WIZ_DISPLAY_KEYLOG, "display keystroke log", do_cmd_wiz_display_keylog, false, false, 0 },
+	{ CMD_WIZ_DUMP_LEVEL_MAP, "write map of level", do_cmd_wiz_dump_level_map, false, false, 0 },
+	{ CMD_WIZ_EDIT_PLAYER_EXP, "change the player's experience", do_cmd_wiz_edit_player_exp, false, false, 0 },
+	{ CMD_WIZ_EDIT_PLAYER_GOLD, "change the player's gold", do_cmd_wiz_edit_player_gold, false, false, 0 },
+	{ CMD_WIZ_EDIT_PLAYER_START, "start editing the player", do_cmd_wiz_edit_player_start, false, false, 0 },
+	{ CMD_WIZ_EDIT_PLAYER_STAT, "edit one of the player's stats", do_cmd_wiz_edit_player_stat, false, false, 0 },
+	{ CMD_WIZ_HIT_ALL_LOS, "hit all monsters in LOS", do_cmd_wiz_hit_all_los, false, false, 0 },
+	{ CMD_WIZ_INCREASE_EXP, "increase experience", do_cmd_wiz_increase_exp, false, false, 0 },
+	{ CMD_WIZ_JUMP_LEVEL, "jump to a level", do_cmd_wiz_jump_level, false, true, 0 },
+	{ CMD_WIZ_LEARN_OBJECT_KINDS, "learn about kinds of objects", do_cmd_wiz_learn_object_kinds, false, false, 0 },
+	{ CMD_WIZ_MAGIC_MAP, "map local area", do_cmd_wiz_magic_map, false, false, 0 },
+	{ CMD_WIZ_PEEK_NOISE_SCENT, "peek at noise and scent", do_cmd_wiz_peek_noise_scent, false, false, 0 },
+	{ CMD_WIZ_PERFORM_EFFECT, "perform an effect", do_cmd_wiz_perform_effect, false, false, 0 },
+	{ CMD_WIZ_PLAY_ITEM, "play with item", do_cmd_wiz_play_item, false, false, 0 },
+	{ CMD_WIZ_PUSH_OBJECT, "push objects from square", do_cmd_wiz_push_object, false, false, 0 },
+	{ CMD_WIZ_QUERY_FEATURE, "highlight specific feature", do_cmd_wiz_query_feature, false, false, 0 },
+	{ CMD_WIZ_QUERY_SQUARE_FLAG, "query square flag", do_cmd_wiz_query_square_flag, false, false, 0 },
+	{ CMD_WIZ_QUIT_NO_SAVE, "quit without saving", do_cmd_wiz_quit_no_save, false, false, 0 },
+	{ CMD_WIZ_RECALL_MONSTER, "recall monster", do_cmd_wiz_recall_monster, false, false, 0 },
+	{ CMD_WIZ_RERATE, "rerate hitpoints", do_cmd_wiz_rerate, false, false, 0 },
+	{ CMD_WIZ_REROLL_ITEM, "reroll an item", do_cmd_wiz_reroll_item, false, false, 0 },
+	{ CMD_WIZ_STAT_ITEM, "get statistics for an item", do_cmd_wiz_stat_item, false, false, 0 },
+	{ CMD_WIZ_SUMMON_NAMED, "summon specific monster", do_cmd_wiz_summon_named, false, false, 0 },
+	{ CMD_WIZ_SUMMON_RANDOM, "summon random monsters", do_cmd_wiz_summon_random, false, false, 0 },
+	{ CMD_WIZ_TELEPORT_RANDOM, "teleport", do_cmd_wiz_teleport_random, false, false, 0 },
+	{ CMD_WIZ_TELEPORT_TO, "teleport to location", do_cmd_wiz_teleport_to, false, false, 0 },
+	{ CMD_WIZ_TWEAK_ITEM, "modify item attributes", do_cmd_wiz_tweak_item, false, false, 0 },
+	{ CMD_WIZ_WIPE_RECALL, "erase monster recall", do_cmd_wiz_wipe_recall, false, false, 0 },
+	{ CMD_WIZ_WIZARD_LIGHT, "wizard light the level", do_cmd_wiz_wizard_light, false, false, 0 },
 };
 
 const char *cmd_verb(cmd_code cmd)
@@ -209,6 +211,39 @@ static struct command cmd_queue[CMD_QUEUE_SIZE];
 static bool repeat_prev_allowed = false;
 static bool repeating = false;
 
+
+/**
+ * Locate and return the index of the first previous command that is an
+ * appropriate target for CMD_REPEAT.  If no such command is available,
+ * return a negative value.
+ */
+static int cmdq_find_repeat_target_index(void)
+{
+	int target = cmd_head - 1;
+
+	while (1) {
+		if (target < 0) target = CMD_QUEUE_SIZE - 1;
+
+		if (target == cmd_tail) {
+			break;
+		}
+		/*
+		 * Only repeat a command that has not been marked
+		 * as a background command (i.e. it is not a side
+		 * effect of something else).
+		 */
+		if (!cmd_queue[target].is_background_command) {
+			if (cmd_queue[target].code != CMD_NULL) {
+				return target;
+			}
+			break;
+		}
+		/* Keep looking. */
+		--target;
+	}
+	return -1;
+}
+
 struct command *cmdq_peek(void)
 {
 	return &cmd_queue[prev_cmd_idx(cmd_head)];
@@ -227,17 +262,19 @@ errr cmdq_push_copy(struct command *cmd)
 	/* Insert command into queue. */
 	if (cmd->code != CMD_REPEAT) {
 		cmd_queue[cmd_head] = *cmd;
+	} else if (!repeat_prev_allowed) {
+		return 1;
 	} else {
-		int cmd_prev = cmd_head - 1;
+		int idx_to_repeat = cmdq_find_repeat_target_index();
 
-		if (!repeat_prev_allowed) return 1;
-
-		/* If we're repeating a command, we duplicate the previous command 
-		   in the next command "slot". */
-		if (cmd_prev < 0) cmd_prev = CMD_QUEUE_SIZE - 1;
-		
-		if (cmd_queue[cmd_prev].code != CMD_NULL)
-			cmd_queue[cmd_head] = cmd_queue[cmd_prev];
+		if (idx_to_repeat < 0) {
+			return 1;
+		}
+		/*
+		 * If we're repeating a command, we duplicate the previous
+		 * command in the next command "slot".
+		 */
+		cmd_queue[cmd_head] = cmd_queue[idx_to_repeat];
 	}
 
 	/* Advance point in queue, wrapping around at the end */
@@ -282,8 +319,32 @@ static void process_command(cmd_context ctx, struct command *cmd)
 	/* Actually execute the command function */
 	if (game_cmds[idx].fn) {
 		/* Occasional attack instead for bloodlust-affected characters */
-		if (randint0(200) < player->timed[TMD_BLOODLUST]) {
-			if (player_attack_random_monster(player)) return;
+		if (cmd->is_background_command) {
+			/*
+			 * Background commands do not trigger bloodlust.  If
+			 * they can take energy, they also don't reset whether
+			 * the player's next command skips the bloodlust check.
+			 */
+			if (player->skip_cmd_coercion
+					&& game_cmds[idx].can_use_energy) {
+				player->skip_cmd_coercion = 2;
+			}
+		} else if (game_cmds[idx].can_use_energy
+				&& !player->skip_cmd_coercion) {
+			if (randint0(200) < player->timed[TMD_BLOODLUST]) {
+				if (player_attack_random_monster(player)) return;
+			} else if (player->timed[TMD_BLOODLUST]) {
+				/*
+				 * In case this command is canceled by the
+				 * user, tentatively mark the player as
+				 * immune from bloodlust check on the next
+				 * command that can take energy and is not
+				 * a background command.  Will update that
+				 * tentative determination in
+				 * process_player_cleanup().
+				 */
+				player->skip_cmd_coercion = 1;
+			}
 		}
 		game_cmds[idx].fn(cmd);
 	}
@@ -328,6 +389,7 @@ errr cmdq_push_repeat(cmd_code c, int nrepeats)
 		.context = CTX_INIT,
 		.code = CMD_NULL,
 		.nrepeats = 0,
+		.is_background_command = false,
 		.arg = { { 0 } }
 	};
 
@@ -438,11 +500,21 @@ void cmd_disable_repeat_floor_item(void)
 	cmd_prev = cmd_head - 1;
 	if (cmd_prev < 0) cmd_prev = CMD_QUEUE_SIZE - 1;
 	if (cmd_queue[cmd_prev].code != CMD_NULL) {
-		struct object *obj;
+		struct command *cmd = &cmd_queue[cmd_prev];
+		int i = 0;
 
-		if (cmd_get_arg_item(&cmd_queue[cmd_prev], "item", &obj) == CMD_OK
-				&& (obj->grid.x != 0 || obj->grid.y != 0)) {
-			repeat_prev_allowed = false;
+		while (1) {
+			if (i >= CMD_MAX_ARGS) {
+				break;
+			}
+			if (cmd->arg[i].type == arg_ITEM
+					&& cmd->arg[i].data.obj
+					&& (cmd->arg[i].data.obj->grid.x != 0
+					|| cmd->arg[i].data.obj->grid.y != 0)) {
+				repeat_prev_allowed = false;
+				break;
+			}
+			++i;
 		}
 	}
 }
@@ -559,11 +631,31 @@ int cmd_get_arg_choice(struct command *cmd, const char *arg, int *choice)
 
 /**
  * Get a spell from the user, trying the command first but then prompting
+ *
+ * \param cmd is the command to use.
+ * \param arg is the name of the command's argument that stores the spell's
+ * index.
+ * \param p is the player.
+ * \param spell is dereferenced and set to the index of the spell selected.
+ * \param verb is the string describing the action for which the spell is
+ * requested.  It is typically "cast" or "study".
+ * \param book_filter is the function (if any) to test that an object is
+ * appropriate for use as a spellbook by the player.
+ * \param book_error is the message to display if no valid book is available.
+ * If NULL, no message will be displayed.
+ * \param spell_filter is the function to call to test if a spell is a valid
+ * selection for the request.
+ * \param spell_error is the message to display if no valid spell is available.
+ * If NULL, no message will be displayed.
+ * \return CMD_OK if a valid spell index was assigned to *spell or
+ * CMD_ARG_ABORTED if no valid spell index was assigned to *spell.
  */
 int cmd_get_spell(struct command *cmd, const char *arg, struct player *p,
 		int *spell,
-		const char *verb, item_tester book_filter, const char *error,
-		bool (*spell_filter)(const struct player *p, int spell))
+		const char *verb, item_tester book_filter,
+		const char *book_error,
+		bool (*spell_filter)(const struct player *p, int spell),
+		const char *spell_error)
 {
 	struct object *book;
 
@@ -576,14 +668,15 @@ int cmd_get_spell(struct command *cmd, const char *arg, struct player *p,
 
 	/* See if we've been given a book to look at */
 	if (cmd_get_arg_item(cmd, "book", &book) == CMD_OK) {
-		*spell = get_spell_from_book(p, verb, book, error,
+		*spell = get_spell_from_book(p, verb, book, spell_error,
 			spell_filter);
 	} else {
-		*spell = get_spell(p, verb, book_filter, cmd->code, error,
-			spell_filter);
+		*spell = get_spell(p, verb, book_filter, cmd->code, book_error,
+			spell_filter, spell_error, &book);
 	}
 
 	if (*spell >= 0) {
+		cmd_set_arg_item(cmd, "book", book);
 		cmd_set_arg_choice(cmd, arg, *spell);
 		return CMD_OK;
 	}

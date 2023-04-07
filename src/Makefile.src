@@ -35,7 +35,6 @@ HEADERS = \
 	z-quark.h \
 	z-queue.h \
 	z-rand.h \
-	z-set.h \
 	z-type.h \
 	z-util.h \
 	z-virt.h
@@ -50,7 +49,6 @@ ZFILES = \
 	z-quark.o \
 	z-queue.o \
 	z-rand.o \
-	z-set.o \
 	z-textblock.o \
 	z-type.o \
 	z-util.o \
@@ -80,7 +78,7 @@ WINMAINFILES = \
 
 X11MAINFILES = main-x11.o
 
-ANGFILES = \
+ANGFILES0 = \
 	cave.o \
 	cave-map.o \
 	cave-square.o \
@@ -222,5 +220,5 @@ STATSMAINFILES = main-stats.o \
 
 SPOILMAINFILES = main-spoil.o
 
-buildid.o: $(ANGFILES)
-ANGFILES += buildid.o
+buildid.o: $(ANGFILES0)
+ANGFILES = $(ANGFILES0) buildid.o

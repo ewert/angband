@@ -228,13 +228,13 @@ void build_score(struct high_score *entry, const struct player *p,
 	strnfmt(entry->what, sizeof(entry->what), "%s", buildid);
 
 	/* Calculate and save the points */
-	strnfmt(entry->pts, sizeof(entry->pts), "%9u", total_points(p));
+	strnfmt(entry->pts, sizeof(entry->pts), "%9ld", total_points(p));
 
 	/* Save the current gold */
-	strnfmt(entry->gold, sizeof(entry->gold), "%9u", p->au);
+	strnfmt(entry->gold, sizeof(entry->gold), "%9ld", (long)p->au);
 
 	/* Save the current turn */
-	strnfmt(entry->turns, sizeof(entry->turns), "%9u", turn);
+	strnfmt(entry->turns, sizeof(entry->turns), "%9ld", (long)turn);
 
 	/* Time of death */
 	if (death_time)

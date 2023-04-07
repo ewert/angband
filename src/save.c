@@ -487,7 +487,7 @@ void wr_player(void)
 	wr_byte(player->old_grid.x);
 	wr_s16b(0);	/* oops */
 	wr_s16b(0);	/* oops */
-	wr_byte(0);
+	wr_byte(player->skip_cmd_coercion);
 	wr_byte(player->unignoring);
 	wr_s16b(player->deep_descent);
 
@@ -745,13 +745,13 @@ void wr_stores(void)
 {
 	int i;
 
-	wr_u16b(MAX_STORES);
-	for (i = 0; i < MAX_STORES; i++) {
+	wr_u16b(z_info->store_max);
+	for (i = 0; i < z_info->store_max; i++) {
 		const struct store *store = &stores[i];
 		struct object *obj;
 
 		/* Save the current owner */
-		wr_byte(store->owner->oidx);
+		wr_byte((store->owner) ? store->owner->oidx : 0);
 
 		/* Save the stock size */
 		wr_byte(store->stock_num);
@@ -1037,7 +1037,7 @@ void wr_chunks(void)
 			wr_u16b(c->height);
 			wr_u16b(c->width);
 			wr_u16b(c->feeling_squares);
-			for (i = 0; i < z_info->f_max + 1; i++) {
+			for (i = 0; i < FEAT_MAX + 1; i++) {
 				wr_u16b(c->feat_count[i]);
 			}
 		}
