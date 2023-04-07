@@ -200,7 +200,7 @@ base-object:sword:Dagger
 level:1
 weight:12
 cost:12000
-alloc:40:1 to 50
+alloc:40:1 to 100
 attack:1d4:9:12
 armor:0:10
 values:RES_FIRE[1]
@@ -214,7 +214,7 @@ base-object:sword:Dagger
 level:1
 weight:12
 cost:11000
-alloc:40:1 to 50
+alloc:40:1 to 100
 attack:1d4:9:12
 armor:0:10
 values:RES_COLD[1]
@@ -228,7 +228,7 @@ base-object:sword:Dagger
 level:1
 weight:12
 cost:13000
-alloc:40:1 to 50
+alloc:40:1 to 100
 attack:1d4:9:12
 armor:0:10
 values:RES_ELEC[1]
@@ -242,7 +242,7 @@ base-object:sword:Dagger
 level:5
 weight:12
 cost:15000
-alloc:5:5 to 75
+alloc:5:5 to 100
 attack:2d4:14:13
 armor:0:0
 values:RES_POIS[1] | RES_DISEN[1]
@@ -259,7 +259,7 @@ base-object:sword:Dagger
 level:10
 weight:12
 cost:40000
-alloc:2:10 to 80
+alloc:2:10 to 100
 attack:3d4:16:14
 armor:0:0
 flags:SEE_INVIS | SLOW_DIGEST | REGEN
@@ -292,7 +292,7 @@ base-object:sword:Main Gauche
 level:15
 weight:30
 cost:20000
-alloc:3:15 to 65
+alloc:3:15 to 100
 attack:2d6:12:15
 armor:0:0
 flags:FREE_ACT | SEE_INVIS
@@ -308,7 +308,7 @@ base-object:sword:Rapier
 level:1
 weight:40
 cost:15000
-alloc:38:5 to 50
+alloc:38:5 to 100
 attack:1d12:12:19
 armor:0:0
 values:LIGHT[1] | RES_COLD[1] | RES_LIGHT[1]
@@ -321,7 +321,7 @@ base-object:sword:Rapier
 level:15
 weight:40
 cost:25000
-alloc:10:15 to 80
+alloc:10:15 to 100
 attack:2d6:16:12
 armor:0:0
 values:BLOWS[1] | STR[2] | DEX[2] | CON[2]
@@ -357,7 +357,7 @@ base-object:sword:Short Sword
 level:20
 weight:80
 cost:15000
-alloc:12:20 to 80
+alloc:12:20 to 100
 attack:1d7:13:11
 armor:0:0
 flags:SLOW_DIGEST | REGEN
@@ -372,7 +372,7 @@ base-object:sword:Cutlass
 level:20
 weight:110
 cost:28000
-alloc:12:20 to 65
+alloc:12:20 to 100
 attack:1d8:10:11
 armor:0:50
 flags:FEATHER | SEE_INVIS | REGEN | FREE_ACT
@@ -387,7 +387,7 @@ base-object:sword:Scimitar
 level:20
 weight:130
 cost:30000
-alloc:7:20 to 80
+alloc:7:20 to 100
 attack:4d2:9:11
 armor:0:0
 flags:SEE_INVIS
@@ -464,7 +464,7 @@ base-object:sword:Long Sword
 level:1
 weight:130
 cost:30000
-alloc:50:10 to 50
+alloc:50:10 to 100
 attack:2d5:12:12
 armor:0:0
 flags:FEATHER | SEE_INVIS
@@ -497,7 +497,7 @@ base-object:sword:Broad Sword
 level:20
 weight:150
 cost:40000
-alloc:5:20 to 80
+alloc:5:20 to 100
 attack:2d5:10:15
 armor:0:0
 flags:BLESSED | SLOW_DIGEST
@@ -532,7 +532,7 @@ base-object:sword:Broad Sword
 level:20
 weight:150
 cost:40000
-alloc:5:20 to 80
+alloc:5:20 to 100
 attack:2d5:10:15
 armor:0:0
 flags:BLESSED | SLOW_DIGEST
@@ -742,7 +742,7 @@ base-object:hafted:Morning Star
 level:20
 weight:150
 cost:30000
-alloc:3:20 to 75
+alloc:3:20 to 100
 attack:2d6:8:22
 armor:0:0
 flags:SEE_INVIS
@@ -774,7 +774,7 @@ base-object:hafted:Flail
 level:20
 weight:150
 cost:55000
-alloc:12:20 to 65
+alloc:12:20 to 100
 attack:3d6:16:12
 armor:0:0
 flags:PROT_CONF
@@ -827,7 +827,7 @@ base-object:hafted:Quarterstaff
 level:20
 weight:150
 cost:70000
-alloc:5:20 to 80
+alloc:5:20 to 100
 attack:1d9:10:20
 armor:0:0
 values:INT[4] | RES_FIRE[1] | RES_POIS[1]
@@ -965,7 +965,7 @@ base-object:polearm:Spear
 level:15
 weight:50
 cost:30000
-alloc:8:15 to 65
+alloc:8:15 to 100
 attack:1d7:11:13
 armor:0:0
 flags:BLESSED | SEE_INVIS
@@ -1033,7 +1033,7 @@ base-object:polearm:Halberd
 level:20
 weight:140
 cost:22000
-alloc:12:25 to 80
+alloc:12:25 to 100
 attack:3d7:16:12
 armor:0:0
 flags:BLESSED | FEATHER | SEE_INVIS
@@ -1049,7 +1049,7 @@ base-object:polearm:Pike
 level:20
 weight:160
 cost:32000
-alloc:7:20 to 80
+alloc:7:20 to 100
 attack:1d15:10:12
 armor:0:10
 flags:SUST_INT | SLOW_DIGEST
@@ -1106,7 +1106,7 @@ base-object:polearm:Broad Axe
 level:20
 weight:160
 cost:50000
-alloc:12:20 to 75
+alloc:12:20 to 100
 attack:2d6:13:19
 armor:0:0
 flags:SEE_INVIS
@@ -1295,7 +1295,7 @@ base-object:bow:Short Bow
 level:25
 weight:30
 cost:9000
-alloc:10:30 to 80
+alloc:10:30 to 100
 attack:0d0:12:15
 armor:0:0
 flags:SLOW_DIGEST
@@ -1440,7 +1440,7 @@ base-object:boots:Pair of Leather Boots
 level:10
 weight:20
 cost:17000
-alloc:8:15 to 80
+alloc:8:15 to 100
 attack:1d1:-1:-1
 armor:2:0
 flags:FEATHER | TRAP_IMMUNE
@@ -1456,7 +1456,7 @@ base-object:boots:Pair of Leather Boots
 level:10
 weight:20
 cost:7000
-alloc:8:15 to 70
+alloc:8:15 to 100
 attack:1d1:0:0
 armor:2:12
 flags:FREE_ACT | FEATHER
@@ -1575,7 +1575,7 @@ base-object:helm:Iron Helm
 level:20
 weight:75
 cost:1
-alloc:18:20 to 75
+alloc:18:20 to 100
 attack:1d3:8:8
 armor:7:10
 flags:PROT_FEAR | 
@@ -1655,7 +1655,7 @@ base-object:soft armour:Soft Leather Armour
 level:20
 weight:80
 cost:45000
-alloc:20:20 to 80
+alloc:20:20 to 100
 attack:0d0:0:0
 armor:10:20
 values:STEALTH[3] | RES_DARK[1] | RES_NETHER[1]
@@ -1668,7 +1668,7 @@ base-object:soft armour:Hard Leather Armour
 level:50
 weight:100
 cost:35000
-alloc:20:25 to 90
+alloc:20:25 to 100
 attack:0d0:0:0
 armor:20:15
 values:RES_CHAOS[1] | RES_NETHER[1] | RES_POIS[1]
@@ -1699,7 +1699,7 @@ base-object:hard armour:Chain Mail
 level:20
 weight:220
 cost:32000
-alloc:30:20 to 75
+alloc:30:20 to 100
 attack:1d4:-2:0
 armor:40:15
 values:STR[2] | RES_SHARD[1] | RES_NEXUS[1]
@@ -1857,7 +1857,7 @@ base-object:cloak:Cloak
 level:5
 weight:10
 cost:8000
-alloc:10:5 to 75
+alloc:10:5 to 100
 attack:0d0:0:0
 armor:1:10
 flags:FREE_ACT | PROT_FEAR | SEE_INVIS
@@ -1931,7 +1931,7 @@ base-object:gloves:Set of Leather Gloves
 level:10
 weight:5
 cost:30000
-alloc:18:10 to 80
+alloc:18:10 to 100
 attack:0d0:5:5
 armor:1:10
 flags:FREE_ACT | SUST_CON
@@ -1946,7 +1946,7 @@ base-object:gloves:Set of Gauntlets
 level:1
 weight:25
 cost:15000
-alloc:40:10 to 60
+alloc:40:10 to 100
 attack:1d1:0:0
 armor:3:14
 flags:REGEN
@@ -1975,7 +1975,7 @@ base-object:gloves:Set of Gauntlets
 level:1
 weight:25
 cost:11000
-alloc:23:10 to 75
+alloc:23:10 to 100
 attack:1d1:0:0
 armor:3:14
 values:LIGHT[1] | RES_ELEC[1] | RES_LIGHT[1]
@@ -1988,7 +1988,7 @@ base-object:gloves:Set of Gauntlets
 level:1
 weight:25
 cost:12000
-alloc:30:10 to 60
+alloc:30:10 to 100
 attack:1d1:3:3
 armor:3:14
 flags:FEATHER
@@ -2328,7 +2328,7 @@ graphics:":w
 level:40
 weight:3
 cost:25000
-alloc:2:30 to 70
+alloc:2:30 to 100
 flags:HOLD_LIFE | SUST_CON | SUST_WIS | REGEN
 values:WIS[2] | RES_DARK[1] | RES_COLD[1] | RES_NETHER[1]
 act:RESTORE_LIFE
