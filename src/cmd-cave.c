@@ -1407,24 +1407,26 @@ void do_cmd_explore(struct command *cmd)
 		return;
 	}
 
-	/* XXX - If current on item, announce what it is and return. */
+	/* XXX - If current on item, announce what it is and return.
 	if (square(cave, player->grid)->obj) {
 		cmdq_push(CMD_HOLD);
 		cmd_set_arg_point(cmdq_peek(), "point", grid);
 		return;
-	}
+	} Only explore function used - Ewert */
 
 	/* Move to nearest object */
 	visible_objects = player_visible_objects(cave);
 	unknown_grids = player_reachable_unknown_grids(cave);
 	closed_stairs = player_reachable_closed_doors(cave);
 
-	if (point_set_size(visible_objects)) {
-		grid = visible_objects->pts[0];
+	/* if (point_set_size(visible_objects)) { */
+	/*	grid = visible_objects->pts[0];  Explore only - EWERT*/
 	/* Find candidate spaces to move into */
-	} else if ((point_set_size(unknown_grids))) {
+	/* } else */
+
+	if (point_set_size(unknown_grids)) {
 		grid = unknown_grids->pts[0];
-	} else if ((point_set_size(closed_stairs))) {
+	} else if (point_set_size(closed_stairs)) {
 		grid = closed_stairs->pts[0];
 	} else {
 		msg("Can't find uncharted territory.");

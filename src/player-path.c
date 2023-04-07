@@ -805,7 +805,9 @@ void run_step(int dir)
 				 *
 				 * We have to look ahead two, otherwise we don't know which is
 				 * the last direction moved and don't initialise the run
-				 * properly. */
+				 * properly. 
+				 * Ewert: hack to always make last step be a run */
+
 				grid = loc_sum(player->grid,
 							   ddgrid[path_step_dir[path_step_idx]]);
 
@@ -849,6 +851,13 @@ void run_step(int dir)
 					player->upkeep->running_withpathfind = false;
 					run_init(path_step_dir[path_step_idx]);
 				}
+
+				/* Ewert: if second to last step, run it */
+				if (path_step_idx == 1) {
+					player->upkeep->running_withpathfind = false;
+					run_init(path_step_dir[path_step_idx]);
+				}
+
 			}
 
 			/* Now actually run the step if we're still going */
