@@ -34,9 +34,9 @@ combination and does not pass it on.
   x    -                               X    -
   y    -                               Y    -
   z    Zap a rod                       Z    -
-  !    -                               ^a   (special - debug command)
+  !    Fight nearest monster           ^a   (special - debug command)
   @    -                               ^b   -
-  #    -                               ^c   (special - break)
+  #    Auto-explore                    ^c   (special - break)
   $    -                               ^d   -
   %    -                               ^e   Toggle inven/equip window
   ^    (special - control key)         ^f   Repeat level feeling

@@ -1338,13 +1338,30 @@ void do_cmd_run(struct command *cmd)
  */
 void do_cmd_pathfind(struct command *cmd)
 {
+	int i;
 	struct loc grid;
+	struct point_set *adjacent_grids;
 
 	/* XXX-AS Add better arg checking */
 	cmd_get_arg_point(cmd, "point", &grid);
 
 	if (player->timed[TMD_CONFUSED])
 		return;
+
+	if (square_isknown(cave, grid) && !square_ispassable(cave, grid)) {
+		adjacent_grids = adjacent_passable_grids(cave, grid);
+		sort(adjacent_grids->pts, point_set_size(adjacent_grids), 
+			sizeof(*(adjacent_grids->pts)), player_cmp_distance);
+
+		for (i = 0; i < point_set_size(adjacent_grids); i++) {
+			if (find_path(adjacent_grids->pts[i])) { 
+				grid = adjacent_grids->pts[i];
+			    point_set_dispose(adjacent_grids);
+				break;
+			}
+		}
+	}
+
 
 	if (find_path(grid)) {
 		player->upkeep->running = 1000;
@@ -1355,7 +1372,110 @@ void do_cmd_pathfind(struct command *cmd)
 	}
 }
 
+/**
+ * Start auto-exploring.
+ *
+ * Exploring while confused, blind, or hallucinating is disallowed.
+ */
+void do_cmd_explore(struct command *cmd)
+{
+	struct point_set *unknown_grids;
+	struct point_set *visible_objects;
+	struct point_set *closed_stairs;
 
+	struct loc grid;
+
+	if (player->timed[TMD_BLIND] || no_light(player)) {
+		msg("You cannot see!");
+		return;
+	}
+
+	if (player->timed[TMD_CONFUSED]) {
+		msg("You are too confused!");
+		return;
+	}
+
+	/* Handle hallucination */
+	if (player->timed[TMD_IMAGE]) {
+		msg("You are too intoxicated!");
+		return;
+	}
+
+	/* If monsters are visible, refuse to move. */
+	if (player_can_see_monster(cave)) {
+		msg("You can't explore with visible monsters.");
+		return;
+	}
+
+	/* XXX - If current on item, announce what it is and return. */
+	if (square(cave, player->grid)->obj) {
+		cmdq_push(CMD_HOLD);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		return;
+	}
+
+	/* Move to nearest object */
+	visible_objects = player_visible_objects(cave);
+	unknown_grids = player_reachable_unknown_grids(cave);
+	closed_stairs = player_reachable_closed_doors(cave);
+
+	if (point_set_size(visible_objects)) {
+		grid = visible_objects->pts[0];
+	/* Find candidate spaces to move into */
+	} else if ((point_set_size(unknown_grids))) {
+		grid = unknown_grids->pts[0];
+	} else if ((point_set_size(closed_stairs))) {
+		grid = closed_stairs->pts[0];
+	} else {
+		msg("Can't find uncharted territory.");
+		return;
+	}
+
+	cmdq_push(CMD_PATHFIND);
+	cmd_set_arg_point(cmdq_peek(), "point", grid);
+	if (point_set_size(unknown_grids)) point_set_dispose(unknown_grids);
+	if (point_set_size(visible_objects)) point_set_dispose(visible_objects);
+	if (point_set_size(closed_stairs)) point_set_dispose(closed_stairs);
+}
+
+/**
+ * Automate one round of combat.
+ */
+void do_cmd_fight(struct command *cmd)
+{
+	struct loc grid;
+	struct point_set *visible_monsters;
+
+	if (player->timed[TMD_BLIND] || no_light(player)) {
+		msg("You cannot see!");
+		return;
+	}
+
+	if (player->timed[TMD_CONFUSED]) {
+		msg("You are too confused!");
+		return;
+	}
+
+	if (player->timed[TMD_IMAGE]) {
+		msg("You are too intoxicated!");
+		return;
+	}
+
+	visible_monsters = player_visible_monsters(cave);
+	if (point_set_size(visible_monsters)) {
+		grid = visible_monsters->pts[0];
+	} else {
+		msg("No Available Target.");
+		return;
+	}
+
+	cmdq_push(CMD_PATHFIND);
+	cmd_set_arg_point(cmdq_peek(), "point", grid);
+
+	point_set_dispose(visible_monsters);
+	return;
+
+}
 
 /**
  * Stay still.  Search.  Enter stores.

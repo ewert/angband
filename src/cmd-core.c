@@ -86,6 +86,8 @@ static const struct command_info game_cmds[] =
 	{ CMD_REST, "rest", do_cmd_rest, false, true, 0 },
 	{ CMD_SLEEP, "sleep", do_cmd_sleep, false, true, 0 },
 	{ CMD_PATHFIND, "walk", do_cmd_pathfind, false, true, 0 },
+	{ CMD_EXPLORE, "explore", do_cmd_explore, false, 0 },
+	{ CMD_FIGHT, "fight", do_cmd_fight, false, 0 }, 
 	{ CMD_PICKUP, "pickup", do_cmd_pickup, false, true, 0 },
 	{ CMD_AUTOPICKUP, "autopickup", do_cmd_autopickup, false, true, 0 },
 	{ CMD_WIELD, "wear or wield", do_cmd_wield, false, false, 0 },

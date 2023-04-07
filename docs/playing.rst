@@ -114,9 +114,9 @@ Original Keyset Command Summary
 ``x``  (unused)                      ``X``  (unused)
 ``y``  (unused)                      ``Y``  (unused)
 ``z``  Zap a rod                     ``Z``  (unused)
-``!``  (unused)                      ``^a`` (special - debug command)
+``!``  Fight nearest monster         ``^a`` (special - debug command)
 ``@``  (unused)                      ``^b`` (unused)
-``#``  (unused)                      ``^c`` (special - break)
+``#``  Auto-explore                  ``^c`` (special - break)
 ``$``  (unused)                      ``^d`` (unused)
 ``%``  (unused)                      ``^e`` Toggle inven/equip window
 ``^``  (special - control key)       ``^f`` Repeat level feeling
@@ -176,9 +176,9 @@ Roguelike Keyset Command Summary
  ``x``  Look around                   ``X``  Use an item
  ``y``  (walk - north west)           ``Y``  (run - north west)
  ``z``  Aim a wand (Zap)              ``Z``  Use a staff (Zap)
- ``!``  (unused)                      ``^a`` (special - debug command)
+ ``!``  Fight nearest monster         ``^a`` (special - debug command)
  ``@``  Center map                    ``^b`` (alter - south west)
- ``#``  (unused)                      ``^c`` (special - break)
+ ``#``  Auto-explore                  ``^c`` (special - break)
  ``$``  (unused)                      ``^d`` Ignore an item
  ``%``  (unused)                      ``^e`` Toggle inven/equip window
  ``^``  (special - control key)       ``^f`` Repeat level feeling

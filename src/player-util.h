@@ -119,5 +119,11 @@ void player_handle_post_move(struct player *p, bool eval_trap,
 		bool is_involuntary);
 void disturb(struct player *p);
 void search(struct player *p);
+int player_visible_monster_count(struct chunk *c);
+bool player_can_see_monster(struct chunk *c);
+struct point_set *player_visible_monsters(struct chunk *c); 
+struct point_set *player_visible_objects(struct chunk *c);
+struct point_set *player_reachable_unknown_grids(struct chunk *c);
+struct point_set *player_reachable_closed_doors(struct chunk *c);
 
 #endif /* !PLAYER_UTIL_H */

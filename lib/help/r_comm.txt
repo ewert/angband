@@ -34,9 +34,9 @@ combination and does not pass it on.
   x    Look around                     X    Use an item
   y    (walk - north west)             Y    (run - north west)
   z    Aim a wand (Zap)                Z    Use a staff (Zap)
-  !    -                               ^a   (special - debug command)
+  !    Fight nearest monster           ^a   (special - debug command)
   @    Center map                      ^b   (alter - south west)
-  #    -                               ^c   (special - break)
+  #    Auto-explore                    ^c   (special - break)
   $    -                               ^d   Ignore an item
   %    -                               ^e   Toggle inven/equip window
   ^    (special - control key)         ^f   Repeat level feeling
