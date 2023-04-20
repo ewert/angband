@@ -1391,12 +1391,19 @@ void do_cmd_explore(struct command *cmd)
 
 	struct loc last_grid = {-1, -1};
 	struct loc last_last_grid = {-1, -1};
+	bool first_iteration = true;
+
 	while(!player_must_use_own_brain(cave)) {
-		/* XXX - If current on item, announce what it is and return. */
 		if (square(cave, player->grid)->obj && 
 			!ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
-			disturb(player);
-			break;
+				/* If this is the first time through, we've landed on the item. */
+				if (first_iteration) {
+					square(cave, player->grid)->obj->known->notice |= OBJ_NOTICE_IGNORE;
+				}
+				else { 
+					disturb(player); 
+					break;
+					}
 		}
 
 		/* Move to nearest object */
@@ -1433,6 +1440,7 @@ void do_cmd_explore(struct command *cmd)
 		last_last_grid = last_grid;
 		last_grid = player->grid;
 		run_game_loop();
+		first_iteration = false;
 		}
 }
 

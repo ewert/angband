@@ -1692,7 +1692,7 @@ bool player_must_use_own_brain(struct chunk *c) {
 	if (player_is_sick(player)) return true;
 	if (player_can_see_monster(c)) {
 		disturb(player);
-			msg("You can't do that with visible monsters.");
+			msg("There are monsters nearby.");
 			return true;
 	}
 	return false;
