@@ -1942,6 +1942,9 @@ struct point_set *player_reachable_down_stairs(struct chunk *c)
 			/* Check bounds */
 			if (!square_in_bounds_fully(c, grid)) continue;
 
+			/* Pass if the grid isn't known by player*/	
+			if (square_isnotknown(c, grid)) continue;
+
 			/* Pass if the grid isn't a downstair */
 			if (!square_isdownstairs(c, grid)) continue; 		
 
@@ -1975,6 +1978,9 @@ struct point_set *player_reachable_up_stairs(struct chunk *c)
 
 			/* Check bounds */
 			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Pass if the grid isn't known by player*/	
+			if (square_isnotknown(c, grid)) continue;
 
 			/* Pass if the grid isn't a downstair */
 			if (!square_isupstairs(c, grid)) continue; 		
