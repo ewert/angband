@@ -127,5 +127,7 @@ struct point_set *player_visible_monsters(struct chunk *c);
 struct point_set *player_visible_objects(struct chunk *c);
 struct point_set *player_reachable_unknown_grids(struct chunk *c);
 struct point_set *player_reachable_closed_doors(struct chunk *c);
+struct point_set *player_reachable_down_stairs(struct chunk *c);
+struct point_set *player_reachable_up_stairs(struct chunk *c);
 
 #endif /* !PLAYER_UTIL_H */

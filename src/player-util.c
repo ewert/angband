@@ -1919,3 +1919,71 @@ struct point_set *player_reachable_closed_doors(struct chunk *c)
 		 player_cmp_distance);
 	return results;
 }
+
+/*
+ * Produce point set of downstairs that player can reach
+ */
+struct point_set *player_reachable_down_stairs(struct chunk *c)
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *results = point_set_new(AE_INITIAL_SIZE);
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for unknown grids in path */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Pass if the grid isn't a downstair */
+			if (!square_isdownstairs(c, grid)) continue; 		
+
+			/* Save the location if unknown */
+			add_to_point_set(results, grid);
+		}
+	}
+	sort(results->pts, point_set_size(results), sizeof(*(results->pts)),
+		 player_cmp_distance);
+	return results;
+}
+
+/*
+ * Produce point set of upstairs that player can reach
+ */
+struct point_set *player_reachable_up_stairs(struct chunk *c)
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *results = point_set_new(AE_INITIAL_SIZE);
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for unknown grids in path */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Pass if the grid isn't a downstair */
+			if (!square_isupstairs(c, grid)) continue; 		
+
+			/* Save the location if unknown */
+			add_to_point_set(results, grid);
+		}
+	}
+	sort(results->pts, point_set_size(results), sizeof(*(results->pts)),
+		 player_cmp_distance);
+	return results;
+}
