@@ -1948,6 +1948,9 @@ struct point_set *player_reachable_down_stairs(struct chunk *c)
 			/* Pass if the grid isn't a downstair */
 			if (!square_isdownstairs(c, grid)) continue; 		
 
+			/* Make sure a path can be found */
+			if (!find_path(grid)) continue;
+
 			/* Save the location if unknown */
 			add_to_point_set(results, grid);
 		}
@@ -1984,6 +1987,9 @@ struct point_set *player_reachable_up_stairs(struct chunk *c)
 
 			/* Pass if the grid isn't a downstair */
 			if (!square_isupstairs(c, grid)) continue; 		
+
+			/* Make sure a path can be found */
+			if (!find_path(grid)) continue;
 
 			/* Save the location if unknown */
 			add_to_point_set(results, grid);
