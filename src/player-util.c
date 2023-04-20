@@ -1681,7 +1681,7 @@ bool player_is_sick(struct player *p) {
         msg("You are too poisoned.");
         return true;
     }
-
+	/* XXX - Need to add in hunger */
     return false;
 }
 

@@ -57,9 +57,10 @@ void do_cmd_go_up(struct command *cmd)
 {
 	int ascend_to;
 
-	/* Verify stairs */
+	/* Find stairs if not on them */
 	if (!square_isupstairs(cave, player->grid)) {
-		msg("I see no up staircase here.");
+		cmdq_push(CMD_FIND_UP);
+		cmd_set_arg_point(cmdq_peek(), "point", player->grid);
 		return;
 	}
 
@@ -98,9 +99,10 @@ void do_cmd_go_down(struct command *cmd)
 {
 	int descend_to = dungeon_get_next_level(player, player->depth, 1);
 
-	/* Verify stairs */
+	/* Find stairs if not on them */
 	if (!square_isdownstairs(cave, player->grid)) {
-		msg("I see no down staircase here.");
+		cmdq_push(CMD_FIND_DOWN);
+		cmd_set_arg_point(cmdq_peek(), "point", player->grid);
 		return;
 	}
 
@@ -1442,6 +1444,142 @@ void do_cmd_explore(struct command *cmd)
 		run_game_loop();
 		first_iteration = false;
 		}
+}
+
+/*
+ * Find nearest up stairs
+ */
+void do_cmd_find_up(struct command *cmd) {
+	struct point_set *known_up_stairs;
+	struct point_set *visible_items;
+	struct point_set *closed_doors;
+
+	struct loc grid;
+
+	struct loc last_grid = {-1, -1};
+	struct loc last_last_grid = {-1, -1};
+	bool first_iteration = true;
+
+	while(!player_must_use_own_brain(cave) && !square_isupstairs(cave, player->grid)) {
+		if (square(cave, player->grid)->obj && 
+			!ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
+				/* If this is the first time through, we've landed on the item. */
+				if (first_iteration) {
+					square(cave, player->grid)->obj->known->notice |= OBJ_NOTICE_IGNORE;
+				}
+				else { 
+					disturb(player); 
+					break;
+					}
+		}
+
+		/* Move to nearest object */
+		visible_items = player_visible_objects(cave);
+		known_up_stairs = player_reachable_up_stairs(cave);
+		closed_doors = player_reachable_closed_doors(cave);
+
+		if (point_set_size(visible_items)) {
+			grid = visible_items->pts[0];
+		/* Find candidate spaces to move into */
+		} else  if ((point_set_size(known_up_stairs)) && find_path(known_up_stairs->pts[0])) {
+			grid = known_up_stairs->pts[0];
+		} else if ((point_set_size(closed_doors))) {
+			grid = closed_doors->pts[0];
+		} else {
+			disturb(player);
+			msg("Can't find any stairs in the area.");
+			break;
+		}
+
+		if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
+			disturb(player);
+			msg("Suddenly, you feel confused.");
+			break;
+		}
+		/* disturb when below HP warning */
+		/* find out loop */
+		cmdq_push(CMD_PATHFIND);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		if (point_set_size(known_up_stairs)) point_set_dispose(known_up_stairs);
+		if (point_set_size(visible_items)) point_set_dispose(visible_items);
+		if (point_set_size(closed_doors)) point_set_dispose(closed_doors);
+
+		last_last_grid = last_grid;
+		last_grid = player->grid;
+		run_game_loop();
+		first_iteration = false;
+		}
+	if (square_isupstairs(cave, player->grid)) {
+		msg("You are on up stairs.");
+	}
+}
+
+/*
+ * Find nearest down stairs
+ */
+void do_cmd_find_down(struct command *cmd) {
+	struct point_set *known_down_stairs;
+	struct point_set *visible_items;
+	struct point_set *closed_doors;
+
+	struct loc grid;
+
+	struct loc last_grid = {-1, -1};
+	struct loc last_last_grid = {-1, -1};
+	bool first_iteration = true;
+
+	while(!player_must_use_own_brain(cave) && !square_isdownstairs(cave, player->grid)) {
+		if (square(cave, player->grid)->obj && 
+			!ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
+				/* If this is the first time through, we've landed on the item. */
+				if (first_iteration) {
+					square(cave, player->grid)->obj->known->notice |= OBJ_NOTICE_IGNORE;
+				}
+				else { 
+					disturb(player); 
+					break;
+					}
+		}
+
+		/* Move to nearest object */
+		visible_items = player_visible_objects(cave);
+		known_down_stairs = player_reachable_down_stairs(cave);
+		closed_doors = player_reachable_closed_doors(cave);
+
+		if (point_set_size(visible_items)) {
+			grid = visible_items->pts[0];
+		/* Find candidate spaces to move into */
+		} else  if ((point_set_size(known_down_stairs)) && find_path(known_down_stairs->pts[0])) {
+			grid = known_down_stairs->pts[0];
+		} else if ((point_set_size(closed_doors))) {
+			grid = closed_doors->pts[0];
+		} else {
+			disturb(player);
+			msg("Can't find any stairs in the area.");
+			break;
+		}
+
+		if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
+			disturb(player);
+			msg("Suddenly, you feel confused.");
+			break;
+		}
+		/* disturb when below HP warning */
+		/* find out loop */
+		cmdq_push(CMD_PATHFIND);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		if (point_set_size(known_down_stairs)) point_set_dispose(known_down_stairs);
+		if (point_set_size(visible_items)) point_set_dispose(visible_items);
+		if (point_set_size(closed_doors)) point_set_dispose(closed_doors);
+
+		last_last_grid = last_grid;
+		last_grid = player->grid;
+		run_game_loop();
+		first_iteration = false;
+		}
+	if (square_isdownstairs(cave, player->grid)) {
+		msg("You are on down stairs.");
+	}
 }
 
 /**
