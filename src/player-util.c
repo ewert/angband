@@ -1686,6 +1686,19 @@ bool player_is_healthy(struct player *p) {
 }
 
 /**
+ * Player has a status condition or can see monsters.
+*/
+bool player_must_use_own_brain(struct chunk *c) {
+	if (player_is_sick(player)) return true;
+	if (player_can_see_monster(c)) {
+		disturb(player);
+			msg("You can't do that with visible monsters.");
+			return true;
+	}
+	return false;
+}
+
+/**
  * The current number of monsters visible to the player.
  */
 int player_visible_monster_count(struct chunk *c) 
