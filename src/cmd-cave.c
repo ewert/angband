@@ -1382,7 +1382,6 @@ void do_cmd_pathfind(struct command *cmd)
  */
 void do_cmd_explore(struct command *cmd)
 {
-	if (player_is_healthy(player)) return;
 
 	struct point_set *unexplored_locations;
 	struct point_set *visible_items;
@@ -1392,13 +1391,7 @@ void do_cmd_explore(struct command *cmd)
 
 	struct loc last_grid = {-1, -1};
 	struct loc last_last_grid = {-1, -1};
-	while(true) {
-		if (player_can_see_monster(cave)) {
-			disturb(player);
-			msg("You can't explore with visible monsters.");
-			break;
-		}
-
+	while(!player_must_use_own_brain(cave)) {
 		/* XXX - If current on item, announce what it is and return. */
 		if (square(cave, player->grid)->obj && 
 			!ignore_known_item_ok(player, square(cave, player->grid)->obj)) {

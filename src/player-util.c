@@ -1656,7 +1656,7 @@ void search(struct player *p)
 	}
 }
 
-bool player_is_healthy(struct player *p) {
+bool player_is_sick(struct player *p) {
     if (player->timed[TMD_BLIND] || no_light(player)) {
         msg("You cannot see!");
         return true;
