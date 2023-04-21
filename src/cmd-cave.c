@@ -1460,7 +1460,6 @@ void do_cmd_explore(struct command *cmd)
 void do_cmd_find_up(struct command *cmd) {
 	struct point_set *known_up_stairs;
 	struct point_set *visible_items;
-	struct point_set *closed_doors;
 
 	struct loc grid;
 
@@ -1484,15 +1483,12 @@ void do_cmd_find_up(struct command *cmd) {
 		/* Move to nearest object */
 		visible_items = player_visible_objects(cave);
 		known_up_stairs = player_reachable_up_stairs(cave);
-		closed_doors = player_reachable_closed_doors(cave);
 
 		if (point_set_size(visible_items)) {
 			grid = visible_items->pts[0];
 		/* Find candidate spaces to move into */
 		} else  if ((point_set_size(known_up_stairs)) && find_path(known_up_stairs->pts[0])) {
 			grid = known_up_stairs->pts[0];
-		} else if ((point_set_size(closed_doors))) {
-			grid = closed_doors->pts[0];
 		} else {
 			disturb(player);
 			msg("Can't find any stairs in the area.");
@@ -1510,7 +1506,6 @@ void do_cmd_find_up(struct command *cmd) {
 		cmd_set_arg_point(cmdq_peek(), "point", grid);
 		if (point_set_size(known_up_stairs)) point_set_dispose(known_up_stairs);
 		if (point_set_size(visible_items)) point_set_dispose(visible_items);
-		if (point_set_size(closed_doors)) point_set_dispose(closed_doors);
 
 		last_last_grid = last_grid;
 		last_grid = player->grid;
@@ -1528,7 +1523,6 @@ void do_cmd_find_up(struct command *cmd) {
 void do_cmd_find_down(struct command *cmd) {
 	struct point_set *known_down_stairs;
 	struct point_set *visible_items;
-	struct point_set *closed_doors;
 
 	struct loc grid;
 
@@ -1552,15 +1546,12 @@ void do_cmd_find_down(struct command *cmd) {
 		/* Move to nearest object */
 		visible_items = player_visible_objects(cave);
 		known_down_stairs = player_reachable_down_stairs(cave);
-		closed_doors = player_reachable_closed_doors(cave);
 
 		if (point_set_size(visible_items)) {
 			grid = visible_items->pts[0];
 		/* Find candidate spaces to move into */
 		} else  if ((point_set_size(known_down_stairs)) && find_path(known_down_stairs->pts[0])) {
 			grid = known_down_stairs->pts[0];
-		} else if ((point_set_size(closed_doors))) {
-			grid = closed_doors->pts[0];
 		} else {
 			disturb(player);
 			msg("Can't find any stairs in the area.");
@@ -1578,7 +1569,6 @@ void do_cmd_find_down(struct command *cmd) {
 		cmd_set_arg_point(cmdq_peek(), "point", grid);
 		if (point_set_size(known_down_stairs)) point_set_dispose(known_down_stairs);
 		if (point_set_size(visible_items)) point_set_dispose(visible_items);
-		if (point_set_size(closed_doors)) point_set_dispose(closed_doors);
 
 		last_last_grid = last_grid;
 		last_grid = player->grid;
