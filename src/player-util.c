@@ -1602,6 +1602,7 @@ void disturb(struct player *p)
 
 		/* Cancel queued commands */
 		cmdq_flush();
+		cmdq_push(CMD_AUTOPICKUP); /* EWERT: But still autopickup on current grid please */
 
 		/* Check for new panel if appropriate */
 		event_signal(EVENT_PLAYERMOVED);
