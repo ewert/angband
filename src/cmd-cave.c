@@ -57,9 +57,10 @@ void do_cmd_go_up(struct command *cmd)
 {
 	int ascend_to;
 
-	/* Verify stairs */
+	/* Find stairs if not on them */
 	if (!square_isupstairs(cave, player->grid)) {
-		msg("I see no up staircase here.");
+		cmdq_push(CMD_FIND_UP);
+		cmd_set_arg_point(cmdq_peek(), "point", player->grid);
 		return;
 	}
 
@@ -98,9 +99,10 @@ void do_cmd_go_down(struct command *cmd)
 {
 	int descend_to = dungeon_get_next_level(player, player->depth, 1);
 
-	/* Verify stairs */
+	/* Find stairs if not on them */
 	if (!square_isdownstairs(cave, player->grid)) {
-		msg("I see no down staircase here.");
+		cmdq_push(CMD_FIND_DOWN);
+		cmd_set_arg_point(cmdq_peek(), "point", player->grid);
 		return;
 	}
 
@@ -839,6 +841,7 @@ void do_cmd_disarm(struct command *cmd)
 
 	struct object *obj;
 	bool more = false;
+	struct monster *mon;
 
 	/* Get arguments */
 	err = cmd_get_arg_direction(cmd, "direction", &dir);
@@ -886,9 +889,16 @@ void do_cmd_disarm(struct command *cmd)
 
 
 	/* Monster */
-	if (square(cave, grid)->mon > 0) {
-		msg("There is a monster in the way!");
-		py_attack(player, grid);
+	mon = square_monster(cave, grid);
+	if (mon) {
+		if (monster_is_camouflaged(mon)) {
+			become_aware(cave, mon);
+
+			monster_wake(mon, false, 100);
+		} else {
+			msg("There is a monster in the way!");
+			py_attack(player, grid);
+		}
 	} else if (obj)
 		/* Chest */
 		more = do_cmd_disarm_chest(obj);
@@ -1338,13 +1348,30 @@ void do_cmd_run(struct command *cmd)
  */
 void do_cmd_pathfind(struct command *cmd)
 {
+	int i;
 	struct loc grid;
+	struct point_set *adjacent_grids;
 
 	/* XXX-AS Add better arg checking */
 	cmd_get_arg_point(cmd, "point", &grid);
 
 	if (player->timed[TMD_CONFUSED])
 		return;
+
+	if (square_isknown(cave, grid) && !square_ispassable(cave, grid)) {
+		adjacent_grids = adjacent_passable_grids(cave, grid);
+		sort(adjacent_grids->pts, point_set_size(adjacent_grids), 
+			sizeof(*(adjacent_grids->pts)), player_cmp_distance);
+
+		for (i = 0; i < point_set_size(adjacent_grids); i++) {
+			if (find_path(adjacent_grids->pts[i])) { 
+				grid = adjacent_grids->pts[i];
+			    point_set_dispose(adjacent_grids);
+				break;
+			}
+		}
+	}
+
 
 	if (find_path(grid)) {
 		player->upkeep->running = 1000;
@@ -1353,8 +1380,244 @@ void do_cmd_pathfind(struct command *cmd)
 		player->upkeep->running_withpathfind = true;
 		run_step(0);
 	}
+
 }
 
+
+
+/**
+ * Start auto-exploring.
+ *
+ * Exploring while confused, blind, or hallucinating is disallowed.
+ */
+void do_cmd_explore(struct command *cmd)
+{
+
+	struct point_set *unexplored_locations;
+	struct point_set *visible_items;
+	struct point_set *closed_doors;
+
+	struct loc grid;
+
+	struct loc last_grid = {-1, -1};
+	struct loc last_last_grid = {-1, -1};
+	bool first_iteration = true;
+
+	while(!player_must_use_own_brain(cave)) {
+		if (square(cave, player->grid)->obj && 
+			!ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
+				/* If this is the first time through, we've landed on the item. */
+				if (first_iteration) {
+					square(cave, player->grid)->obj->known->notice |= OBJ_NOTICE_IGNORE;
+				}
+				else { 
+					disturb(player); 
+					break;
+					}
+		}
+
+		/* Move to nearest object */
+		visible_items = player_visible_objects(cave);
+		unexplored_locations = player_reachable_unknown_grids(cave);
+		closed_doors = player_reachable_closed_doors(cave);
+
+		if (point_set_size(visible_items)) {
+			grid = visible_items->pts[0];
+		/* Find candidate spaces to move into */
+		} else  if ((point_set_size(unexplored_locations)) && find_path(unexplored_locations->pts[0])) {
+			grid = unexplored_locations->pts[0];
+		} else if ((point_set_size(closed_doors))) {
+			grid = closed_doors->pts[0];
+		} else {
+			disturb(player);
+			msg("Can't find uncharted territory.");
+			break;
+		}
+
+		if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
+			disturb(player);
+			msg("Suddenly, you feel confused.");
+			break;
+		}
+		/* disturb when below HP warning */
+		/* find out loop */
+		cmdq_push(CMD_PATHFIND);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		if (point_set_size(unexplored_locations)) point_set_dispose(unexplored_locations);
+		if (point_set_size(visible_items)) point_set_dispose(visible_items);
+		if (point_set_size(closed_doors)) point_set_dispose(closed_doors);
+
+		last_last_grid = last_grid;
+		last_grid = player->grid;
+		run_game_loop();
+		first_iteration = false;
+		}
+}
+
+/*
+ * Find nearest up stairs
+ */
+void do_cmd_find_up(struct command *cmd) {
+	struct point_set *known_up_stairs;
+	struct point_set *visible_items;
+
+	struct loc grid;
+
+	struct loc last_grid = {-1, -1};
+	struct loc last_last_grid = {-1, -1};
+	bool first_iteration = true;
+
+	while(!player_must_use_own_brain(cave) && !square_isupstairs(cave, player->grid)) {
+		if (square(cave, player->grid)->obj && 
+			!ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
+				/* If this is the first time through, we've landed on the item. */
+				if (first_iteration) {
+					square(cave, player->grid)->obj->known->notice |= OBJ_NOTICE_IGNORE;
+				}
+				else { 
+					disturb(player); 
+					break;
+					}
+		}
+
+		/* Move to nearest object */
+		visible_items = player_visible_objects(cave);
+		known_up_stairs = player_reachable_up_stairs(cave);
+
+		if (point_set_size(visible_items)) {
+			grid = visible_items->pts[0];
+		/* Find candidate spaces to move into */
+		} else  if ((point_set_size(known_up_stairs)) && find_path(known_up_stairs->pts[0])) {
+			grid = known_up_stairs->pts[0];
+		} else {
+			disturb(player);
+			msg("Can't find any stairs in the area.");
+			break;
+		}
+
+		if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
+			disturb(player);
+			msg("Suddenly, you feel confused.");
+			break;
+		}
+		/* disturb when below HP warning */
+		/* find out loop */
+		cmdq_push(CMD_PATHFIND);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		if (point_set_size(known_up_stairs)) point_set_dispose(known_up_stairs);
+		if (point_set_size(visible_items)) point_set_dispose(visible_items);
+
+		last_last_grid = last_grid;
+		last_grid = player->grid;
+		run_game_loop();
+		first_iteration = false;
+		}
+	if (square_isupstairs(cave, player->grid)) {
+		msg("You are on up stairs.");
+	}
+}
+
+/*
+ * Find nearest down stairs
+ */
+void do_cmd_find_down(struct command *cmd) {
+	struct point_set *known_down_stairs;
+	struct point_set *visible_items;
+
+	struct loc grid;
+
+	struct loc last_grid = {-1, -1};
+	struct loc last_last_grid = {-1, -1};
+	bool first_iteration = true;
+
+	while(!player_must_use_own_brain(cave) && !square_isdownstairs(cave, player->grid)) {
+		if (square(cave, player->grid)->obj && 
+			!ignore_known_item_ok(player, square(cave, player->grid)->obj)) {
+				/* If this is the first time through, we've landed on the item. */
+				if (first_iteration) {
+					square(cave, player->grid)->obj->known->notice |= OBJ_NOTICE_IGNORE;
+				}
+				else { 
+					disturb(player); 
+					break;
+					}
+		}
+
+		/* Move to nearest object */
+		visible_items = player_visible_objects(cave);
+		known_down_stairs = player_reachable_down_stairs(cave);
+
+		if (point_set_size(visible_items)) {
+			grid = visible_items->pts[0];
+		/* Find candidate spaces to move into */
+		} else  if ((point_set_size(known_down_stairs)) && find_path(known_down_stairs->pts[0])) {
+			grid = known_down_stairs->pts[0];
+		} else {
+			disturb(player);
+			msg("Can't find any stairs in the area.");
+			break;
+		}
+
+		if (loc_eq(last_grid, player->grid) || loc_eq(last_last_grid, player->grid)) {
+			disturb(player);
+			msg("Suddenly, you feel confused.");
+			break;
+		}
+		/* disturb when below HP warning */
+		/* find out loop */
+		cmdq_push(CMD_PATHFIND);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		if (point_set_size(known_down_stairs)) point_set_dispose(known_down_stairs);
+		if (point_set_size(visible_items)) point_set_dispose(visible_items);
+
+		last_last_grid = last_grid;
+		last_grid = player->grid;
+		run_game_loop();
+		first_iteration = false;
+		}
+	if (square_isdownstairs(cave, player->grid)) {
+		msg("You are on down stairs.");
+	}
+}
+
+/**
+ * Automate one round of combat.
+ */
+void do_cmd_fight(struct command *cmd)
+{
+	struct loc grid;
+	struct point_set *visible_monsters;
+
+	if (player->timed[TMD_BLIND] || no_light(player)) {
+		msg("You cannot see!");
+		return;
+	}
+
+	if (player->timed[TMD_CONFUSED]) {
+		msg("You are too confused!");
+		return;
+	}
+
+	if (player->timed[TMD_IMAGE]) {
+		msg("You are too intoxicated!");
+		return;
+	}
+
+	visible_monsters = player_visible_monsters(cave);
+	if (point_set_size(visible_monsters)) {
+		grid = visible_monsters->pts[0];
+	} else {
+		msg("No Available Target.");
+		return;
+	}
+
+	cmdq_push(CMD_PATHFIND);
+	cmd_set_arg_point(cmdq_peek(), "point", grid);
+
+	point_set_dispose(visible_monsters);
+	return;
+
+}
 
 
 /**

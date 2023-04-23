@@ -26,6 +26,7 @@
 #include "monster.h"
 #include "obj-ignore.h"
 #include "player-calcs.h"
+#include "player-path.h"
 #include "player-timed.h"
 #include "project.h"
 #include "target.h"
@@ -232,44 +233,6 @@ void target_release(void)
 }
 
 /**
- * Sorting hook -- comp function -- by "distance to player"
- *
- * We use "u" and "v" to point to arrays of "x" and "y" positions,
- * and sort the arrays by double-distance to the player.
- */
-int cmp_distance(const void *a, const void *b)
-{
-	int py = player->grid.y;
-	int px = player->grid.x;
-
-	const struct loc *pa = a;
-	const struct loc *pb = b;
-
-	int da, db, kx, ky;
-
-	/* Absolute distance components */
-	kx = pa->x; kx -= px; kx = ABS(kx);
-	ky = pa->y; ky -= py; ky = ABS(ky);
-
-	/* Approximate Double Distance to the first point */
-	da = ((kx > ky) ? (kx + kx + ky) : (ky + ky + kx));
-
-	/* Absolute distance components */
-	kx = pb->x; kx -= px; kx = ABS(kx);
-	ky = pb->y; ky -= py; ky = ABS(ky);
-
-	/* Approximate Double Distance to the first point */
-	db = ((kx > ky) ? (kx + kx + ky) : (ky + ky + kx));
-
-	/* Compare the distances */
-	if (da < db)
-		return -1;
-	if (da > db)
-		return 1;
-	return 0;
-}
-
-/**
  * Help select a location.  This function picks the closest from a set in 
  *(roughly) a given direction.
  */
@@ -354,7 +317,8 @@ bool target_accept(int y, int x)
 	}
 
 	/* Interesting memorized features */
-	if (square_isknown(cave, grid) && square_isinteresting(cave, grid)) {
+	if (square_isknown(cave, grid)
+			&& square_isinteresting(player->cave, grid)) {
 		return true;
 	}
 
@@ -480,7 +444,7 @@ struct point_set *target_get_monsters(int mode, monster_predicate pred,
 	}
 
 	sort(targets->pts, point_set_size(targets), sizeof(*(targets->pts)),
-		 cmp_distance);
+		 player_cmp_distance);
 	return targets;
 }
 
@@ -529,4 +493,5 @@ bool target_set_closest(int mode, monster_predicate pred)
 
 	point_set_dispose(targets);
 	return true;
+
 }

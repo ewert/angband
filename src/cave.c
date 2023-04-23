@@ -634,6 +634,8 @@ int cave_monster_count(struct chunk *c) {
 	return c->mon_cnt;
 }
 
+
+
 /**
  * Return the number of matching grids around (or under) the character.
  * \param grid If not NULL, *grid is set to the location of the last match.

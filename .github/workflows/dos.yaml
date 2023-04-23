@@ -2,7 +2,7 @@ name: DOS Cross-compiler
 
 on:
   push:
-    branches: [ master ]
+    branches: [ autoautoexplore ]
   pull_request:
 
 jobs:

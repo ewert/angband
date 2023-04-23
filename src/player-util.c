@@ -33,6 +33,7 @@
 #include "player-attack.h"
 #include "player-calcs.h"
 #include "player-history.h"
+#include "player-path.h"
 #include "player-quest.h"
 #include "player-spell.h"
 #include "player-timed.h"
@@ -1653,4 +1654,361 @@ void search(struct player *p)
 			}
 		}
 	}
+}
+
+bool player_is_sick(struct player *p) {
+    if (player->timed[TMD_BLIND] || no_light(player)) {
+        msg("You cannot see!");
+        return true;
+    }
+
+    if (player->timed[TMD_CONFUSED]) {
+        msg("You are too confused!");
+        return true;
+    }
+
+    if (player->timed[TMD_IMAGE]) {
+        msg("You are too intoxicated!");
+        return true;
+    }
+
+    if (player->timed[TMD_CUT]) {
+        msg("You are bleeding too much.");
+        return true;
+    }
+
+    if (player->timed[TMD_POISONED]) {
+        msg("You are too poisoned.");
+        return true;
+    }
+	/* XXX - Need to add in hunger */
+    return false;
+}
+
+/**
+ * Player has a status condition or can see monsters.
+*/
+bool player_must_use_own_brain(struct chunk *c) {
+	if (player_is_sick(player)) return true;
+	if (player_can_see_monster(c)) {
+		disturb(player);
+			msg("There are monsters nearby.");
+			return true;
+	}
+	return false;
+}
+
+/**
+ * The current number of monsters visible to the player.
+ */
+int player_visible_monster_count(struct chunk *c) 
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	int count = 0;
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+
+	/* Scan for monsters */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Don't include player */
+			if (square(c, grid)->mon < 0) continue;
+
+			/* Obvious monsters */
+			if (square(c, grid)->mon > 0) {
+				struct monster *mon = square_monster(c, grid);
+				if (!monster_is_obvious(mon)) continue;
+			}
+
+			count++;
+		}
+	}
+
+	return count;
+}
+
+/**
+ * Produce true if player can see a monster.
+ */
+bool player_can_see_monster(struct chunk *c) 
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+
+	min_y = player->grid.y - z_info->max_sight;
+	max_y = player->grid.y + z_info->max_sight + 1;
+	min_x = player->grid.x - z_info->max_sight;
+	max_x = player->grid.x + z_info->max_sight + 1;
+
+	/* Scan for monsters */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Don't include player */
+			if (square(c, grid)->mon < 0) continue;
+
+			if(!square_isview(c, grid)) continue;
+
+			/* Obvious monsters */
+			if (square(c, grid)->mon > 0) {
+				struct monster *mon = square_monster(c, grid);
+				if (monster_is_obvious(mon)) return true;
+			}
+
+		}
+	}
+
+	return false;
+}
+
+#define VM_INITIAL_SIZE	20
+struct point_set* player_visible_monsters (struct chunk *c) 
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *targets = point_set_new(VM_INITIAL_SIZE);
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for monsters */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(cave, grid)) continue;
+
+			struct monster *mon = square_monster(c, grid);
+
+			/* Must contain a monster */
+			if (mon == NULL) continue;
+
+			/* Don't include player */
+			if (square(c, grid)->mon < 0) continue;
+
+			/* Must be a targettable monster */
+			if (!target_able(mon)) continue;
+
+			/* Save the location */
+			add_to_point_set(targets, grid);
+		}
+	}
+
+	sort(targets->pts, point_set_size(targets), sizeof(*(targets->pts)),
+		 player_cmp_distance);
+	return targets;
+}
+
+#define VO_INITIAL_SIZE	20
+struct point_set *player_visible_objects(struct chunk *c){
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *results = point_set_new(VO_INITIAL_SIZE);
+	struct object *obj;
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for objects */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+			if (!square_isknown(c, grid)) continue;
+			/* Scan all objects in the grid */
+			for (obj = square_object(player->cave, grid); obj; obj = obj->next) {
+				/* Memorized object */
+				if (obj->kind == unknown_item_kind || !ignore_known_item_ok(player, obj)) {
+				add_to_point_set(results, grid);
+				}
+			}
+		}
+	}
+
+	sort(results->pts, point_set_size(results), sizeof(*(results->pts)),
+		 player_cmp_distance);
+	return results;
+
+}
+
+#define AE_INITIAL_SIZE	20
+/*
+ * Produce point set of unknown grids adjacent to known floors
+ */
+struct point_set *player_reachable_unknown_grids(struct chunk *c) 
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *results = point_set_new(AE_INITIAL_SIZE);
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for unknown grids in path */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Pass if the grid is unknown */
+			if (square_isnotknown(c, grid)) continue;
+
+			/* Pass if the grid isn't passable */
+			if (!square_ispassable(c, grid)) continue; 		
+
+			/* Pass if grid is not adjacent to unknown */
+			if (!square_isadjacenttounknown(c, grid)) continue;
+
+			/* Make sure a path can be found */
+			if (!find_path(grid)) continue;
+
+			/* Save the location if unknown */
+			add_to_point_set(results, grid);
+		}
+	}
+
+	sort(results->pts, point_set_size(results), sizeof(*(results->pts)),
+		 player_cmp_distance);
+	return results;
+
+}
+
+/*
+ * Produce point set of closed doors that player can reach
+ * XXX - Refactor point_set player_* functions into one taking a bitmask set of grid types?
+ */
+struct point_set *player_reachable_closed_doors(struct chunk *c)
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *results = point_set_new(AE_INITIAL_SIZE);
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for unknown grids in path */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Pass if the grid isn't passable */
+			if (!square_iscloseddoor(c, grid)) continue; 		
+
+			/* Save the location if unknown */
+			add_to_point_set(results, grid);
+		}
+	}
+	sort(results->pts, point_set_size(results), sizeof(*(results->pts)),
+		 player_cmp_distance);
+	return results;
+}
+
+/*
+ * Produce point set of downstairs that player can reach
+ */
+struct point_set *player_reachable_down_stairs(struct chunk *c)
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *results = point_set_new(AE_INITIAL_SIZE);
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for unknown grids in path */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Pass if the grid isn't known by player*/	
+			if (square_isnotknown(c, grid)) continue;
+
+			/* Pass if the grid isn't a downstair */
+			if (!square_isdownstairs(c, grid)) continue; 		
+
+			/* Make sure a path can be found */
+			if (!find_path(grid)) continue;
+
+			/* Save the location if unknown */
+			add_to_point_set(results, grid);
+		}
+	}
+	sort(results->pts, point_set_size(results), sizeof(*(results->pts)),
+		 player_cmp_distance);
+	return results;
+}
+
+/*
+ * Produce point set of upstairs that player can reach
+ */
+struct point_set *player_reachable_up_stairs(struct chunk *c)
+{
+	int y, x;
+	int min_y, min_x, max_y, max_x;
+	struct point_set *results = point_set_new(AE_INITIAL_SIZE);
+
+	min_y = player->grid.y - z_info->max_range;
+	max_y = player->grid.y + z_info->max_range + 1;
+	min_x = player->grid.x - z_info->max_range;
+	max_x = player->grid.x + z_info->max_range + 1;
+
+	/* Scan for unknown grids in path */
+	for (y = min_y; y < max_y; y++) {
+		for (x = min_x; x < max_x; x++) {
+			struct loc grid = loc(x, y);
+
+			/* Check bounds */
+			if (!square_in_bounds_fully(c, grid)) continue;
+
+			/* Pass if the grid isn't known by player*/	
+			if (square_isnotknown(c, grid)) continue;
+
+			/* Pass if the grid isn't a downstair */
+			if (!square_isupstairs(c, grid)) continue; 		
+
+			/* Make sure a path can be found */
+			if (!find_path(grid)) continue;
+
+			/* Save the location if unknown */
+			add_to_point_set(results, grid);
+		}
+	}
+	sort(results->pts, point_set_size(results), sizeof(*(results->pts)),
+		 player_cmp_distance);
+	return results;
 }

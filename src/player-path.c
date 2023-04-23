@@ -617,7 +617,7 @@ static bool run_test(const struct player *p)
 
 		/* Check memorized grids */
 		if (square_isknown(cave, grid)) {
-			bool notice = square_isinteresting(cave, grid);
+			bool notice = square_isinteresting(p->cave, grid);
 
 			/* Interesting feature */
 			if (notice) return true;
@@ -871,8 +871,46 @@ void run_step(int dir)
 
 	/* Prepare the next step */
 	if (player->upkeep->running) {
+
 		cmdq_push(CMD_RUN);
 		cmd_set_arg_direction(cmdq_peek(), "direction", 0);
 	}
 }
 
+/**
+ * Sorting hook -- comp function -- by "distance to player"
+ *
+ * We use "u" and "v" to point to arrays of "x" and "y" positions,
+ * and sort the arrays by double-distance to the player.
+ */
+int player_cmp_distance(const void *a, const void *b)
+{
+	int py = player->grid.y;
+	int px = player->grid.x;
+
+	const struct loc *pa = a;
+	const struct loc *pb = b;
+
+	int da, db, kx, ky;
+
+	/* Absolute distance components */
+	kx = pa->x; kx -= px; kx = ABS(kx);
+	ky = pa->y; ky -= py; ky = ABS(ky);
+
+	/* Approximate Double Distance to the first point */
+	da = ((kx > ky) ? (kx + kx + ky) : (ky + ky + kx));
+
+	/* Absolute distance components */
+	kx = pb->x; kx -= px; kx = ABS(kx);
+	ky = pb->y; ky -= py; ky = ABS(ky);
+
+	/* Approximate Double Distance to the first point */
+	db = ((kx > ky) ? (kx + kx + ky) : (ky + ky + kx));
+
+	/* Compare the distances */
+	if (da < db)
+		return -1;
+	if (da > db)
+		return 1;
+	return 0;
+}

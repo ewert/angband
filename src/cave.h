@@ -320,6 +320,8 @@ bool square_isno_esp(struct chunk *c, struct loc grid);
 bool square_isproject(struct chunk *c, struct loc grid);
 bool square_isdtrap(struct chunk *c, struct loc grid);
 bool square_isno_stairs(struct chunk *c, struct loc grid);
+bool square_isexplorable(struct chunk *c, struct loc grid);
+bool square_isadjacenttounknown(struct chunk *c, struct loc grid);
 
 /* SQUARE BEHAVIOR PREDICATES */
 bool square_isopen(struct chunk *c, struct loc grid);
@@ -359,7 +361,7 @@ bool square_isbelievedwall(struct chunk *c, struct loc grid);
 bool square_suits_stairs_well(struct chunk *c, struct loc grid);
 bool square_suits_stairs_ok(struct chunk *c, struct loc grid);
 bool square_allows_summon(struct chunk *c, struct loc grid);
-
+bool square_isadjacenttopassable(struct chunk *c, struct loc grid);
 
 const struct square *square(struct chunk *c, struct loc grid);
 struct feature *square_feat(struct chunk *c, struct loc grid);
@@ -375,7 +377,9 @@ void square_sense_pile(struct chunk *c, struct loc grid);
 void square_know_pile(struct chunk *c, struct loc grid);
 int square_num_walls_adjacent(struct chunk *c, struct loc grid);
 int square_num_walls_diagonal(struct chunk *c, struct loc grid);
-
+int square_num_unknown_grids_adjacent(struct chunk *c, struct loc grid);
+int square_num_unknown_grids_diagonal(struct chunk *c, struct loc grid);
+struct point_set *adjacent_passable_grids(struct chunk *c, struct loc grid);
 
 /* Feature placers */
 void square_set_feat(struct chunk *c, struct loc grid, int feat);
@@ -440,7 +444,7 @@ int cave_monster_max(struct chunk *c);
 int cave_monster_count(struct chunk *c);
 
 int count_feats(struct loc *grid,
-				bool (*test)(struct chunk *c, struct loc grid), bool under);
+	bool (*test)(struct chunk *c, struct loc grid), bool under);
 int count_neighbors(struct loc *match, struct chunk *c, struct loc grid,
 	bool (*test)(struct chunk *c, struct loc grid), bool under);
 struct loc cave_find_decoy(struct chunk *c);

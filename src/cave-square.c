@@ -934,6 +934,31 @@ bool square_allows_summon(struct chunk *c, struct loc grid)
 		&& !square_isdecoyed(c, grid);
 }
 
+#define AG_INITIAL_SIZE 8
+struct point_set *adjacent_passable_grids(struct chunk *c, struct loc grid)
+{
+	assert(square_in_bounds(c, grid));
+	struct point_set *results = point_set_new(AG_INITIAL_SIZE);
+
+    if (square_ispassable(c, next_grid(grid, DIR_N))) 
+		add_to_point_set(results, next_grid(grid, DIR_N));
+    if (square_ispassable(c, next_grid(grid, DIR_NE))) 
+		add_to_point_set(results, next_grid(grid, DIR_NE));
+    if (square_ispassable(c, next_grid(grid, DIR_E))) 
+		add_to_point_set(results, next_grid(grid, DIR_E));
+    if (square_ispassable(c, next_grid(grid, DIR_SE))) 
+		add_to_point_set(results, next_grid(grid, DIR_SE));
+    if (square_ispassable(c, next_grid(grid, DIR_S))) 
+		add_to_point_set(results, next_grid(grid, DIR_S));
+    if (square_ispassable(c, next_grid(grid, DIR_SW))) 
+		add_to_point_set(results, next_grid(grid, DIR_SW));
+    if (square_ispassable(c, next_grid(grid, DIR_W))) 
+		add_to_point_set(results, next_grid(grid, DIR_W));
+    if (square_ispassable(c, next_grid(grid, DIR_NW))) 
+		add_to_point_set(results, next_grid(grid, DIR_NW));
+
+	return results;
+}
 
 
 /**
@@ -1113,7 +1138,7 @@ int square_num_walls_adjacent(struct chunk *c, struct loc grid)
     assert(square_in_bounds(c, grid));
 
     if (feat_is_wall(square(c, next_grid(grid, DIR_S))->feat)) k++;
-	if (feat_is_wall(square(c, next_grid(grid, DIR_N))->feat)) k++;
+    if (feat_is_wall(square(c, next_grid(grid, DIR_N))->feat)) k++;
     if (feat_is_wall(square(c, next_grid(grid, DIR_E))->feat)) k++;
     if (feat_is_wall(square(c, next_grid(grid, DIR_W))->feat)) k++;
 
@@ -1140,6 +1165,86 @@ int square_num_walls_diagonal(struct chunk *c, struct loc grid)
     return k;
 }
 
+/**
+ * Return how many cardinal directions around (x, y) contain unknown grids.
+ * \param c current chunk
+ * \param y co-ordinates
+ * \param x co-ordinates
+ * \return the number of unknown grids
+ */
+int square_num_unknown_grids_adjacent(struct chunk *c, struct loc grid)
+{
+    int k = 0;
+    assert(square_in_bounds(c, grid));
+
+    if (!square_isknown(c, next_grid(grid, DIR_S))) k++;
+    if (!square_isknown(c, next_grid(grid, DIR_N))) k++;
+    if (!square_isknown(c, next_grid(grid, DIR_E))) k++;
+    if (!square_isknown(c, next_grid(grid, DIR_W))) k++;
+
+    return k;
+}
+
+/**
+ * Return how many diagonal directions around (x, y) contain unknown grids.
+ * \param c current chunk
+ * \param y co-ordinates
+ * \param x co-ordinates
+ * \return the number of unknown grids
+ */
+int square_num_unknown_grids_diagonal(struct chunk *c, struct loc grid)
+{
+    int k = 0;
+    assert(square_in_bounds(c, grid));
+
+    if (!square_isknown(c, next_grid(grid, DIR_SE))) k++;
+    if (!square_isknown(c, next_grid(grid, DIR_SW))) k++;
+    if (!square_isknown(c, next_grid(grid, DIR_NE))) k++;
+    if (!square_isknown(c, next_grid(grid, DIR_NW))) k++;
+
+    return k;
+}
+
+
+/**
+ * Return true if grid is unknown and has an adjacent floor
+ */
+
+bool square_isexplorable(struct chunk *c, struct loc grid)
+{ 
+    assert(square_in_bounds(c, grid));
+
+    /* Known grids don't apply */
+    if (square_isknown(c, grid)) return false;
+
+	/* is passable? */
+    if (!square_isdoor(c, next_grid(grid, DIR_S)) && feat_is_floor(square(c, next_grid(grid, DIR_S))->feat)) return true;		
+    if (!square_isdoor(c, next_grid(grid, DIR_N)) && feat_is_floor(square(c, next_grid(grid, DIR_N))->feat)) return true;		
+    if (!square_isdoor(c, next_grid(grid, DIR_W)) && feat_is_floor(square(c, next_grid(grid, DIR_W))->feat)) return true;		
+    if (!square_isdoor(c, next_grid(grid, DIR_E)) && feat_is_floor(square(c, next_grid(grid, DIR_E))->feat)) return true;		
+    if (!square_isdoor(c, next_grid(grid, DIR_SE)) && feat_is_floor(square(c, next_grid(grid, DIR_SE))->feat)) return true;		
+    if (!square_isdoor(c, next_grid(grid, DIR_SW)) && feat_is_floor(square(c, next_grid(grid, DIR_SW))->feat)) return true;		
+    if (!square_isdoor(c, next_grid(grid, DIR_NW)) && feat_is_floor(square(c, next_grid(grid, DIR_NW))->feat)) return true;		
+    if (!square_isdoor(c, next_grid(grid, DIR_NE)) && feat_is_floor(square(c, next_grid(grid, DIR_NE))->feat)) return true;		
+
+/*    if (feat_is_passable(square(c, next_grid(grid, DIR_S))->feat)) return true;		
+    if (feat_is_passable(square(c, next_grid(grid, DIR_N))->feat)) return true;		
+    if (feat_is_passable(square(c, next_grid(grid, DIR_E))->feat)) return true;		
+    if (feat_is_passable(square(c, next_grid(grid, DIR_W))->feat)) return true;		
+    if (feat_is_passable(square(c, next_grid(grid, DIR_SE))->feat)) return true;		
+    if (feat_is_passable(square(c, next_grid(grid, DIR_SW))->feat)) return true;		
+    if (feat_is_passable(square(c, next_grid(grid, DIR_NE))->feat)) return true;		
+    if (feat_is_passable(square(c, next_grid(grid, DIR_NW))->feat)) return true;	*/
+    return false;
+ 
+
+}
+
+bool square_isadjacenttounknown(struct chunk *c, struct loc grid)
+{
+    assert(square_in_bounds(c, grid));
+    return square_num_unknown_grids_diagonal(c, grid) + square_num_unknown_grids_adjacent(c, grid);
+}
 
 /**
  * Set the terrain type for a square.
