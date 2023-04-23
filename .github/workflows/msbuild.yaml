@@ -5,7 +5,7 @@ name: msbuild
 
 on:
   push:
-    branches: [ autoautoexplore ]
+    branches: [ Combined ]
   pull_request:
 
 jobs:
