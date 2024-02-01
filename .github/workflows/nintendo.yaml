@@ -3,7 +3,7 @@ name: Nintendo DS
 
 on:
   push:
-    branches: [ Combined ]
+    branches: [ master ]
   pull_request:
 
 jobs:
