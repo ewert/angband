@@ -4,7 +4,7 @@ name: nmake
 
 on:
   push:
-    branches: [ Combined ]
+    branches: [ master ]
   pull_request:
 
 jobs:
