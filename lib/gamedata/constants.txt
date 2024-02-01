@@ -119,7 +119,7 @@ world:feeling-total:100
 world:feeling-need:10
 
 # Number of levels for each stair
-world:stair-skip:1
+world:stair-skip:5
 
 # Energy needed by player or monsters to move
 world:move-energy:100
@@ -152,7 +152,7 @@ carry-cap:floor-size:23
 #---------------------------------------------------------------------
 
 # Maximum number of discrete objects in store inventory
-store:inven-max:24
+store:inven-max:240
 
 # Number of turns between turnovers
 store:turns:1000

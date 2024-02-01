@@ -2,7 +2,7 @@ name: Windows
 
 on:
   push:
-    branches: [ master ]
+    branches: [ Combined ]
   pull_request:
 
 jobs:
