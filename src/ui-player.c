@@ -1060,7 +1060,12 @@ void write_character_dump(ang_file *fff)
 		{
 			file_putf(fff, "> %s\n", message_str((int16_t)i));
 		}
-		file_putf(fff, "\nKilled by %s.\n\n", player->died_from);
+		if (streq(player->died_from, "Retiring")) {
+			file_putf(fff, "\nRetired.\n\n");
+		} else {
+			file_putf(fff, "\nKilled by %s.\n\n",
+				player->died_from);
+		}
 	}
 
 
@@ -1143,10 +1148,19 @@ void write_character_dump(ang_file *fff)
 
 		file_putf(fff, "  [%s]\n\n", title);
 		for (opt = 0; opt < OPT_MAX; opt++) {
-			if (option_type(opt) != i) continue;
+			const char *desc;
+			size_t u8len;
 
-			file_putf(fff, "%-45s: %s (%s)\n",
-			        option_desc(opt),
+			if (option_type(opt) != i) continue;
+			desc = option_desc(opt);
+			u8len = utf8_strlen(desc);
+			if (u8len < 45) {
+				file_putf(fff, "%s%*s", desc,
+					(int)(45 - u8len), " ");
+			} else {
+				file_putf(fff, "%s", desc);
+			}
+			file_putf(fff, ": %s (%s)\n",
 			        player->opts.opt[opt] ? "yes" : "no ",
 			        option_name(opt));
 		}

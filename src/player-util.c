@@ -150,7 +150,38 @@ void dungeon_change_level(struct player *p, int dlev)
 
 
 /**
+ * Returns what an incoming damage amount would be after applying a player's
+ * damage reduction.
+ *
+ * \param p is the player of interest.
+ * \param dam is the incoming damaage amount.
+ * \return the damage after the player's damage reduction, if any.
+ */
+int player_apply_damage_reduction(struct player *p, int dam)
+{
+	/* Mega-Hack -- Apply "invulnerability" */
+	if (p->timed[TMD_INVULN] && (dam < 9000)) return 0;
+
+	dam -= p->state.dam_red;
+	if (dam > 0 && p->state.perc_dam_red) {
+		dam -= (dam * p->state.perc_dam_red) / 100 ;
+	}
+
+	return (dam < 0) ? 0 : dam;
+}
+
+
+/**
  * Decreases players hit points and sets death flag if necessary
+ *
+ * \param p is the player of interest.
+ * \param dam is the amount of damage to apply.  If dam is less than
+ * or equal to zero, nothing will be done.  The amount of damage should have
+ * been processed with player_apply_damage_reduction(); that is not done
+ * internally here so the caller can display messages that include the amount of
+ * damage.
+ * \param kb_str is the null-terminated string describing the cause of the
+ * damage.
  *
  * Hack -- this function allows the user to save (or quit) the game
  * when he dies, since the "You die." message is shown before setting
@@ -163,17 +194,7 @@ void take_hit(struct player *p, int dam, const char *kb_str)
 	int warning = (p->mhp * p->opts.hitpoint_warn / 10);
 
 	/* Paranoia */
-	if (p->is_dead) return;
-
-	/* Mega-Hack -- Apply "invulnerability" */
-	if (p->timed[TMD_INVULN] && (dam < 9000)) return;
-
-	/* Apply damage reduction */
-	dam -= p->state.dam_red;
-	if (p->state.perc_dam_red) {
-		dam -= (dam * p->state.perc_dam_red) / 100 ;
-	}
-	if (dam <= 0) return;
+	if (p->is_dead || dam <= 0) return;
 
 	/* Disturb */
 	disturb(p);
@@ -585,7 +606,7 @@ int32_t player_adjust_mana_precise(struct player *p, int32_t sp_gain)
 			assert(p->csp > INT16_MIN);
 			p->csp -= 1;
 		} else {
-			p->chp_frac = 0;
+			p->csp_frac = 0;
 		}
 	} else {
 		p->csp = (int16_t)(new_32 >> 16);   /* div 65536 */
@@ -852,8 +873,16 @@ void player_over_exert(struct player *p, int flag, int chance, int amount)
 	/* HP */
 	if (flag & PY_EXERT_HP) {
 		if (randint0(100) < chance) {
-			msg("You cry out in sudden pain!");
-			take_hit(p, randint1(amount), "over-exertion");
+			int dam = player_apply_damage_reduction(p,
+				randint1(amount));
+			char dam_text[32] = "";
+
+			if (dam > 0 && OPT(p, show_damage)) {
+				strnfmt(dam_text, sizeof(dam_text),
+					" (%d)", dam);
+			}
+			msg("You cry out in sudden pain!%s", dam_text);
+			take_hit(p, dam, "over-exertion");
 		}
 	}
 }
@@ -897,17 +926,29 @@ int player_check_terrain_damage(struct player *p, struct loc grid, bool actual)
 void player_take_terrain_damage(struct player *p, struct loc grid)
 {
 	int dam_taken = player_check_terrain_damage(p, grid, true);
+	int dam_reduced;
 
 	if (!dam_taken) {
 		return;
 	}
 
-	/* Damage the player and inventory */
+	/*
+	 * Damage the player and inventory; inventory damage is based on
+	 * the raw incoming damage and not the value accounting for the
+	 * player's damage reduction.
+	 */
+	dam_reduced = player_apply_damage_reduction(p, dam_taken);
 	if (square_isfiery(cave, grid)) {
-		msg(square_feat(cave, grid)->hurt_msg);
+		char dam_text[32] = "";
+
+		if (dam_reduced > 0 && OPT(p, show_damage)) {
+			strnfmt(dam_text, sizeof(dam_text), " (%d)",
+				dam_reduced);
+		}
+		msg("%s%s", square_feat(cave, grid)->hurt_msg, dam_text);
 		inven_damage(p, PROJ_FIRE, dam_taken);
 	}
-	take_hit(p, dam_taken, square_feat(cave, grid)->die_msg);
+	take_hit(p, dam_reduced, square_feat(cave, grid)->die_msg);
 }
 
 /**
@@ -1563,7 +1604,7 @@ void player_handle_post_move(struct player *p, bool eval_trap,
 		if (is_involuntary) {
 			cmdq_flush();
 		}
-		square_know_pile(cave, p->grid);
+		square_know_pile(cave, p->grid, NULL);
 	}
 
 	/* Discover invisible traps, set off visible ones */

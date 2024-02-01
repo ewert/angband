@@ -35,7 +35,6 @@
 #include "game-world.h"
 #include "generate.h"
 #include "init.h"
-#include "math.h"
 #include "mon-make.h"
 #include "mon-move.h"
 #include "mon-spell.h"
@@ -684,8 +683,8 @@ static void place_feeling(struct chunk *c)
 			/* Pick a random dungeon coordinate */
 			struct loc grid = loc(randint0(c->width), randint0(c->height));
 
-			/* Check to see if it is not passable */
-			if (!square_ispassable(c, grid))
+			/* Check to see if it can be used as a feeling square */
+			if (!square_allowsfeel(c, grid))
 				continue;
 
 			/* Check to see if it is already marked */
@@ -1131,9 +1130,14 @@ static struct chunk *cave_generate(struct player *p, int height, int width)
 		/* Choose a profile and build the level */
 		dun->profile = choose_profile(p);
 		event_signal_string(EVENT_GEN_LEVEL_START, dun->profile->name);
-		chunk = dun->profile->builder(p, height, width);
+		chunk = dun->profile->builder(p, height, width, &error);
 		if (!chunk) {
-			error = "Failed to find builder";
+			if (!error) {
+				error = "unspecified level builder failure";
+			}
+			if (OPT(p, cheat_room)) {
+				msg("Generation restarted: %s.", error);
+			}
 			cleanup_dun_data(dun);
 			event_signal_flag(EVENT_GEN_LEVEL_END, false);
 			continue;
@@ -1192,6 +1196,7 @@ static struct chunk *cave_generate(struct player *p, int height, int width)
 			if (OPT(p, cheat_room)) {
 				msg("Generation restarted: %s.", error);
 			}
+			uncreate_artifacts(chunk);
 			cave_clear(chunk, p);
 			event_signal_flag(EVENT_GEN_LEVEL_END, false);
 		}

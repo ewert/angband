@@ -321,7 +321,7 @@ ranged-critical-level:-1:3:15:HIT_SUPERB
 # Constants for O critical calculations
 # In general, those calculations compute a "power" of the critical
 # by scaling the chance of a hit.  The "power" is then converted to
-# a chance of a critical using (a * power) / (b + power + c) as the
+# a chance of a critical using (a * power) / (b * power + c) as the
 # chance where a, b, and c are constants specified here.  For more
 # details, see o_critical_melee() and o_critical_shot() in
 # player-attack.c.
@@ -351,7 +351,7 @@ o-melee-critical:chance-power-scale-denominator:1
 o-melee-critical:chance-add-denominator:240
 
 # Define each of the levels for melee criticals.  They are considered in the
-# order appear so it's convenient to put the least likely first.  If not
+# order they appear so it's convenient to put the least likely first.  If no
 # critical levels are defined, then there's no extra damage due to critical
 # hits.
 # Except for the last level, one over the first value is the probability that
@@ -401,7 +401,7 @@ o-ranged-critical:chance-power-scale-denominator:1
 o-ranged-critical:chance-add-denominator:360
 
 # Define each of the levels for ranged criticals.  They are considered in the
-# order appear so it's convenient to put the least likely first.  If not
+# order they appear so it's convenient to put the least likely first.  If no
 # critical levels are defined, then there's no extra damage due to critical
 # hits.
 # Except for the last level, one over the first value is the probability that

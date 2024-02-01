@@ -22,6 +22,8 @@ OPTION(SUPPORT_STATS_FRONTEND "Support for statistics front end; requires sqlite
 OPTION(SUPPORT_TEST_FRONTEND "Support for test front end." OFF)
 OPTION(SUPPORT_WINDOWS_FRONTEND "Support for windows front end." OFF)
 OPTION(SUPPORT_STATS_BACKEND "Enable backend support for statistics and related debugging commands.  Implied by SUPPORT_STATS_FRONTEND." OFF)
+OPTION(SUPPORT_BORG "Support for Borg." ON)
+OPTION(SUPPORT_BORG_HIGH_SCORES "Borg characters allowed in high scores." OFF)
 
 # By default, generate a self-contained build left where the build was run.
 # If not using the Windows front end, the executable will have hardwired
@@ -117,7 +119,9 @@ IF(SUPPORT_WINDOWS_FRONTEND)
     ENDIF()
     # Set up the path for the source of the resource file.
     STRING(TOLOWER ${OUR_EXECUTABLE_NAME} OUR_WINDOWS_RC_BASE)
-    STRING(CONCAT src/win/ ${OUR_WINDOWS_RC_BASE} .rc OUR_WINDOWS_RC)
+    STRING(CONCAT OUR_WINDOWS_RC src/win/ ${OUR_WINDOWS_RC_BASE} .rc)
+    # Enable compilation of resource files.
+    ENABLE_LANGUAGE(RC)
 ENDIF()
 
 # If none of SC_INSTALL, SHARED_INSTALL, and READONLY_INSTALL are set, use
@@ -295,14 +299,76 @@ ADD_LIBRARY(OurCoreLib OBJECT
         src/z-type.c
         src/z-util.c
         src/z-virt.c
+        src/borg/borg-attack-munchkin.c
+        src/borg/borg-caution.c
+        src/borg/borg-cave-light.c
+        src/borg/borg-cave-util.c
+        src/borg/borg-cave-view.c
+        src/borg/borg-cave.c
+        src/borg/borg-danger.c
+        src/borg/borg-escape.c
+        src/borg/borg-fight-attack.c
+        src/borg/borg-fight-defend.c
+        src/borg/borg-fight-perm.c
+        src/borg/borg-flow-dark.c
+        src/borg/borg-flow-glyph.c
+        src/borg/borg-flow-kill.c
+        src/borg/borg-flow-misc.c
+        src/borg/borg-flow-stairs.c
+        src/borg/borg-flow-take.c
+        src/borg/borg-flow.c
+        src/borg/borg-home-notice.c
+        src/borg/borg-home-power.c
+        src/borg/borg-init.c
+        src/borg/borg-inventory.c
+        src/borg/borg-io.c
+        src/borg/borg-item-activation.c
+        src/borg/borg-item-analyze.c
+        src/borg/borg-item-decurse.c
+        src/borg/borg-item-enchant.c
+        src/borg/borg-item-id.c
+        src/borg/borg-item-use.c
+        src/borg/borg-item-val.c
+        src/borg/borg-item-wear.c
+        src/borg/borg-item.c
+        src/borg/borg-junk.c
+        src/borg/borg-light.c
+        src/borg/borg-log.c
+        src/borg/borg-magic-play.c
+        src/borg/borg-magic.c
+        src/borg/borg-messages-react.c
+        src/borg/borg-messages.c
+        src/borg/borg-power.c
+        src/borg/borg-prepared.c
+        src/borg/borg-projection.c
+        src/borg/borg-recover.c
+        src/borg/borg-reincarnate.c
+        src/borg/borg-store-buy.c
+        src/borg/borg-store-sell.c
+        src/borg/borg-store.c
+        src/borg/borg-think-dungeon-util.c
+        src/borg/borg-think-dungeon.c
+        src/borg/borg-think-store.c
+        src/borg/borg-think.c
+        src/borg/borg-trait-swap.c
+        src/borg/borg-trait.c
+        src/borg/borg-update.c
+        src/borg/borg-util.c
+        src/borg/borg.c
 )
 
 SET_TARGET_PROPERTIES(OurCoreLib PROPERTIES C_STANDARD 99)
 SET(ANGBAND_CORE_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src")
 SET(ANGBAND_CORE_LINK_LIBRARIES "")
-FIND_LIBRARY(MATH_LIBRARY m)
-IF(MATH_LIBRARY)
-    LIST(APPEND ANGBAND_CORE_LINK_LIBRARIES ${MATH_LIBRARY})
+
+IF(SUPPORT_BORG)
+    TARGET_INCLUDE_DIRECTORIES(OurCoreLib PRIVATE
+        ${ANGBAND_CORE_INCLUDE_DIRS}
+    )
+    TARGET_COMPILE_DEFINITIONS(OurCoreLib PRIVATE -D ALLOW_BORG)
+    IF(SUPPORT_BORG_HIGH_SCORES)
+        TARGET_COMPILE_DEFINITIONS(OurCoreLib PRIVATE -D SCORE_BORGS)
+    ENDIF()
 ENDIF()
 
 IF(SUPPORT_SDL_SOUND OR SUPPORT_SDL2_SOUND)
@@ -321,6 +387,9 @@ ADD_EXECUTABLE(OurExecutable
         $<$<BOOL:${SUPPORT_GCU_FRONTEND}>:src/main-gcu.c>
         $<$<BOOL:${SUPPORT_SDL_FRONTEND}>:src/main-sdl.c>
         $<$<BOOL:${SUPPORT_SDL2_FRONTEND}>:src/main-sdl2.c>
+        $<$<BOOL:${SUPPORT_SDL2_FRONTEND}>:src/sdl2/pui-ctrl.c>
+        $<$<BOOL:${SUPPORT_SDL2_FRONTEND}>:src/sdl2/pui-dlg.c>
+        $<$<BOOL:${SUPPORT_SDL2_FRONTEND}>:src/sdl2/pui-misc.c>
         $<$<BOOL:${SUPPORT_WINDOWS_FRONTEND}>:${OUR_WINDOWS_RC}>
         $<$<BOOL:${SUPPORT_WINDOWS_FRONTEND}>:src/main-win.c>
         $<$<BOOL:${SUPPORT_WINDOWS_FRONTEND}>:src/win/readdib.c>
@@ -363,6 +432,9 @@ IF(SUPPORT_WINDOWS_FRONTEND)
     INCLUDE(src/cmake/macros/WINDOWS_Frontend.cmake)
     CONFIGURE_WINDOWS_FRONTEND(OurExecutable NO)
     CONFIGURE_WINDOWS_FRONTEND(OurCoreLib YES)
+    IF(SUPPORT_BORG)
+        TARGET_COMPILE_DEFINITIONS(OurExecutable PRIVATE -D ALLOW_BORG)
+    ENDIF()
 ENDIF()
 
 IF(SUPPORT_SDL_SOUND)
@@ -405,7 +477,7 @@ IF(SUPPORT_TEST_FRONTEND)
 ENDIF()
 
 # Set the build ID.
-IF(SUPPORT_WINDOWS_FRONTEND)
+IF(NOT CMAKE_HOST_UNIX)
     # Just check for the version file left in a snapshot.  If not in a snapshot,
     # don't bother to set the build ID.
     IF(EXISTS ./version)
@@ -690,8 +762,7 @@ IF(SC_INSTALL)
         # DATA_PERMISSIONS matches the permissions those files have in the
         # source tree, but should the installed permissions be
         # EXECUTABLE_PERMISSIONS?
-        INSTALL(zlib1.dll DESTINATION . PERMISSIONS ${DATA_PERMISSIONS})
-        INSTALL(libpng12.dll DESTINATION . PERMISSIONS ${DATA_PERMISSIONS})
+        INSTALL(FILES zlib1.dll libpng12.dll DESTINATION . PERMISSIONS ${DATA_PERMISSIONS})
     ENDIF()
     INSTALL(DIRECTORY lib/ DESTINATION lib)
     IF(BUILD_DOC)
@@ -816,11 +887,20 @@ FOREACH(ANGBAND_TEST_CASE ${ANGBAND_TEST_CASE_LIST})
     TARGET_LINK_LIBRARIES(${ANGBAND_TEST_CASE_NAME} PRIVATE
         ${ANGBAND_CORE_LINK_LIBRARIES}
     )
+    IF(SUPPORT_STATS_BACKEND)
+        CONFIGURE_STATS_BACKEND(${ANGBAND_TEST_CASE_NAME})
+    ENDIF()
     IF(SUPPORT_SDL_SOUND)
         CONFIGURE_SDL_SOUND(${ANGBAND_TEST_CASE_NAME} NO)
     ENDIF()
     IF(SUPPORT_SDL2_SOUND)
         CONFIGURE_SDL2_SOUND(${ANGBAND_TEST_CASE_NAME} NO)
+    ENDIF()
+    # Very few of the test cases use the math library, but it is easier to
+    # have all use it.
+    FIND_LIBRARY(MATH_LIBRARY m)
+    IF(MATH_LIBRARY)
+        TARGET_LINK_LIBRARIES(${ANGBAND_TEST_CASE_NAME} PRIVATE ${MATH_LIBRARY})
     ENDIF()
     ADD_DEPENDENCIES(allunittests ${ANGBAND_TEST_CASE_NAME})
     MATH(EXPR ANGBAND_TEST_CASE_INDEX "${ANGBAND_TEST_CASE_INDEX} + 1")

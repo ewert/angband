@@ -1516,7 +1516,7 @@ static void calc_mana(struct player *p, struct player_state *state, bool update)
 
 		/* Add weight */
 		if (obj_local)
-			cur_wgt += obj_local->weight;
+			cur_wgt += object_weight_one(obj_local);
 	}
 
 	/* Determine the weight allowance */
@@ -1629,7 +1629,7 @@ static void calc_light(struct player *p, struct player_state *state,
 		amt += obj->modifiers[OBJ_MOD_LIGHT];
 
 		/* Adjustment to allow UNLIGHT players to use +1 LIGHT gear */
-		if ((obj->modifiers[OBJ_MOD_LIGHT] > 0) && player_has(p, PF_UNLIGHT)) {
+		if ((obj->modifiers[OBJ_MOD_LIGHT] > 0) && pf_has(state->pflags, PF_UNLIGHT)) {
 			amt--;
 		}
 
@@ -1664,6 +1664,31 @@ void calc_digging_chances(struct player_state *state, int chances[DIGGING_MAX])
 		chances[i] = MAX(0, chances[i]);
 }
 
+/*
+ * Return the chance, out of 100, for unlocking a locked door with the given
+ * lock power.
+ *
+ * \param p is the player trying to unlock the door.
+ * \param lock_power is the power of the lock.
+ * \param lock_unseen, if true, assumes the player does not have sufficient
+ * light to work with the lock.
+ */
+int calc_unlocking_chance(const struct player *p, int lock_power,
+		bool lock_unseen)
+{
+	int skill = p->state.skills[SKILL_DISARM_PHYS];
+
+	if (lock_unseen || p->timed[TMD_BLIND]) {
+		skill /= 10;
+	}
+	if (p->timed[TMD_CONFUSED] || p->timed[TMD_IMAGE]) {
+		skill /= 10;
+	}
+
+	/* Always allow some chance of unlocking. */
+	return MAX(2, skill - 4 * lock_power);
+}
+
 /**
  * Calculate the blows a player would get.
  *
@@ -1682,7 +1707,7 @@ int calc_blows(struct player *p, const struct object *obj,
 	int div;
 	int blow_energy;
 
-	int weight = (obj == NULL) ? 0 : obj->weight;
+	int weight = (obj == NULL) ? 0 : object_weight_one(obj);
 	int min_weight = p->class->min_weight;
 
 	/* Enforce a minimum "weight" (tenth pounds) */
@@ -1769,7 +1794,7 @@ static void adjust_skill_scale(int *v, int num, int den, int minv)
 /**
  * Calculate the effect of a shapechange on player state
  */
-static void calc_shapechange(struct player_state *state,
+static void calc_shapechange(struct player_state *state, bool vuln[ELEM_MAX],
 							 struct player_shape *shape,
 							 int *blows, int *shots, int *might, int *moves)
 {
@@ -1810,28 +1835,20 @@ static void calc_shapechange(struct player_state *state,
 
 	/* Resists and vulnerabilities */
 	for (i = 0; i < ELEM_MAX; i++) {
-		if (state->el_info[i].res_level == 0) {
-			/* Simple, just apply shape res/vuln */
-			state->el_info[i].res_level = shape->el_info[i].res_level;
-		} else if (state->el_info[i].res_level == -1) {
-			/* Shape resists cancel, immunities trump, vulnerabilities */
-			if (shape->el_info[i].res_level == 1) {
-				state->el_info[i].res_level = 0;
-			} else if (shape->el_info[i].res_level == 3) {
-				state->el_info[i].res_level = 3;
-			}
-		} else if (state->el_info[i].res_level == 1) {
-			/* Shape vulnerabilities cancel, immunities enhance, resists */
-			if (shape->el_info[i].res_level == -1) {
-				state->el_info[i].res_level = 0;
-			} else if (shape->el_info[i].res_level == 3) {
-				state->el_info[i].res_level = 3;
-			}
-		} else if (state->el_info[i].res_level == 3) {
-			/* Immmunity, shape has no effect */
+		if (shape->el_info[i].res_level == -1) {
+			/* Remember vulnerabilities for application later. */
+			vuln[i] = true;
+		} else if (shape->el_info[i].res_level
+				> state->el_info[i].res_level) {
+			/*
+			 * Otherwise apply the shape's resistance level if it
+			 * is better; this is okay because any vulnerabilities
+			 * have not been included in the state's res_level yet.
+			 */
+			state->el_info[i].res_level =
+				shape->el_info[i].res_level;
 		}
 	}
-
 }
 
 /**
@@ -2009,26 +2026,26 @@ void calc_bonuses(struct player *p, struct player_state *state, bool known_only,
 	/* Apply the collected flags */
 	of_union(state->flags, collect_f);
 
+	/* Add shapechange info */
+	calc_shapechange(state, vuln, p->shape, &extra_blows, &extra_shots,
+		&extra_might, &extra_moves);
+
 	/* Now deal with vulnerabilities */
 	for (i = 0; i < ELEM_MAX; i++) {
 		if (vuln[i] && (state->el_info[i].res_level < 3))
 			state->el_info[i].res_level--;
 	}
 
-	/* Add shapechange info */
-	calc_shapechange(state, p->shape, &extra_blows, &extra_shots, &extra_might,
-		&extra_moves);
-
 	/* Calculate light */
 	calc_light(p, state, update);
 
 	/* Unlight - needs change if anything but resist is introduced for dark */
-	if (player_has(p, PF_UNLIGHT) && character_dungeon) {
+	if (pf_has(state->pflags, PF_UNLIGHT) && character_dungeon) {
 		state->el_info[ELEM_DARK].res_level = 1;
 	}
 
 	/* Evil */
-	if (player_has(p, PF_EVIL) && character_dungeon) {
+	if (pf_has(state->pflags, PF_EVIL) && character_dungeon) {
 		state->el_info[ELEM_NETHER].res_level = 1;
 		state->el_info[ELEM_HOLY_ORB].res_level = -1;
 	}
@@ -2244,8 +2261,10 @@ void calc_bonuses(struct player *p, struct player_state *state, bool known_only,
 	/* Analyze launcher */
 	state->heavy_shoot = false;
 	if (launcher) {
-		if (hold < launcher->weight / 10) {
-			state->to_h += 2 * (hold - launcher->weight / 10);
+		int16_t launcher_weight = object_weight_one(launcher);
+
+		if (hold < launcher_weight / 10) {
+			state->to_h += 2 * (hold - launcher_weight / 10);
 			state->heavy_shoot = true;
 		}
 
@@ -2266,7 +2285,7 @@ void calc_bonuses(struct player *p, struct player_state *state, bool known_only,
 		if (!state->heavy_shoot) {
 			state->num_shots += extra_shots;
 			state->ammo_mult += extra_might;
-			if (player_has(p, PF_FAST_SHOT)) {
+			if (pf_has(state->pflags, PF_FAST_SHOT)) {
 				state->num_shots += p->lev / 3;
 			}
 		}
@@ -2280,20 +2299,24 @@ void calc_bonuses(struct player *p, struct player_state *state, bool known_only,
 	state->heavy_wield = false;
 	state->bless_wield = false;
 	if (weapon) {
+		int16_t weapon_weight = object_weight_one(weapon);
+
 		/* It is hard to hold a heavy weapon */
-		if (hold < weapon->weight / 10) {
-			state->to_h += 2 * (hold - weapon->weight / 10);
+		if (hold < weapon_weight / 10) {
+			state->to_h += 2 * (hold - weapon_weight / 10);
 			state->heavy_wield = true;
 		}
 
 		/* Normal weapons */
 		if (!state->heavy_wield) {
 			state->num_blows = calc_blows(p, weapon, state, extra_blows);
-			state->skills[SKILL_DIGGING] += (weapon->weight / 10);
+			state->skills[SKILL_DIGGING] += weapon_weight / 10;
 		}
 
 		/* Divine weapon bonus for blessed weapons */
-		if (player_has(p, PF_BLESS_WEAPON) && of_has(state->flags, OF_BLESSED)){
+		if (pf_has(state->pflags, PF_BLESS_WEAPON)
+				&& (weapon->tval == TV_HAFTED
+				|| of_has(state->flags, OF_BLESSED))) {
 			state->to_h += 2;
 			state->to_d += 2;
 			state->bless_wield = true;

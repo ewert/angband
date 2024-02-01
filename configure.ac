@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([Angband],[4.2.4],[bugs@rephial.org])
+AC_INIT([Angband],[4.2.5],[bugs@rephial.org])
 AC_CONFIG_SRCDIR(src)
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -129,18 +129,6 @@ if test "$GCC" = "yes"; then
 	CFLAGS="$CFLAGS -Wnested-externs -Wshadow"
 fi
 
-AC_ARG_ENABLE(skip-old-int-typedefs,
-	[AS_HELP_STRING([--enable-skip-old-int-typedefs], [do not generate the u32b, s32b, ... typedefs in Angband's headers])],
-	[AS_CASE(${enableval},
-		[yes], [skip_old_int_typedefs=yes],
-		[no], [skip_old_int_typedefs=no],
-		[AC_MSG_ERROR([bad value ${enableval} for --enable-skip-old-int-typedefs])])],
-	[skip_old_int_typedefs=no])
-
-if test x"$skip_old_int_typedefs" = xyes ; then
-	AC_DEFINE(SKIP_ANGBAND_OLD_INT_TYPEDEFS, 1, [Define to skip generating the u32b, s32b, ... typedefs])
-fi
-
 MY_PROG_MAKE_SYSVINC
 MY_PROG_MAKE_SINCLUDE
 
@@ -239,6 +227,23 @@ NOINSTALL="$with_no_install"; AC_SUBST(NOINSTALL)
 SETEGID="$with_setgid";      AC_SUBST(SETEGID)
 if test "x$wsetgid" == "xyes"; then
 	AC_DEFINE(SETGID, 1, [Define if running as a central install on a multiuser system that has setresgid or setegid support.])
+fi
+
+dnl Borg
+AC_ARG_ENABLE(borg,
+	[AS_HELP_STRING([--enable-borg], [enable Borg (default enabled)])],
+	[enable_borg=$enableval],
+	[enable_borg=yes])
+AC_ARG_ENABLE(borg_high_scores,
+	[AS_HELP_STRING([--enable-borg-high-scores], [allow Borg characters to appear in the high scores (default: disabled)])],
+	[enable_borg_high_scores=$enableval],
+	[enable_borg_high_scores=no])
+
+if test x"$enable_borg" = xyes ; then
+	AC_DEFINE(ALLOW_BORG, 1, [Define if you want Borg support compiled.])
+fi
+if test x"$enable_borg_high_scores" = xyes; then
+	AC_DEFINE(SCORE_BORGS, 1, [Define if you Borg characters to appear in the high scores.])
 fi
 
 dnl Frontends
@@ -445,9 +450,6 @@ fi
 ENABLEWIN="$enable_win"; AC_SUBST(ENABLEWIN)
 
 
-LIBS="${LIBS} -lm"
-
-
 dnl Test checking
 if test "$enable_test" = "yes"; then
 	AC_DEFINE(USE_TEST, 1, [Define to 1 to build the test frontend])
@@ -496,7 +498,7 @@ if test "$enable_stats" = "yes"; then
 		AC_DEFINE(USE_STATS, 1, [Define to 1 to build the stats frontend])
 		CPPFLAGS="${CPPFLAGS} ${SQLITE3_CFLAGS}"
 		LDFLAGS="${LDFLAGS_SAVE} ${SQLITE3_LDFLAGS}"
-		LIBS="${LIBS} ${SQLITE3_LIBS}"
+		LIBS="${LIBS} ${SQLITE3_LIBS} -lm"
 		MAINFILES="${MAINFILES} \$(STATSMAINFILES)"
 		AC_SUBST(USE_STATS, 1)
 	else

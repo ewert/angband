@@ -21,7 +21,7 @@ WARNINGS = -W -Wall -Wextra -Wno-unused-parameter \
 	-Wnested-externs -Wshadow -Wunused-macros
 JUST_C = -std=c99
 OBJ_CFLAGS = -std=c99 -x objective-c -fobjc-arc
-CFLAGS = -g -I. $(WARNINGS) $(OPT) -DMACH_O_CARBON -DSOUND -DHAVE_MKSTEMP \
+CFLAGS = -g -I. $(WARNINGS) $(OPT) -DMACH_O_CARBON -DSOUND -DALLOW_BORG -DHAVE_MKSTEMP \
 	-fno-stack-protector $(OSXVERSFLAGS) $(ARCHFLAGS)
 LIBS = -framework Cocoa
 # Fix for bug #1663: Set the deployment target via environment variable
@@ -155,8 +155,13 @@ install: $(EXE) $(ICONFILES) $(PLIST) $(LIBFILES)
 	@cp ../lib/customize/*.prf $(APPRES)/lib/customize
 
 	# 'optionally' install sound and graphics tiles, if present
-	-cp -R ../lib/tiles/ $(APPRES)/lib/tiles
-	-rm $(APPRES)/lib/tiles/Makefile $(APPRES)/lib/tiles/*/Makefile
+	@if test -d ../lib/tiles && test -r ../lib/tiles/list.txt ; then \
+		cp ../lib/tiles/list.txt $(APPRES)/lib/tiles ; \
+		for dir in `find ../lib/tiles -type d -depth 1 -print`; do \
+			subdir=$(APPRES)/lib/tiles/`basename "$$dir"` ; \
+			mkdir -p "$$subdir" && cp "$$dir"/*.{png,prf} "$$subdir" ; \
+		done ; \
+	fi
 	-cp ../lib/sounds/*.mp3 $(APPRES)/lib/sounds
 
 	install -m 755 $(EXE) $(APPBIN)

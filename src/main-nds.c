@@ -232,7 +232,8 @@ static void init_color_data(void)
 #ifdef __3DS__
 		color_data[i] = angband_color_table[i][1] << 24 |
 		                angband_color_table[i][2] << 16 |
-		                angband_color_table[i][3] << 8;
+		                angband_color_table[i][3] << 8 |
+		                0xFF;
 #else
 		color_data[i] = RGB15(angband_color_table[i][1] >> 3,
 		                      angband_color_table[i][2] >> 3,
@@ -474,8 +475,25 @@ static errr Term_wipe_nds(int x, int y, int n)
  */
 static errr Term_text_nds(int x, int y, int n, int a, const wchar_t *s)
 {
+	nds_pixel fg = color_data[a % MAX_COLORS], bg;
+
+	switch (a / MULT_BG) {
+	case BG_SAME:
+		bg = fg;
+		break;
+
+	case BG_DARK:
+		bg = color_data[COLOUR_SHADE];
+		break;
+
+	case BG_BLACK:
+	default:
+		bg = color_data[COLOUR_DARK];
+		break;
+	}
+
 	for (int i = 0; i < n; i++) {
-		nds_draw_char(x + i, y, s[i], color_data[a & (MAX_COLORS - 1)], color_data[COLOUR_DARK]);
+		nds_draw_char(x + i, y, s[i], fg, bg);
 	}
 
 	return (0);

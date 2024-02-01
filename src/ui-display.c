@@ -335,9 +335,18 @@ static void prt_sp(int row, int col)
 	uint8_t color = player_sp_attr(player);
 
 	/* Do not show mana unless we should have some */
-	if (player_has(player, PF_NO_MANA) || 
-		(player->lev < player->class->magic.spell_first))
+	if (!player->class->magic.total_spells
+			|| (player->lev < player->class->magic.spell_first)) {
+		/*
+		 * But clear if experience drain may have left no points after
+		 * having points.
+		 */
+		if (player->class->magic.total_spells
+				&& player->exp < player->max_exp) {
+			put_str("            ", row, col);
+		}
 		return;
+	}
 
 	put_str("SP ", row, col);
 
@@ -691,8 +700,8 @@ static int prt_sp_short(int row, int col)
 	uint8_t color = player_sp_attr(player);
 
 	/* Do not show mana unless we should have some */
-	if (player_has(player, PF_NO_MANA) || 
-		(player->lev < player->class->magic.spell_first))
+	if (!player->class->magic.total_spells
+			|| (player->lev < player->class->magic.spell_first))
 		return 0;
 
 	put_str("SP:", row, col);
@@ -1004,7 +1013,7 @@ static size_t prt_state(int row, int col)
 	/* Display the info (or blanks) */
 	c_put_str(attr, text, row, col);
 
-	return strlen(text);
+	return strlen(text) + 1;
 }
 
 static const uint8_t obj_feeling_color[] =
@@ -2130,8 +2139,13 @@ const char *window_flag_desc[32] =
 	"Display status",
 	"Display item list",
 	"Display player (topbar)",
+#ifdef ALLOW_BORG
+	"Display borg messages",
+	"Display borg status",
+#else
 	NULL,
 	NULL,
+#endif
 	NULL,
 	NULL,
 	NULL,
@@ -2487,20 +2501,14 @@ static void new_level_display_update(game_event_type type,
 	Term->offset_y = z_info->dungeon_hgt;
 	Term->offset_x = z_info->dungeon_wid;
 
-	/* If autosave is pending, do it now. */
-	if (player->upkeep->autosave) {
-		save_game();
-		player->upkeep->autosave = false;
-	}
-
 	/* Choose panel */
 	verify_panel();
 
-	/* Hack -- Invoke partial update mode */
-	player->upkeep->only_partial = true;
-
 	/* Clear */
 	Term_clear();
+
+	/* Hack -- Invoke partial update mode */
+	player->upkeep->only_partial = true;
 
 	/* Update stuff */
 	player->upkeep->update |= (PU_BONUS | PU_HP | PU_SPELLS);
@@ -2510,9 +2518,6 @@ static void new_level_display_update(game_event_type type,
 
 	/* Fully update the visuals (and monster distances) */
 	player->upkeep->update |= (PU_UPDATE_VIEW | PU_DISTANCE);
-
-	/* Update stuff */
-	update_stuff(player);
 
 	/* Redraw dungeon */
 	player->upkeep->redraw |= (PR_BASIC | PR_EXTRA | PR_MAP);
@@ -2524,11 +2529,18 @@ static void new_level_display_update(game_event_type type,
 	 * set for a few game turns, manually force an update on level change. */
 	monster_list_force_subwindow_update();
 
-	/* Update stuff */
-	update_stuff(player);
+	/* If autosave is pending, do it now. */
+	if (player->upkeep->autosave) {
+		save_game();
+		player->upkeep->autosave = false;
+	}
 
-	/* Redraw stuff */
-	redraw_stuff(player);
+	/*
+	 * Saving has side effect of calling handle_stuff(), but if we did
+	 * not save or saving no longer calls handle_stuff(), call
+	 * handle_stuff() now to process the pending updates and redraws.
+	 */
+	handle_stuff(player);
 
 	/* Hack -- Kill partial update mode */
 	player->upkeep->only_partial = false;
