@@ -20,7 +20,8 @@ CFLAGS += -I. -fPIC -std=c99 -O0
 GCOBJS = $(OBJECTS:.o=.gcno) $(OBJECTS:.o=.gcda)
 GCOVS = $(OBJECTS:.o=.c.gcov)
 
-CLEAN = angband.o $(OBJECTS) win/angband.res version.h
+# buildsys's default clean will take care of any .o from SRCS.
+CLEAN = $(PROGNAME).o $(ALLMAINFILES) ${ALLMAINFILES:.o=.dep} version.h
 DISTCLEAN = autoconf.h tests/.deps
 
 $(PROG): $(PROGNAME).o $(MAINFILES)
@@ -34,9 +35,12 @@ $(PROGNAME).o: $(OBJECTS)
 	$(LD) $(LDFLAGS) -nostdlib -r -o $@ $(OBJECTS)
 	@printf "%10s %-20s\n" LINK $@
 
+check: tests
 tests: $(PROGNAME).o
 	env CC="$(CC)" CFLAGS="$(CFLAGS)" CPPFLAGS="$(CPPFLAGS)" \
-		LDFLAGS="$(LDFLAGS)" LDADD="$(LDADD)" LIBS="$(LIBS)" \
+		LDFLAGS="$(LDFLAGS)" LDADD="$(LDADD)" LIBS="$(TEST_LIBS)" \
+		CROSS_COMPILE="$(CROSS_COMPILE)" \
+		TEST_WORKING_DIRECTORY="$(TEST_WORKING_DIRECTORY)" \
 		$(MAKE) -C tests all
 
 test-depgen:
@@ -127,4 +131,4 @@ post-install:
 	fi
 
 FORCE :
-.PHONY : tests coverage clean-coverage tests/ran-already
+.PHONY : check tests coverage clean-coverage tests/ran-already

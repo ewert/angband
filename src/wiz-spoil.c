@@ -171,8 +171,12 @@ static void kind_info(char *buf, size_t buf_len, char *dam, size_t dam_len,
 	}
 
 	/* Weight */
-	if (wgt)
-		strnfmt(wgt, wgt_len, "%3d.%d", obj->weight / 10, obj->weight % 10);
+	if (wgt) {
+		int16_t obj_weight = object_weight_one(obj);
+
+		strnfmt(wgt, wgt_len, "%3d.%d", obj_weight / 10,
+			obj_weight % 10);
+	}
 
 	/* Hack */
 	if (!dam) {
@@ -284,6 +288,9 @@ void spoil_obj_desc(const char *fname)
 					file_putf(fh, "  %s%*s", buf,
 						(int) (51 - u8len), " ");
 				} else {
+					if (u8len > 51) {
+						utf8_clipto(buf, 51);
+					}
 					file_putf(fh, "  %s", buf);
 				}
 				file_putf(fh, "%7s%6s%4d%9ld\n", dam, wgt, e,
@@ -393,7 +400,7 @@ void spoil_artifact(const char *fname)
 	/* Dump the header */
 	spoiler_underline(format("Artifact Spoilers for %s", buildid), '=');
 
-	text_out("\n Randart seed is %u\n", seed_randart);
+	text_out("\n Randart seed is %lu\n", (unsigned long)seed_randart);
 
 	/* List the artifacts by tval */
 	for (i = 0; group_artifact[i].tval; i++) {
@@ -410,6 +417,7 @@ void spoil_artifact(const char *fname)
 			struct artifact artc;
 			char buf2[80];
 			struct object *obj, *known_obj;
+			int16_t art_weight;
 
 			/* We only want objects in the current group */
 			if (art->tval != group_artifact[i].tval) continue;
@@ -450,10 +458,11 @@ void spoil_artifact(const char *fname)
 			 * artifact can appear, its rarity, its weight, and
 			 * its power rating.
 			 */
-			text_out("\nMin Level %u, Max Level %u, Generation chance %u, Power %d, %d.%d lbs\n",
-					 art->alloc_min, art->alloc_max, art->alloc_prob,
-					 object_power(obj, false, NULL), (art->weight / 10),
-					 (art->weight % 10));
+			art_weight = object_weight_one(obj);
+			text_out("\nMin Level %u, Max Level %u, Generation chance %u, Power %ld, %d.%d lbs\n",
+				art->alloc_min, art->alloc_max, art->alloc_prob,
+				(long)object_power(obj, false, NULL),
+				art_weight / 10, art_weight % 10);
 
 			if (OPT(player, birth_randarts)) text_out("%s.\n", art->text);
 

@@ -97,7 +97,7 @@ void map_info(struct loc grid, struct grid_data *g)
 	/* Use real feature (remove later) */
 	g->f_idx = square(cave, grid)->feat;
 	if (f_info[g->f_idx].mimic)
-		g->f_idx = lookup_feat(f_info[g->f_idx].mimic);
+		g->f_idx = (uint32_t) (f_info[g->f_idx].mimic - f_info);
 
 	g->in_view = (square_isseen(cave, grid)) ? true : false;
 	g->is_player = (square(cave, grid)->mon < 0) ? true : false;
@@ -131,11 +131,11 @@ void map_info(struct loc grid, struct grid_data *g)
 	/* Use known feature */
 	g->f_idx = square(player->cave, grid)->feat;
 	if (f_info[g->f_idx].mimic)
-		g->f_idx = lookup_feat(f_info[g->f_idx].mimic);
+		g->f_idx = (uint32_t) (f_info[g->f_idx].mimic - f_info);
 
 	/* There is a known trap in this square */
 	if (square_trap(player->cave, grid) && square_isknown(cave, grid)) {
-		struct trap *trap = square(cave, grid)->trap;
+		struct trap *trap = square(player->cave, grid)->trap;
 
 		/* Scan the square trap list */
 		while (trap) {
@@ -151,7 +151,7 @@ void map_info(struct loc grid, struct grid_data *g)
 			}
 			trap = trap->next;
 		}
-    }
+	}
 
 	/* Objects */
 	for (obj = square_object(player->cave, grid); obj; obj = obj->next) {
@@ -187,7 +187,7 @@ void map_info(struct loc grid, struct grid_data *g)
 			g->hallucinate = false;
 	}
 
-	assert((int) g->f_idx < z_info->f_max);
+	assert((int) g->f_idx < FEAT_MAX);
 	if (!g->hallucinate)
 		assert((int)g->m_idx < cave->mon_max);
 	/* All other g fields are 'flags', mostly booleans. */
@@ -230,7 +230,7 @@ void square_note_spot(struct chunk *c, struct loc grid)
 	if (!square_isseen(c, grid) && !square_isplayer(c, grid)) return;
 
 	/* Make the player know precisely what is on this grid */
-	square_know_pile(c, grid);
+	square_know_pile(c, grid, NULL);
 
 	/* Notice traps, memorize those we can see */
 	if (square_issecrettrap(c, grid)) {
@@ -238,7 +238,7 @@ void square_note_spot(struct chunk *c, struct loc grid)
 	}
 	square_memorize_traps(c, grid);
 
-	if (square_isknown(c, grid))
+	if (!square_ismemorybad(c, grid))
 		return;
 
 	/* Memorize this grid */
@@ -445,14 +445,19 @@ void wiz_light(struct chunk *c, struct player *p, bool full)
 
 			/* Memorize objects */
 			if (full) {
-				square_know_pile(c, grid);
+				square_know_pile(c, grid, NULL);
 			} else {
-				square_sense_pile(c, grid);
+				square_sense_pile(c, grid, NULL);
 			}
 
-			/* Forget unprocessed, unknown grids in the mapping area */
-			if (!square_ismark(c, grid) && square_isnotknown(c, grid))
+			/*
+			 * Forget grids that are both unprocessed and
+			 * misremembered in the mapping area.
+			 */
+			if (!square_ismark(c, grid)
+					&& square_ismemorybad(c, grid)) {
 				square_forget(c, grid);
+			}
 		}
 	}
 
@@ -498,7 +503,7 @@ void wiz_dark(struct chunk *c, struct player *p, bool full)
 					struct loc a_grid = loc_sum(grid, ddgrid_ddd[i]);
 
 					/* Perma-darken the grid */
-					sqinfo_off(square(cave, a_grid)->info, SQUARE_GLOW);
+					sqinfo_off(square(c, a_grid)->info, SQUARE_GLOW);
 
 					/* Memorize normal features */
 					if (!square_isfloor(c, a_grid) || 
@@ -511,14 +516,19 @@ void wiz_dark(struct chunk *c, struct player *p, bool full)
 
 			/* Memorize objects */
 			if (full) {
-				square_know_pile(c, grid);
+				square_know_pile(c, grid, NULL);
 			} else {
-				square_sense_pile(c, grid);
+				square_sense_pile(c, grid, NULL);
 			}
 
-			/* Forget unprocessed, unknown grids in the mapping area */
-			if (!square_ismark(c, grid) && square_isnotknown(c, grid))
+			/*
+			 * Forget grids that are both unprocessed and
+			 * misremembered in the mapping area.
+			 */
+			if (!square_ismark(c, grid)
+					&& square_ismemorybad(c, grid)) {
 				square_forget(c, grid);
+			}
 		}
 	}
 

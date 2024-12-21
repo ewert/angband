@@ -149,7 +149,38 @@ void dungeon_change_level(struct player *p, int dlev)
 
 
 /**
+ * Returns what an incoming damage amount would be after applying a player's
+ * damage reduction.
+ *
+ * \param p is the player of interest.
+ * \param dam is the incoming damaage amount.
+ * \return the damage after the player's damage reduction, if any.
+ */
+int player_apply_damage_reduction(struct player *p, int dam)
+{
+	/* Mega-Hack -- Apply "invulnerability" */
+	if (p->timed[TMD_INVULN] && (dam < 9000)) return 0;
+
+	dam -= p->state.dam_red;
+	if (dam > 0 && p->state.perc_dam_red) {
+		dam -= (dam * p->state.perc_dam_red) / 100 ;
+	}
+
+	return (dam < 0) ? 0 : dam;
+}
+
+
+/**
  * Decreases players hit points and sets death flag if necessary
+ *
+ * \param p is the player of interest.
+ * \param dam is the amount of damage to apply.  If dam is less than
+ * or equal to zero, nothing will be done.  The amount of damage should have
+ * been processed with player_apply_damage_reduction(); that is not done
+ * internally here so the caller can display messages that include the amount of
+ * damage.
+ * \param kb_str is the null-terminated string describing the cause of the
+ * damage.
  *
  * Hack -- this function allows the user to save (or quit) the game
  * when he dies, since the "You die." message is shown before setting
@@ -162,17 +193,7 @@ void take_hit(struct player *p, int dam, const char *kb_str)
 	int warning = (p->mhp * p->opts.hitpoint_warn / 10);
 
 	/* Paranoia */
-	if (p->is_dead) return;
-
-	/* Mega-Hack -- Apply "invulnerability" */
-	if (p->timed[TMD_INVULN] && (dam < 9000)) return;
-
-	/* Apply damage reduction */
-	dam -= p->state.dam_red;
-	if (p->state.perc_dam_red) {
-		dam -= (dam * p->state.perc_dam_red) / 100 ;
-	}
-	if (dam <= 0) return;
+	if (p->is_dead || dam <= 0) return;
 
 	/* Disturb */
 	disturb(p);
@@ -206,24 +227,31 @@ void take_hit(struct player *p, int dam, const char *kb_str)
 				msg("So great was his prowess and skill in warfare, the Elves said: ");
 				msg("'The Mormegil cannot be slain, save by mischance.'");
 			}
-		} else if ((p->wizard || OPT(p, cheat_live)) && !get_check("Die? ")) {
-			event_signal(EVENT_CHEAT_DEATH);
 		} else {
-			/* Hack -- Note death */
-			msgt(MSG_DEATH, "You die.");
-			event_signal(EVENT_MESSAGE_FLUSH);
-
-			/* Note cause of death */
+			/*
+			 * Note cause of death.  Do it here so EVENT_CHEAT_DEATH
+			 * handlers or things looking for the "Die? " prompt
+			 * (the borg, for instance), have access to it.
+			 */
 			my_strcpy(p->died_from, kb_str, sizeof(p->died_from));
 
-			/* No longer a winner */
-			p->total_winner = false;
+			if ((p->wizard || OPT(p, cheat_live))
+					&& !get_check("Die? ")) {
+				event_signal(EVENT_CHEAT_DEATH);
+			} else {
+				/* Hack -- Note death */
+				msgt(MSG_DEATH, "You die.");
+				event_signal(EVENT_MESSAGE_FLUSH);
 
-			/* Note death */
-			p->is_dead = true;
+				/* No longer a winner */
+				p->total_winner = false;
 
-			/* Dead */
-			return;
+				/* Note death */
+				p->is_dead = true;
+
+				/* Dead */
+				return;
+			}
 		}
 	}
 
@@ -244,7 +272,7 @@ void take_hit(struct player *p, int dam, const char *kb_str)
  */
 void death_knowledge(struct player *p)
 {
-	struct store *home = &stores[STORE_HOME];
+	struct store *home = &stores[f_info[FEAT_HOME].shopnum - 1];
 	struct object *obj;
 	time_t death_time = (time_t)0;
 
@@ -330,6 +358,68 @@ int16_t modify_stat_value(int value, int amount)
 
 	/* Return new value */
 	return (value);
+}
+
+/**
+ * Swap player's stats at random, retaining information so they can be
+ * reverted to their original state.
+ */
+void player_scramble_stats(struct player *p)
+{
+	int max1, cur1, max2, cur2, i, j, swap;
+
+	/* Fisher-Yates shuffling algorithm */
+	for (i = STAT_MAX - 1; i > 0; --i) {
+		j = randint0(i);
+
+		max1 = p->stat_max[i];
+		cur1 = p->stat_cur[i];
+		max2 = p->stat_max[j];
+		cur2 = p->stat_cur[j];
+
+		p->stat_max[i] = max2;
+		p->stat_cur[i] = cur2;
+		p->stat_max[j] = max1;
+		p->stat_cur[j] = cur1;
+
+		/* Record what we did */
+		swap = p->stat_map[i];
+		assert(swap >= 0 && swap < STAT_MAX);
+		p->stat_map[i] = p->stat_map[j];
+		assert(p->stat_map[i] >= 0 && p->stat_map[i] < STAT_MAX);
+		p->stat_map[j] = swap;
+	}
+
+	/* Mark what else needs to be updated */
+	p->upkeep->update |= (PU_BONUS);
+}
+
+/**
+ * Revert all prior swaps to the player's stats.  Has no effect if the
+ * stats have not been swapped.
+ */
+void player_fix_scramble(struct player *p)
+{
+	/* Figure out what stats should be */
+	int new_cur[STAT_MAX];
+	int new_max[STAT_MAX];
+	int i;
+
+	for (i = 0; i < STAT_MAX; ++i) {
+		assert(p->stat_map[i] >= 0 && p->stat_map[i] < STAT_MAX);
+		new_cur[p->stat_map[i]] = p->stat_cur[i];
+		new_max[p->stat_map[i]] = p->stat_max[i];
+	}
+
+	/* Apply new stats and reset stat_map */
+	for (i = 0; i < STAT_MAX; ++i) {
+		p->stat_cur[i] = new_cur[i];
+		p->stat_max[i] = new_max[i];
+		p->stat_map[i] = i;
+	}
+
+	/* Mark what else needs to be updated */
+	p->upkeep->update |= (PU_BONUS);
 }
 
 /**
@@ -522,7 +612,7 @@ int32_t player_adjust_mana_precise(struct player *p, int32_t sp_gain)
 			assert(p->csp > INT16_MIN);
 			p->csp -= 1;
 		} else {
-			p->chp_frac = 0;
+			p->csp_frac = 0;
 		}
 	} else {
 		p->csp = (int16_t)(new_32 >> 16);   /* div 65536 */
@@ -789,17 +879,30 @@ void player_over_exert(struct player *p, int flag, int chance, int amount)
 	/* HP */
 	if (flag & PY_EXERT_HP) {
 		if (randint0(100) < chance) {
-			msg("You cry out in sudden pain!");
-			take_hit(p, randint1(amount), "over-exertion");
+			int dam = player_apply_damage_reduction(p,
+				randint1(amount));
+			char dam_text[32] = "";
+
+			if (dam > 0 && OPT(p, show_damage)) {
+				strnfmt(dam_text, sizeof(dam_text),
+					" (%d)", dam);
+			}
+			msg("You cry out in sudden pain!%s", dam_text);
+			take_hit(p, dam, "over-exertion");
 		}
 	}
 }
 
 
 /**
- * See how much damage the player will take from damaging terrain
+ * See how much damage the player will take from terrain.
+ *
+ * \param p is the player to check
+ * \param grid is the location of the terrain
+ * \param actual, if true, will cause the player to learn the appropriate
+ * runes if equipment or effects mitigate the damage.
  */
-int player_check_terrain_damage(struct player *p, struct loc grid)
+int player_check_terrain_damage(struct player *p, struct loc grid, bool actual)
 {
 	int dam_taken = 0;
 
@@ -808,11 +911,15 @@ int player_check_terrain_damage(struct player *p, struct loc grid)
 		int res = p->state.el_info[ELEM_FIRE].res_level;
 
 		/* Fire damage */
-		dam_taken = adjust_dam(p, ELEM_FIRE, base_dam, RANDOMISE, res, false);
+		dam_taken = adjust_dam(p, ELEM_FIRE, base_dam, RANDOMISE, res,
+			actual);
 
 		/* Feather fall makes one lightfooted. */
 		if (player_of_has(p, OF_FEATHER)) {
 			dam_taken /= 2;
+			if (actual) {
+				equip_learn_flag(p, OF_FEATHER);
+			}
 		}
 	}
 
@@ -824,18 +931,30 @@ int player_check_terrain_damage(struct player *p, struct loc grid)
  */
 void player_take_terrain_damage(struct player *p, struct loc grid)
 {
-	int dam_taken = player_check_terrain_damage(p, grid);
+	int dam_taken = player_check_terrain_damage(p, grid, true);
+	int dam_reduced;
 
 	if (!dam_taken) {
 		return;
 	}
 
-	/* Damage the player and inventory */
-	take_hit(p, dam_taken, square_feat(cave, grid)->die_msg);
+	/*
+	 * Damage the player and inventory; inventory damage is based on
+	 * the raw incoming damage and not the value accounting for the
+	 * player's damage reduction.
+	 */
+	dam_reduced = player_apply_damage_reduction(p, dam_taken);
 	if (square_isfiery(cave, grid)) {
-		msg(square_feat(cave, grid)->hurt_msg);
+		char dam_text[32] = "";
+
+		if (dam_reduced > 0 && OPT(p, show_damage)) {
+			strnfmt(dam_text, sizeof(dam_text), " (%d)",
+				dam_reduced);
+		}
+		msg("%s%s", square_feat(cave, grid)->hurt_msg, dam_text);
 		inven_damage(p, PROJ_FIRE, dam_taken);
 	}
+	take_hit(p, dam_reduced, square_feat(cave, grid)->die_msg);
 }
 
 /**
@@ -935,7 +1054,7 @@ void player_resume_normal_shape(struct player *p)
 /**
  * Check if the player is shapechanged
  */
-bool player_is_shapechanged(struct player *p)
+bool player_is_shapechanged(const struct player *p)
 {
 	return streq(p->shape->name, "normal") ? false : true;
 }
@@ -943,7 +1062,7 @@ bool player_is_shapechanged(struct player *p)
 /**
  * Check if the player is immune from traps
  */
-bool player_is_trapsafe(struct player *p)
+bool player_is_trapsafe(const struct player *p)
 {
 	if (p->timed[TMD_TRAPSAFE]) return true;
 	if (player_of_has(p, OF_TRAP_IMMUNE)) return true;
@@ -957,7 +1076,7 @@ bool player_is_trapsafe(struct player *p)
  * \param show_msg should be set to true if a failure message should be
  * displayed.
  */
-bool player_can_cast(struct player *p, bool show_msg)
+bool player_can_cast(const struct player *p, bool show_msg)
 {
 	if (!p->class->magic.total_spells) {
 		if (show_msg) {
@@ -990,7 +1109,7 @@ bool player_can_cast(struct player *p, bool show_msg)
  * \param show_msg should be set to true if a failure message should be
  * displayed.
  */
-bool player_can_study(struct player *p, bool show_msg)
+bool player_can_study(const struct player *p, bool show_msg)
 {
 	if (!player_can_cast(p, show_msg))
 		return false;
@@ -1036,7 +1155,7 @@ bool player_can_study(struct player *p, bool show_msg)
  * \param show_msg should be set to true if a failure message should be
  * displayed.
  */
-bool player_can_read(struct player *p, bool show_msg)
+bool player_can_read(const struct player *p, bool show_msg)
 {
 	if (p->timed[TMD_BLIND]) {
 		if (show_msg)
@@ -1137,7 +1256,7 @@ bool player_can_study_prereq(void)
 bool player_can_read_prereq(void)
 {
 	/*
-	 * Accomodate hacks elsewhere:  'r' is overloaded to mean
+	 * Accommodate hacks elsewhere:  'r' is overloaded to mean
 	 * release a commanded monster when TMD_COMMAND is active.
 	 */
 	return (player->timed[TMD_COMMAND]) ?
@@ -1267,7 +1386,7 @@ bool player_resting_is_special(int16_t count)
 /**
  * Return true if the player is resting.
  */
-bool player_is_resting(struct player *p)
+bool player_is_resting(const struct player *p)
 {
 	return (p->upkeep->resting > 0 ||
 			player_resting_is_special(p->upkeep->resting));
@@ -1276,7 +1395,7 @@ bool player_is_resting(struct player *p)
 /**
  * Return the remaining number of resting turns.
  */
-int16_t player_resting_count(struct player *p)
+int16_t player_resting_count(const struct player *p)
 {
 	return p->upkeep->resting;
 }
@@ -1330,7 +1449,7 @@ void player_resting_cancel(struct player *p, bool disturb)
  * Return true if the player should get a regeneration bonus for the current
  * rest.
  */
-bool player_resting_can_regenerate(struct player *p)
+bool player_resting_can_regenerate(const struct player *p)
 {
 	return player_turns_rested >= REST_REQUIRED_FOR_REGEN ||
 		player_resting_is_special(p->upkeep->resting);
@@ -1417,7 +1536,7 @@ void player_set_resting_repeat_count(struct player *p, int16_t count)
 /**
  * Check if the player state has the given OF_ flag.
  */
-bool player_of_has(struct player *p, int flag)
+bool player_of_has(const struct player *p, int flag)
 {
 	assert(p);
 	return of_has(p->state.flags, flag);
@@ -1426,7 +1545,7 @@ bool player_of_has(struct player *p, int flag)
 /**
  * Check if the player resists (or better) an element
  */
-bool player_resists(struct player *p, int element)
+bool player_resists(const struct player *p, int element)
 {
 	return (p->state.el_info[element].res_level > 0);
 }
@@ -1434,7 +1553,7 @@ bool player_resists(struct player *p, int element)
 /**
  * Check if the player resists (or better) an element
  */
-bool player_is_immune(struct player *p, int element)
+bool player_is_immune(const struct player *p, int element)
 {
 	return (p->state.el_info[element].res_level == 3);
 }
@@ -1463,18 +1582,24 @@ void player_place(struct chunk *c, struct player *p, struct loc grid)
  * \param p is the player that was moved.
  * \param eval_trap, if true, will cause evaluation (possibly affecting the
  * player) of the traps in the grid.
+ * \param is_involuntary, if true, will do appropriate actions (flush the
+ * command queue) for a move not expected by the player.
  */
-void player_handle_post_move(struct player *p, bool eval_trap)
+void player_handle_post_move(struct player *p, bool eval_trap,
+		bool is_involuntary)
 {
 	/* Handle store doors, or notice objects */
 	if (square_isshop(cave, p->grid)) {
 		if (player_is_shapechanged(p)) {
-			if (store_at(cave, p->grid)->sidx != STORE_HOME) {
+			if (square(cave, p->grid)->feat != FEAT_HOME) {
 				msg("There is a scream and the door slams shut!");
 			}
 			return;
 		}
 		disturb(p);
+		if (is_involuntary) {
+			cmdq_flush();
+		}
 		event_signal(EVENT_ENTER_STORE);
 		event_remove_handler_type(EVENT_ENTER_STORE);
 		event_signal(EVENT_USE_STORE);
@@ -1482,26 +1607,16 @@ void player_handle_post_move(struct player *p, bool eval_trap)
 		event_signal(EVENT_LEAVE_STORE);
 		event_remove_handler_type(EVENT_LEAVE_STORE);
 	} else {
-		square_know_pile(cave, p->grid);
-		cmdq_push(CMD_AUTOPICKUP);
+		if (is_involuntary) {
+			cmdq_flush();
+		}
+		square_know_pile(cave, p->grid, NULL);
 	}
 
 	/* Discover invisible traps, set off visible ones */
-	if (eval_trap) {
-		if (square_issecrettrap(cave, p->grid)) {
-			disturb(p);
-			hit_trap(p->grid, 0);
-		} else if (square_isdisarmabletrap(cave, p->grid)) {
-			if (player_is_trapsafe(p)) {
-				/* Trap immune player learns that they are */
-				if (player_of_has(p, OF_TRAP_IMMUNE)) {
-					equip_learn_flag(p, OF_TRAP_IMMUNE);
-				}
-			} else {
-				disturb(p);
-				hit_trap(p->grid, 0);
-			}
-		}
+	if (eval_trap && square_isplayertrap(cave, p->grid)
+			&& !square_isdisabledtrap(cave, p->grid)) {
+		hit_trap(p->grid, 0);
 	}
 
 	/* Update view and search */
@@ -1511,10 +1626,6 @@ void player_handle_post_move(struct player *p, bool eval_trap)
 
 /*
  * Something has happened to disturb the player.
- *
- * The first arg indicates a major disturbance, which affects search.
- *
- * The second arg is currently unused, but could induce output flush.
  *
  * All disturbance cancels repeated commands, resting, and running.
  *
@@ -1535,6 +1646,8 @@ void disturb(struct player *p)
 	/* Cancel running */
 	if (p->upkeep->running) {
 		p->upkeep->running = 0;
+		mem_free(p->upkeep->steps);
+		p->upkeep->steps = NULL;
 
 		/* Cancel queued commands */
 		cmdq_flush();

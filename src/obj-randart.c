@@ -223,6 +223,7 @@ static void store_base_power(struct artifact_set_data *data)
 	struct object_kind *kind;
 	int *fake_total_power;
 	int **fake_tv_power;
+	struct my_rational frac;
 
 	data->max_power = 0;
 	data->min_power = INHIBIT_POWER + 1;
@@ -270,11 +271,15 @@ static void store_base_power(struct artifact_set_data *data)
 		data->base_art_alloc[i] = art->alloc_prob;
 	}
 
-	data->avg_power = mean(fake_total_power, num);
-	data->var_power = variance(fake_total_power, num);
+	/*
+	 * Pass frac but do not use its value so get the previous behavior
+	 * of rounding the result down.
+	 */
+	data->avg_power = mean(fake_total_power, num, &frac);
+	data->var_power = variance(fake_total_power, num, false, false, &frac);
 	for (i = 0; i < TV_MAX; i++) {
 		if (data->tv_num[i]) {
-			data->avg_tv_power[i] = mean(fake_tv_power[i], data->tv_num[i]);
+			data->avg_tv_power[i] = mean(fake_tv_power[i], data->tv_num[i], &frac);
 		}
 	}
 
@@ -1060,7 +1065,8 @@ static void collect_artifact_data(struct artifact_set_data *data)
 		struct object_kind *kind;
 		const struct artifact *art = &a_info[i];
 
-		file_putf(log_file, "Current artifact index is %d\n", i);
+		file_putf(log_file, "Current artifact index is %lu\n",
+			(unsigned long) i);
 
 		/* Don't parse cursed or null items */
 		if (data->base_power[i] < 0 || art->tval == 0) continue;
@@ -1075,7 +1081,8 @@ static void collect_artifact_data(struct artifact_set_data *data)
 
 		/* Add the base item tval to the tv_probs array */
 		data->tv_probs[kind->tval]++;
-		file_putf(log_file, "Base item is %d\n", kind->kidx);
+		file_putf(log_file, "Base item is %lu\n",
+			(unsigned long)kind->kidx);
 
 		/* Count combat abilities broken up by type */
 		if (art->tval == TV_DIGGING || art->tval == TV_HAFTED ||
@@ -1286,8 +1293,8 @@ static void parse_frequencies(struct artifact_set_data *data)
 
 	/* Print out some of the abilities, to make sure that everything's fine */
 	for (i = 0; i < ART_IDX_TOTAL; i++)
-		file_putf(log_file, "Frequency of ability %d: %d\n", i,
-				  data->art_probs[i]);
+		file_putf(log_file, "Frequency of ability %lu: %d\n",
+			(unsigned long) i, data->art_probs[i]);
 
 	for (i = 0; i < TV_MAX; i++)
 		file_putf(log_file, "Frequency of %s: %d\n", tval_find_name(i),
@@ -1301,8 +1308,8 @@ static void parse_frequencies(struct artifact_set_data *data)
 
 	/* Log the final frequencies to check that everything's correct */
 	for (i = 0; i < ART_IDX_TOTAL; i++)
-		file_putf(log_file,  "Rescaled frequency of ability %d: %d\n", i,
-				  data->art_probs[i]);
+		file_putf(log_file,  "Rescaled frequency of ability %lu: %d\n",
+			(unsigned long) i, data->art_probs[i]);
 
 	/* Build a cumulative frequency table for tvals */
 	for (i = 0; i < TV_MAX; i++)
@@ -1394,6 +1401,14 @@ static void artifact_prep(struct artifact *art, const struct object_kind *kind,
 	mem_free(art->brands);
 	art->brands = NULL;
 	copy_brands(&art->brands, kind->brands);
+	mem_free(art->curses);
+	art->curses = NULL;
+	if (kind->curses) {
+		art->curses = mem_alloc(z_info->curse_max
+			* sizeof(*art->curses));
+		memcpy(art->curses, kind->curses, z_info->curse_max
+			* sizeof(*art->curses));
+	}
 	art->activation = NULL;
 	string_free(art->alt_msg);
 	art->alt_msg = NULL;
@@ -1891,21 +1906,24 @@ static void add_high_resist(struct artifact *art,
 static void add_brand(struct artifact *art)
 {
 	int count;
-	struct brand *brand;
+	struct brand *brand = NULL;
 
 	/* Mostly only one brand */
 	if (art->brands && randint0(4)) return;
 
 	/* Get a random brand */
 	for (count = 0; count < MAX_TRIES; count++) {
-		if (!append_random_brand(&art->brands, &brand)) continue;
+		int pick = randint1(z_info->brand_max - 1);
+
+		if (!append_brand(&art->brands, pick)) continue;
+		brand = &brands[pick];
 		file_putf(log_file, "Adding brand: %sx%d\n", brand->name,
 				  brand->multiplier);
 		break;
 	}
 
 	/* Frequently add the corresponding resist */
-	if (randint0(4)) {
+	if (brand && randint0(4)) {
 		size_t i;
 		for (i = ELEM_BASE_MIN; i < ELEM_HIGH_MIN; i++) {
 			if (streq(brand->name, projections[i].name) &&
@@ -1922,17 +1940,20 @@ static void add_brand(struct artifact *art)
 static void add_slay(struct artifact *art)
 {
 	int count;
-	struct slay *slay;
+	struct slay *slay = NULL;
 
 	for (count = 0; count < MAX_TRIES; count++) {
-		if (!append_random_slay(&art->slays, &slay)) continue;
+		int pick = randint1(z_info->slay_max - 1);
+
+		if (!append_slay(&art->slays, pick)) continue;
+		slay = &slays[pick];
 		file_putf(log_file, "Adding slay: %sx%d\n", slay->name,
 				  slay->multiplier);
 		break;
 	}
 
 	/* Frequently add more slays if the first choice is weak */
-	if (randint0(4) && (slay->power < 105)) {
+	if (slay && randint0(4) && (slay->power < 105)) {
 		add_slay(art);
 	}
 }
@@ -2544,11 +2565,11 @@ static void add_ability(struct artifact *art, int32_t target_power, int *freq,
 /**
  * Randomly select a curse and added it to the artifact in question.
  */
-static void add_curse(struct artifact *art, int level)
+static bool add_curse(struct artifact *art, int level)
 {
 	int max_tries = 5;
 
-	if (of_has(art->flags, OF_BLESSED)) return;
+	if (of_has(art->flags, OF_BLESSED)) return false;
 
 	while (max_tries) {
 		int pick = randint1(z_info->curse_max - 1);
@@ -2557,9 +2578,9 @@ static void add_curse(struct artifact *art, int level)
 			max_tries--;
 			continue;
 		}
-		append_artifact_curse(art, pick, power);
-		return;
+		return append_artifact_curse(art, pick, power);
 	}
+	return false;
 }
 
 
@@ -2570,30 +2591,59 @@ static void make_bad(struct artifact *art, int level)
 {
 	int i;
 	int num = randint1(2);
+	int count1, count2;
 
-	if (one_in_(7))
+	file_putf(log_file, "Make it bad:\n");
+	file_putf(log_file, "   ");
+
+	if (one_in_(7)) {
 		of_on(art->flags, OF_AGGRAVATE);
-	if (one_in_(4))
+		file_putf(log_file, " aggravate,");
+	}
+	if (one_in_(4)) {
 		of_on(art->flags, OF_DRAIN_EXP);
-	if (one_in_(7))
+		file_putf(log_file, " drain xp,");
+	}
+	if (one_in_(7)) {
 		of_on(art->flags, OF_NO_TELEPORT);
+		file_putf(log_file, " no tele,");
+	}
 
+	count1 = 0;
+	count2 = 0;
 	for (i = 0; i < OBJ_MOD_MAX; i++) {
-		if ((art->modifiers[i] > 0) && one_in_(2) && (i != OBJ_MOD_MIGHT)) {
-			art->modifiers[i] = -art->modifiers[i];
+		if (art->modifiers[i] > 0) {
+			++count1;
+			if (one_in_(2) && (i != OBJ_MOD_MIGHT)) {
+				art->modifiers[i] = -art->modifiers[i];
+				++count2;
+			}
 		}
 	}
-	if ((art->to_a > 0) && one_in_(2))
-		art->to_a = -art->to_a;
-	if ((art->to_h > 0) && one_in_(2))
-		art->to_h = -art->to_h;
-	if ((art->to_d > 0) && one_in_(4))
-		art->to_d = -art->to_d;
+	file_putf(log_file, " flip %d of %d modifiers,", count2, count1);
 
+	if ((art->to_a > 0) && one_in_(2)) {
+		art->to_a = -art->to_a;
+		file_putf(log_file, " flip ac,");
+	}
+	if ((art->to_h > 0) && one_in_(2)) {
+		art->to_h = -art->to_h;
+		file_putf(log_file, " flip to-hit,");
+	}
+	if ((art->to_d > 0) && one_in_(4)) {
+		art->to_d = -art->to_d;
+		file_putf(log_file, " flip to-dam,");
+	}
+
+	count1 = num;
+	count2 = 0;
 	while (num) {
-		add_curse(art, level);
+		if (add_curse(art, level)) {
+			++count2;
+		}
 		num--;
 	}
+	file_putf(log_file, " %d of %d curses applied\n", count2, count1);
 }
 
 /**
@@ -3110,8 +3160,8 @@ void do_randart(uint32_t randart_seed, bool create_file)
 		path_build(fname, sizeof(fname), ANGBAND_DIR_USER, "randart.txt");
 		log_file = file_open(fname, MODE_WRITE, FTYPE_TEXT);
 		file_putf(log_file,
-				  "# Artifact file for random artifacts with seed %08x\n\n\n",
-				  randart_seed);
+			"# Artifact file for random artifacts with seed %08lx\n\n\n",
+			(unsigned long)randart_seed);
 
 		/* Write individual entries */
 		for (i = 1; i < z_info->a_max; i++) {

@@ -157,9 +157,9 @@ void do_cmd_version(void)
 }
 
 /**
- * Verify the suicide command
+ * Verify the retire command
  */
-void textui_cmd_suicide(void)
+void textui_cmd_retire(void)
 {
 	/* Flush input */
 	event_signal(EVENT_INPUT_FLUSH);
@@ -171,18 +171,18 @@ void textui_cmd_suicide(void)
 	} else {
 		struct keypress ch;
 
-		if (!get_check("Do you really want to kill this character? "))
+		if (!get_check("Do you really want to retire?"))
 			return;
 
-		/* Special Verification for suicide */
-		prt("Please verify KILLING THIS CHARACTER by typing the '@' sign: ", 0, 0);
+		/* Special Verification for retirement */
+		prt("Please verify RETIRING THIS CHARACTER by typing the '@' sign: ", 0, 0);
 		event_signal(EVENT_INPUT_FLUSH);
 		ch = inkey();
 		prt("", 0, 0);
 		if (ch.code != '@') return;
 	}
 
-	cmdq_push(CMD_SUICIDE);
+	cmdq_push(CMD_RETIRE);
 }
 
 /**
@@ -282,8 +282,8 @@ static void screenshot_term_query(int wid, int hgt, int x, int y, int *a, wchar_
 		if (srcx < wid && srcy < hgt - ROW_BOTTOM_MAP) {
 			(void) Term_what(srcx, srcy, a, c);
 		} else {
-			*a = Term->attr_blank;
-			*c = Term->char_blank;
+			*a = COLOUR_WHITE;
+			*c = ' ';
 		}
 	}
 }
@@ -387,13 +387,13 @@ void html_screenshot(const char *path, int mode, term *other_term)
 					Term_activate(main_term);
 				}
 			} else {
-				a = main_term->attr_blank;
-				c = main_term->char_blank;
+				a = COLOUR_WHITE;
+				c = ' ';
 			}
 
 			/* Set the foreground and background */
 			fg_colour = a % MAX_COLORS;
-			switch (a / MAX_COLORS)
+			switch (a / MULT_BG)
 			{
 				case BG_BLACK:
 					bg_colour = COLOUR_DARK;
@@ -405,7 +405,8 @@ void html_screenshot(const char *path, int mode, term *other_term)
 					bg_colour = COLOUR_SHADE;
 					break;
 				default:
-				assert((a >= BG_BLACK) && (a < BG_MAX * MAX_COLORS));
+					assert((a >= 0)
+						&& (a < BG_MAX * MULT_BG));
 			}
 
 			/*

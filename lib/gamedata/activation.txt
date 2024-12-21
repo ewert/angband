@@ -47,7 +47,7 @@ effect:CURE:AFRAID
 effect:CURE:IMAGE
 effect:TIMED_INC:OPP_CONF
 dice:12+6d10
-desc:restores 10SP, cures confusion and hallucination, removes fear and grants you temporary resistance to confusion
+desc:restores 20SP, cures confusion and hallucination, removes fear and grants you temporary resistance to confusion
 
 name:CURE_BODY
 aim:0
@@ -339,7 +339,7 @@ dice:30
 effect:CURE:AFRAID
 effect:TIMED_INC:SHERO
 dice:25+1d25
-desc:restores 30 hit points, removes fear and grants you resistance to fear, +24 to-hit, and -10AC for 1d25+25 turns
+desc:restores 30 hit points, removes fear and grants you resistance to fear, +25 to-hit for melee, and -10AC for 1d25+25 turns
 
 
 name:RESIST_ACID
@@ -491,7 +491,7 @@ name:LIGHT
 aim:0
 power:4
 effect:LIGHT_AREA
-effect:SPOT:LIGHT_WEAK:2
+effect:SPHERE:LIGHT_WEAK:2
 dice:2d8
 
 name:TELE_PHASE
@@ -659,7 +659,7 @@ aim:0
 power:4
 msg:The {kind} well{s} with clear light...
 effect:LIGHT_AREA
-effect:SPOT:LIGHT_WEAK:3
+effect:SPHERE:LIGHT_WEAK:3
 dice:2d15
 
 name:CLAIRVOYANCE
@@ -755,8 +755,8 @@ msg:{name} glow{s} many colors...
 effect:HEAL_HP
 dice:30
 effect:CURE:AFRAID
-dice:50+1d50
 effect:SET_VALUE
+dice:50+1d50
 effect:TIMED_INC:SHERO
 effect:TIMED_INC:BLESSED
 effect:TIMED_INC:OPP_ACID
@@ -1160,7 +1160,7 @@ dice:75
 effect:CURE:POISONED
 effect:HEAL_HP
 dice:4d8
-desc:restores 4d8 hit points and neutralizes poison
+desc:restores 4d8 hit points, neutralizes poison and leaves you very well fed
 
 name:SHROOM_EMERGENCY
 aim:0

@@ -92,6 +92,9 @@ typedef enum cmd_code {
 	CMD_OPEN,
 	CMD_CLOSE,
 	CMD_RUN,
+	CMD_EXPLORE,
+	CMD_NAVIGATE_UP,
+	CMD_NAVIGATE_DOWN,
 	CMD_HOLD,
 	CMD_ALTER,
 	CMD_STEAL,
@@ -159,7 +162,7 @@ typedef enum cmd_code {
 	CMD_WIZ_WIZARD_LIGHT,
 
 	/* Hors categorie Commands */
-	CMD_SUICIDE,
+	CMD_RETIRE,
 
 	CMD_HELP,
 	CMD_REPEAT,
@@ -241,6 +244,13 @@ struct command {
 	/* Number of times to attempt to repeat command. */
 	int nrepeats;
 
+	/*
+	 * 0: can be target for CMD_REPEAT and can trigger bloodlust
+	 * 1: can not be target for CMD_REPEAT and can trigger bloodlust
+	 * >1: can not be target for CMD_REPEAT and can not trigger bloodlust
+	 */
+	int background_command;
+
 	/* Arguments */
 	struct cmd_arg arg[CMD_MAX_ARGS];
 };
@@ -268,6 +278,9 @@ typedef void (*cmd_handler_fn)(struct command *cmd);
  * ------------------------------------------------------------------------
  * Command type functions
  * ------------------------------------------------------------------------ */
+
+void cmd_copy(struct command *dest, const struct command *src);
+void cmd_release(struct command *cmd);
 
 /* Return the verb that goes alongside the given command. */
 const char *cmd_verb(cmd_code cmd);
@@ -307,9 +320,11 @@ errr cmdq_push(cmd_code c);
 void cmdq_execute(cmd_context ctx);
 
 /**
- * Remove all commands from the queue.
+ * Remove all commands from the queue.  cmdq_release() also releases any
+ * resource allocated.
  */
 void cmdq_flush(void);
+void cmdq_release(void);
 
 /**
  * ------------------------------------------------------------------------
@@ -388,8 +403,9 @@ int cmd_get_string(struct command *cmd, const char *arg, const char **str,
 				   const char *initial, const char *title, const char *prompt);
 int cmd_get_spell(struct command *cmd, const char *arg, struct player *p,
 	int *spell, const char *verb, item_tester book_filter,
-	const char *error,
-	bool (*spell_filter)(const struct player *p, int spell));
+	const char *book_error,
+	bool (*spell_filter)(const struct player *p, int spell),
+	const char *spell_error);
 int cmd_get_effect_from_list(struct command *cmd, const char *arg, int *choice,
 	const char *prompt, struct effect *effect, int count,
 	bool allow_random);

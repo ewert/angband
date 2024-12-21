@@ -157,14 +157,14 @@ static void highscore_write(const struct high_score scores[], size_t sz)
 
 	safe_setuid_grab();
 	lok = file_open(lok_name, MODE_WRITE, FTYPE_RAW);
-	file_lock(lok);
-	safe_setuid_drop();
-
 	if (!lok) {
+		safe_setuid_drop();
 		msg("Failed to create lock for scorefile; not writing.");
 		return;
+	} else {
+		file_lock(lok);
+		safe_setuid_drop();
 	}
-
 
 	/* Open the new file for writing */
 	safe_setuid_grab();
@@ -228,13 +228,13 @@ void build_score(struct high_score *entry, const struct player *p,
 	strnfmt(entry->what, sizeof(entry->what), "%s", buildid);
 
 	/* Calculate and save the points */
-	strnfmt(entry->pts, sizeof(entry->pts), "%9u", total_points(p));
+	strnfmt(entry->pts, sizeof(entry->pts), "%9ld", total_points(p));
 
 	/* Save the current gold */
-	strnfmt(entry->gold, sizeof(entry->gold), "%9u", p->au);
+	strnfmt(entry->gold, sizeof(entry->gold), "%9ld", (long)p->au);
 
 	/* Save the current turn */
-	strnfmt(entry->turns, sizeof(entry->turns), "%9u", turn);
+	strnfmt(entry->turns, sizeof(entry->turns), "%9ld", (long)turn);
 
 	/* Time of death */
 	if (death_time)
@@ -291,11 +291,18 @@ void enter_score(const struct player *p, const time_t *death_time)
 	if (p->noscore & (NOSCORE_WIZARD | NOSCORE_DEBUG)) {
 		msg("Score not registered for wizards.");
 		event_signal(EVENT_MESSAGE_FLUSH);
+#ifdef ALLOW_BORG
+#ifndef SCORE_BORGS
+	}	else if (p->noscore & (NOSCORE_BORG)) {
+		msg("Score not registered for borgs.");
+		event_signal(EVENT_MESSAGE_FLUSH);
+#endif
+#endif
 	} else if (!p->total_winner && streq(p->died_from, "Interrupting")) {
 		msg("Score not registered due to interruption.");
 		event_signal(EVENT_MESSAGE_FLUSH);
-	} else if (!p->total_winner && streq(p->died_from, "Quitting")) {
-		msg("Score not registered due to quitting.");
+	} else if (!p->total_winner && streq(p->died_from, "Retiring")) {
+		msg("Score not registered due to retiring.");
 		event_signal(EVENT_MESSAGE_FLUSH);
 	} else {
 		struct high_score entry;

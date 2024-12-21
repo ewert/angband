@@ -252,7 +252,10 @@ static int project_player_handler_LIGHT(project_player_handler_context_t *contex
 
 	/* Confusion for strong unresisted light */
 	if (context->dam > 300) {
-		msg("You are dazzled!");
+		/* Check for resistance before issuing a message. */
+		if (player_inc_check(player, TMD_CONFUSED, false)) {
+			msg("You are dazzled!");
+		}
 		(void)player_inc_timed(player, TMD_CONFUSED,
 			2 + randint1(context->dam / 100), true, true, true);
 	}
@@ -318,7 +321,10 @@ static int project_player_handler_SOUND(project_player_handler_context_t *contex
 
 	/* Confusion for strong unresisted sound */
 	if (context->dam > 300) {
-		msg("The noise disorients you.");
+		/* Check for resistance before issuing a message. */
+		if (player_inc_check(player, TMD_CONFUSED, false)) {
+			msg("The noise disorients you.");
+		}
 		(void)player_inc_timed(player, TMD_CONFUSED,
 			2 + randint1(context->dam / 100), true, true, true);
 	}
@@ -820,7 +826,8 @@ bool project_p(struct source origin, int r, struct loc grid, int dam, int typ,
 		case SRC_PLAYER: {
 			/* Don't affect projector unless explicitly allowed */
 			if (!self) return false;
-
+			/* Use the same message as the DAMAGE handler. */
+			my_strcpy(killer, "yourself", sizeof(killer));
 			break;
 		}
 
@@ -866,7 +873,8 @@ bool project_p(struct source origin, int r, struct loc grid, int dam, int typ,
 		}
 
 		case SRC_NONE: {
-			/* Assume the caller has set the killer variable */
+			/* Use the same message as the DAMAGE handler. */
+			my_strcpy(killer, "a bug", sizeof(killer));
 			break;
 		}
 	}
@@ -884,17 +892,33 @@ bool project_p(struct source origin, int r, struct loc grid, int dam, int typ,
 							 res_level,
 							 true);
 	if (context.dam) {
+		int reduced;
+
 		/* Self-inflicted damage is scaled down */
 		if (self) {
 			context.dam /= 10;
 		}
-		take_hit(player, context.dam, killer);
+		/*
+		 * Account for the player's damage reduction.   That does not
+		 * affect the side effects (i.e. player_handler), so leave
+		 * context.dam unmodified.
+		 */
+		reduced = player_apply_damage_reduction(player, context.dam);
+		if (reduced > 0 && OPT(player, show_damage)) {
+			msg("You take %d damage.", reduced);
+		}
+		take_hit(player, reduced, killer);
 	}
 
 	/* Handle side effects, possibly including extra damage */
 	if (player_handler != NULL && player->is_dead == false) {
 		int xtra = player_handler(&context);
-		if (xtra) take_hit(player, xtra, killer);
+
+		xtra = player_apply_damage_reduction(player, xtra);
+		if (xtra > 0 && OPT(player, show_damage)) {
+			msg("You take an extra %d damage.", xtra);
+		}
+		take_hit(player, xtra, killer);
 	}
 
 	/* Disturb */

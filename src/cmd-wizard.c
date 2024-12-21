@@ -218,17 +218,18 @@ static void wiz_display_item(const struct object *obj, bool all,
 	prt(buf, 2, j);
 
 	prt(format("combat = (%dd%d) (%+d,%+d) [%d,%+d]",
-		obj->dd, obj->ds, obj->to_h, obj->to_d, obj->ac, obj->to_a),
-		4, j);
+		obj->dd, obj->ds, object_to_hit(all ? obj : obj->known),
+		object_to_dam(all ? obj : obj->known), obj->ac,
+		object_to_ac(all ? obj : obj->known)), 4, j);
 
-	prt(format("kind = %-5d  tval = %-5d  sval = %-5d  wgt = %-3d     timeout = %-d",
-		obj->kind->kidx, obj->tval, obj->sval, obj->weight,
-		obj->timeout), 5, j);
+	prt(format("kind = %-5lu  tval = %-5d  sval = %-5d  wgt = %-3d     timeout = %-d",
+		(unsigned long)obj->kind->kidx, obj->tval, obj->sval,
+		object_weight_one(obj), obj->timeout), 5, j);
 
-	prt(format("number = %-3d  pval = %-5d  name1 = %-4d  egoidx = %-4d  cost = %ld",
+	prt(format("number = %-3d  pval = %-5d  name1 = %-4ld  egoidx = %-4ld  cost = %ld",
 		obj->number, obj->pval,
-		obj->artifact ? obj->artifact->aidx : 0,
-		obj->ego ? (int) obj->ego->eidx : -1,
+		obj->artifact ? (long)obj->artifact->aidx : 0L,
+		obj->ego ? (long)obj->ego->eidx : -1L,
 		(long)object_value(obj, 1)), 6, j);
 
 	nflg = MIN(OF_MAX - FLAG_START, 80);
@@ -466,7 +467,7 @@ void do_cmd_wiz_banish(struct command *cmd)
 		if (mon->cdis > d) continue;
 
 		/* Delete the monster */
-		delete_monster_idx(i);
+		delete_monster_idx(cave, i);
 	}
 
 	/* Update monster list window */
@@ -557,12 +558,13 @@ void do_cmd_wiz_change_item_quantity(struct command *cmd)
 				 * objects.
 				 */
 				player->upkeep->total_weight -=
-					obj->number * obj->weight;
+					obj->number * object_weight_one(obj);
 
 				/*
 				 * Add the weight of the new number of objects.
 				 */
-				player->upkeep->total_weight += n * obj->weight;
+				player->upkeep->total_weight +=
+					n * object_weight_one(obj);
 			}
 			wiz_play_item_standard_upkeep(player, obj);
 		} else {
@@ -902,7 +904,10 @@ void do_cmd_wiz_create_trap(struct command *cmd)
 		cmd_set_arg_number(cmd, "index", tidx);
 	}
 
-	if (!square_isfloor(cave, player->grid)) {
+	if (!square_isfloor(cave, player->grid)
+			|| square_isplayertrap(cave, player->grid)
+			|| square_iswebbed(cave, player->grid)
+			|| square_object(cave, player->grid)) {
 		msg("You can't place a trap there!");
 	} else if (player->depth == 0) {
 		msg("You can't place a trap in the town!");
@@ -1112,8 +1117,8 @@ void do_cmd_wiz_display_keylog(struct command *cmd)
 			keypress_to_text(buf2, sizeof(buf2), keys, true);
 
 			/* format this line of output */
-			strnfmt(buf, sizeof(buf), "    %-12s (code=%u mods=%u)",
-				buf2, k.code, k.mods);
+			strnfmt(buf, sizeof(buf), "    %-12s (code=%lu mods=%u)",
+				buf2, (unsigned long)k.code, k.mods);
 		} else {
 			/* create a blank line of output */
 			strnfmt(buf, sizeof(buf), "%40s", "");
@@ -1714,26 +1719,34 @@ void do_cmd_wiz_play_item(struct command *cmd)
 				rejected = false;
 				if (object_changed) {
 					/* Mark for updates. */
-					if (object_is_carried(player, obj) &&
-							(obj->number !=
-							orig_obj->number ||
-							obj->weight !=
-							orig_obj->weight)) {
+					if (object_is_carried(player, obj)
+							&& (obj->number !=
+							orig_obj->number
+							|| object_weight_one(obj)
+							!= object_weight_one(orig_obj))) {
 						/*
 						 * Remove the weight of the old
 						 * version.
 						 */
 						player->upkeep->total_weight -=
-							orig_obj->number *
-							orig_obj->weight;
+							orig_obj->number
+							* object_weight_one(orig_obj);
 
 						/*
 						 * Add the weight of the new
 						 * version.
 						 */
 						player->upkeep->total_weight +=
-							obj->number *
-							obj->weight;
+							obj->number
+							* object_weight_one(obj);
+					}
+					object_touch(player, obj);
+					if (object_is_equipped(player->body, obj)) {
+						assert(obj->known);
+						obj->known->notice &=
+							~OBJ_NOTICE_WORN;
+						object_learn_on_wield(player,
+							obj);
 					}
 					wiz_play_item_standard_upkeep(player,
 						obj);
@@ -2362,6 +2375,7 @@ void do_cmd_wiz_reroll_item(struct command *cmd)
 		obj->prev = prev;
 		obj->next = next;
 		obj->known = known_obj;
+		obj->known->ego = obj->ego;
 		obj->oidx = oidx;
 		obj->grid = grid;
 		obj->notice = notice;

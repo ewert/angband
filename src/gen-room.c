@@ -31,7 +31,6 @@
 #include "angband.h"
 #include "cave.h"
 #include "datafile.h"
-#include "math.h"
 #include "game-event.h"
 #include "generate.h"
 #include "init.h"
@@ -302,11 +301,9 @@ static void fill_circle(struct chunk *c, int y0, int x0, int radius, int border,
 						int feat, int flag, bool light)
 {
 	int i, last = 0;
-	int r2 = radius * radius;
-	for(i = 0; i <= radius; i++) {
-		double j = sqrt(r2 - (i * i));
-		int k = (int)(j + 0.5);
-
+	/* r2i2k2 is radius * radius - i * i - k * k. */
+	int k, r2i2k2;
+	for(i = 0, k = radius, r2i2k2 = 0; i <= radius; i++) {
 		int b = border;
 		if (border && last > k) b++;
 		
@@ -315,6 +312,24 @@ static void fill_circle(struct chunk *c, int y0, int x0, int radius, int border,
 		fill_yrange(c, x0 - i, y0 - k - b, y0 + k + b, feat, flag, light);
 		fill_yrange(c, x0 + i, y0 - k - b, y0 + k + b, feat, flag, light);
 		last = k;
+
+		/* Update r2i2k2 and k for next i. */
+		if (i < radius) {
+			r2i2k2 -= 2 * i + 1;
+			while (1) {
+				/*
+				 * The change to r2i2k2 if k is decreased by
+				 * one.
+				 */
+				int adj = 2 * k - 1;
+
+				if (abs(r2i2k2 + adj) >= abs(r2i2k2)) {
+					break;
+				}
+				--k;
+				r2i2k2 += adj;
+			}
+		}
 	}
 }
 
@@ -888,11 +903,12 @@ bool mon_pit_hook(struct monster_race *race)
 {
 	bool match_base = true;
 	bool match_color = true;
-	int innate_freq = dun->pit_type->freq_innate;
+	int innate_freq;
 
 	assert(race);
 	assert(dun->pit_type);
 
+	innate_freq = dun->pit_type->freq_innate;
 	if (rf_has(race->flags, RF_UNIQUE)) {
 		return false;
 	} else if (!rf_is_subset(race->flags, dun->pit_type->flags)) {
@@ -1712,7 +1728,7 @@ static bool build_vault_type(struct chunk *c, struct loc centre,
 	ROOM_LOG("%s (%s)", typ, v->name);
 
 	/* Boost the rating */
-	c->mon_rating += v->rat;
+	add_to_monster_rating(c, v->rat);
 
 	return true;
 }
@@ -2697,7 +2713,7 @@ bool build_nest(struct chunk *c, struct loc centre, int rating)
 	ROOM_LOG("Monster nest (%s)", dun->pit_type->name);
 
 	/* Increase the level rating */
-	c->mon_rating += (size_vary + dun->pit_type->ave / 20);
+	add_to_monster_rating(c, size_vary + dun->pit_type->ave / 20);
 
 	/* Place some monsters */
 	for (grid.y = y1; grid.y <= y2; grid.y++) {
@@ -2846,7 +2862,7 @@ bool build_pit(struct chunk *c, struct loc centre, int rating)
 		what[i] = what[i * 2];
 
 	/* Increase the level rating */
-	c->mon_rating += (3 + dun->pit_type->ave / 20);
+	add_to_monster_rating(c, 3 + dun->pit_type->ave / 20);
 
 	/* Get a group ID */
 	group_index = monster_group_index_new(c);
@@ -3490,7 +3506,7 @@ bool build_room_of_chambers(struct chunk *c, struct loc centre, int rating)
 	get_chamber_monsters(c, y1, x1, y2, x2, name, height * width);
 
 	/* Increase the level rating */
-	c->mon_rating += 10;
+	add_to_monster_rating(c, 10);
 
 	/* Describe */
 	ROOM_LOG("Room of chambers (%s)", strlen(name) ? name : "empty");

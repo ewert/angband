@@ -151,9 +151,7 @@ static bool monster_can_kill(struct monster *mon, struct loc grid)
 	if (!mon1) return true;
 
 	/* No trampling uniques */
-	if (rf_has(mon1->race->flags, RF_UNIQUE) ||
-			(mon1->original_race &&
-			rf_has(mon1->original_race->flags, RF_UNIQUE))) {
+	if (monster_is_unique(mon1)) {
 		return false;
 	}
 
@@ -987,21 +985,27 @@ bool multiply_monster(const struct monster *mon)
 	bool result;
 	struct monster_group_info info = { 0, 0 };
 
-	/* Pick an empty location. */
-	if (scatter_ext(cave, &grid, 1, mon->grid, 1, true,
-			square_isempty) > 0) {
+	/*
+	 * Pick an empty location except for uniques:  they can never
+	 * multiply (need a check here as the ones in place_new_monster()
+	 * are not sufficient for a unique shape of a shapechanged monster
+	 * since it may have zero for cur_num in the race structure for the
+	 * shape).
+	 */
+	if (!monster_is_shape_unique(mon) && scatter_ext(cave, &grid,
+			1, mon->grid, 1, true, square_isempty) > 0) {
 		/* Create a new monster (awake, no groups) */
 		result = place_new_monster(cave, grid, mon->race, false, false,
 			info, ORIGIN_DROP_BREED);
 		/*
-		 * Fix so multiplying a revealed mimic creates another
-		 * revealed mimic.
+		 * Fix so multiplying a revealed camouflaged monster creates
+		 * another revealed camouflaged monster.
 		 */
 		if (result) {
 			struct monster *child = square_monster(cave, grid);
 
-			if (child && monster_is_mimicking(child)
-					&& !monster_is_mimicking(mon)) {
+			if (child && monster_is_camouflaged(child)
+					&& !monster_is_camouflaged(mon)) {
 				become_aware(cave, child);
 			}
 		}
@@ -1297,16 +1301,16 @@ static bool monster_turn_attack_glyph(struct monster *mon, struct loc new)
 
 	/* Break the ward */
 	if (randint1(z_info->glyph_hardness) < mon->race->level) {
+		struct trap_kind *rune = lookup_trap("glyph of warding");
+
 		/* Describe observable breakage */
 		if (square_isseen(cave, new)) {
 			msg("The rune of protection is broken!");
-
-			/* Forget the rune */
-			square_forget(cave, new);
 		}
 
 		/* Break the rune */
-		square_destroy_trap(cave, new);
+		assert(rune);
+		square_remove_all_traps_of_type(cave, new, rune->tidx);
 
 		return true;
 	}
@@ -1343,8 +1347,8 @@ static bool monster_turn_try_push(struct monster *mon, const char *m_name,
 			rf_on(lore->flags, RF_MOVE_BODY);
 		}
 
-		/* Reveal mimics */
-		if (monster_is_mimicking(mon1))
+		/* Reveal camouflaged monsters */
+		if (monster_is_camouflaged(mon1))
 			become_aware(cave, mon1);
 
 		/* Note if visible */
@@ -1354,7 +1358,7 @@ static bool monster_turn_try_push(struct monster *mon, const char *m_name,
 
 		/* Monster ate another monster */
 		if (kill_ok)
-			delete_monster(new);
+			delete_monster(cave, new);
 
 		monster_swap(mon->grid, new);
 		return true;
@@ -1532,10 +1536,18 @@ static void monster_turn(struct monster *mon)
 				/* Insubstantial monsters go right through */
 			} else if (monster_passes_walls(mon)) {
 				/* If you can destroy a wall, you can destroy a web */
-				square_destroy_trap(cave, mon->grid);
+				struct trap_kind *web = lookup_trap("web");
+
+				assert(web);
+				square_remove_all_traps_of_type(cave,
+					mon->grid, web->tidx);
 			} else if (rf_has(mon->race->flags, RF_CLEAR_WEB)) {
 				/* Clearing costs a turn (assume there are no other "traps") */
-				square_destroy_trap(cave, mon->grid);
+				struct trap_kind *web = lookup_trap("web");
+
+				assert(web);
+				square_remove_all_traps_of_type(cave,
+					mon->grid, web->tidx);
 				return;
 			} else {
 				/* Stuck */
@@ -1945,6 +1957,12 @@ void process_monsters(int minimum_energy)
 			/* The monster takes its turn */
 			monster_turn(mon);
 
+			/*
+			 * For symmetry with the player, monster can take
+			 * terrain damage after its turn.
+			 */
+			monster_take_terrain_damage(mon);
+
 			/* Monster is no longer current */
 			cave->mon_current = -1;
 		}
@@ -1969,9 +1987,6 @@ void reset_monsters(void)
 	for (i = cave_monster_max(cave) - 1; i >= 1; i--) {
 		/* Access the monster */
 		mon = cave_monster(cave, i);
-
-		/* Dungeon hurts monsters */
-		monster_take_terrain_damage(mon);
 
 		/* Monster is ready to go again */
 		mflag_off(mon->mflag, MFLAG_HANDLED);

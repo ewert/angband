@@ -586,8 +586,13 @@ void process_world(struct chunk *c)
 	/*** Damage (or healing) over Time ***/
 
 	/* Take damage from poison */
-	if (player->timed[TMD_POISONED])
-		take_hit(player, 1, "poison");
+	if (player->timed[TMD_POISONED]) {
+		take_hit(player, player_apply_damage_reduction(player, 1),
+			"poison");
+		if (player->is_dead) {
+			return;
+		}
+	}
 
 	/* Take damage from cuts, worse from serious cuts */
 	if (player->timed[TMD_CUT]) {
@@ -604,7 +609,11 @@ void process_world(struct chunk *c)
 		}
 
 		/* Take damage */
-		take_hit(player, i, "a fatal wound");
+		take_hit(player, player_apply_damage_reduction(player, i),
+			"a fatal wound");
+		if (player->is_dead) {
+			return;
+		}
 	}
 
 	/* Side effects of diminishing bloodlust */
@@ -612,6 +621,9 @@ void process_world(struct chunk *c)
 		player_over_exert(player, PY_EXERT_HP | PY_EXERT_CUT | PY_EXERT_SLOW,
 						  MAX(0, 10 - player->timed[TMD_BLOODLUST]),
 						  player->chp / 10);
+		if (player->is_dead) {
+			return;
+		}
 	}
 
 	/* Timed healing */
@@ -696,7 +708,11 @@ void process_world(struct chunk *c)
 		i = (PY_FOOD_STARVE - player->timed[TMD_FOOD]) / 10;
 
 		/* Take damage */
-		take_hit(player, i, "starvation");
+		take_hit(player, player_apply_damage_reduction(player, i),
+			"starvation");
+		if (player->is_dead) {
+			return;
+		}
 	}
 
 	/* Regenerate Hit Points if needed */
@@ -758,15 +774,19 @@ void process_world(struct chunk *c)
 
 	/*** Involuntary Movement ***/
 
-	/* Delayed Word-of-Recall */
-	if (player->word_recall) {
+	/* Delayed Word-of-Recall; suspended in arenas */
+	if (player->word_recall && !player->upkeep->arena_level) {
 		/* Count down towards recall */
 		player->word_recall--;
 
 		/* Activate the recall */
 		if (!player->word_recall) {
-			/* Disturbing! */
+			/*
+			 * Disturbing!  Also, flush the command queue to avoid
+			 * losing an action on the new level
+			 */
 			disturb(player);
+			cmdq_flush();
 
 			/* Determine the level */
 			if (player->depth) {
@@ -822,6 +842,18 @@ static void process_player_cleanup(void)
 		/* Increment the total energy counter */
 		player->total_energy += player->upkeep->energy_use;
 
+		/*
+		 * Since the player used energy, the command wasn't
+		 * canceled.  Therefore allow the bloodlust check on
+		 * the player's next command unless this was a background
+		 * command and the last player-issued command passed the
+		 * bloodlust check but was canceled (skip_cmd_coercion is two
+		 * in that case).
+		 */
+		if (player->skip_cmd_coercion) {
+			--player->skip_cmd_coercion;
+		}
+
 		/* Player can be damaged by terrain */
 		player_take_terrain_damage(player, player->grid);
 
@@ -853,6 +885,14 @@ static void process_player_cleanup(void)
 				}
 			}
 		}
+	} else if (player->skip_cmd_coercion > 1) {
+		/*
+		 * The last command was a backround command executing while
+		 * skipping the bloodlust check on the player's next command.
+		 * Set skip_cmd_coercion back to one in preparation for the
+		 * player's next turn.
+		 */
+		player->skip_cmd_coercion = 1;
 	}
 
 	/* Clear SHOW flag and player drop status */
@@ -913,7 +953,7 @@ void process_player(void)
 				!player->timed[TMD_PARALYZED] &&
 				!player->timed[TMD_TERROR] &&
 				!player->timed[TMD_AFRAID])
-				effect_simple(EF_DETECT_GOLD, source_none(), "0", 0, 0, 0, 3, 3, NULL);
+				effect_simple(EF_DETECT_ORE, source_none(), "0", 0, 0, 0, 3, 3, NULL);
 		}
 
 		/* Paralyzed or Knocked Out player gets no turn */

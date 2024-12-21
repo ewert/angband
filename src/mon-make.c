@@ -311,13 +311,13 @@ struct monster_race *get_mon_num(int generated_level, int current_level)
  *
  * When a monster is deleted, all of its objects are deleted.
  */
-void delete_monster_idx(int m_idx)
+void delete_monster_idx(struct chunk *c, int m_idx)
 {
-	struct monster *mon = cave_monster(cave, m_idx);
+	struct monster *mon = cave_monster(c, m_idx);
 	struct loc grid;
 
 	assert(m_idx > 0);
-	assert(square_in_bounds(cave, mon->grid));
+	assert(square_in_bounds(c, mon->grid));
 	grid = mon->grid;
 
 	/* Hack -- Reduce the racial counter */
@@ -326,7 +326,7 @@ void delete_monster_idx(int m_idx)
 
 	/* Count the number of "reproducers" */
 	if (rf_has(mon->race->flags, RF_MULTIPLY)) {
-		cave->num_repro--;
+		c->num_repro--;
 	}
 
 	/* Affect light? */
@@ -347,8 +347,8 @@ void delete_monster_idx(int m_idx)
 	}
 
 	/* Monster is gone from square and group */
-	square_set_mon(cave, grid, 0);
-	monster_remove_from_groups(cave, mon);
+	square_set_mon(c, grid, 0);
+	monster_remove_from_groups(c, mon);
 
 	/* Delete objects */
 	struct object *obj = mon->held_obj;
@@ -370,42 +370,44 @@ void delete_monster_idx(int m_idx)
 			 * can skip the test and simply delist and delete
 			 * since any obj->known from a monster's inventory
 			 * will not be in a floor pile. */
-			if (loc_is_zero(obj->known->grid)) {
+			if (loc_is_zero(obj->known->grid) && (c == cave)) {
 				delist_object(player->cave, obj->known);
 				object_delete(player->cave, NULL, &obj->known);
 			}
 		}
-		delist_object(cave, obj);
-		object_delete(cave, player->cave, &obj);
+		delist_object(c, obj);
+		if (c == cave) {
+			object_delete(cave, player->cave, &obj);
+		}
 		obj = next;
 	}
 
 	/* Delete mimicked objects */
 	if (mon->mimicked_obj) {
-		square_delete_object(cave, mon->grid, mon->mimicked_obj, true, false);
+		square_delete_object(c, mon->grid, mon->mimicked_obj, true, false);
 	}
 
 	/* Wipe the Monster */
 	memset(mon, 0, sizeof(struct monster));
 
 	/* Count monsters */
-	cave->mon_cnt--;
+	c->mon_cnt--;
 
 	/* Visual update */
-	square_light_spot(cave, grid);
+	square_light_spot(c, grid);
 }
 
 
 /**
  * Deletes the monster, if any, at the given location.
  */
-void delete_monster(struct loc grid)
+void delete_monster(struct chunk *c, struct loc grid)
 {
-	assert(square_in_bounds(cave, grid));
+	assert(square_in_bounds(c, grid));
 
 	/* Delete the monster (if any) */
-	if (square(cave, grid)->mon > 0)
-		delete_monster_idx(square(cave, grid)->mon);
+	if (square(c, grid)->mon > 0)
+		delete_monster_idx(c, square(c, grid)->mon);
 }
 
 
@@ -414,7 +416,7 @@ void delete_monster(struct loc grid)
  *
  * This should only be called when there is an actual monster at i1
  */
-void monster_index_move(int i1, int i2)
+void monster_index_move(struct chunk *c, int i1, int i2)
 {
 	struct monster *mon;
 	struct object *obj;
@@ -423,19 +425,19 @@ void monster_index_move(int i1, int i2)
 	if (i1 == i2) return;
 
 	/* Old monster */
-	mon = cave_monster(cave, i1);
+	mon = cave_monster(c, i1);
 	if (!mon) return;
 
 	/* Update the cave */
-	square_set_mon(cave, mon->grid, i2);
+	square_set_mon(c, mon->grid, i2);
 
 	/* Update midx */
 	mon->midx = i2;
 
 	/* Update group */
-	if (!monster_group_change_index(cave, i2, i1)) {
+	if (!monster_group_change_index(c, i2, i1)) {
 		quit("Bad monster group info!") ;
-		monster_groups_verify(cave);
+		monster_groups_verify(c);
 	}
 
 	/* Repair objects being carried by monster */
@@ -448,19 +450,19 @@ void monster_index_move(int i1, int i2)
 
 	/* Update the target */
 	if (target_get_monster() == mon)
-		target_set_monster(cave_monster(cave, i2));
+		target_set_monster(cave_monster(c, i2));
 
 	/* Update the health bar */
 	if (player->upkeep->health_who == mon)
-		player->upkeep->health_who = cave_monster(cave, i2);
+		player->upkeep->health_who = cave_monster(c, i2);
 
 	/* Move monster */
-	memcpy(cave_monster(cave, i2),
-			cave_monster(cave, i1),
+	memcpy(cave_monster(c, i2),
+			cave_monster(c, i1),
 			sizeof(struct monster));
 
 	/* Wipe hole */
-	memset(cave_monster(cave, i1), 0, sizeof(struct monster));
+	memset(cave_monster(c, i1), 0, sizeof(struct monster));
 }
 
 
@@ -519,13 +521,13 @@ void compact_monsters(struct chunk *c, int num_to_compact)
 				chance = 100;
 
 			/* Try not to compact Unique Monsters */
-			if (rf_has(mon->race->flags, RF_UNIQUE)) chance = 99;
+			if (monster_is_unique(mon)) chance = 99;
 
 			/* All monsters get a saving throw */
 			if (randint0(100) < chance) continue;
 
 			/* Delete the monster */
-			delete_monster(mon->grid);
+			delete_monster(c, mon->grid);
 
 			/* Count the monster */
 			num_compacted++;
@@ -541,7 +543,7 @@ void compact_monsters(struct chunk *c, int num_to_compact)
 		if (mon->race) continue;
 
 		/* Move last monster into open hole */
-		monster_index_move(cave_monster_max(c) - 1, m_idx);
+		monster_index_move(c, cave_monster_max(c) - 1, m_idx);
 
 		/* Compress "c->mon_max" */
 		c->mon_max--;
@@ -750,9 +752,9 @@ int mon_create_drop_count(const struct monster_race *race, bool maximize,
 static bool mon_create_drop(struct chunk *c, struct monster *mon,
 		uint8_t origin)
 {
-	struct monster_drop *drop;
-	struct monster_lore *lore = get_lore(mon->race);
-
+	const struct monster_drop *drop;
+	struct monster_lore *lore;
+	const struct monster_race *effective_race;
 	bool great, good, gold_ok, item_ok;
 	bool extra_roll = false;
 	bool any = false;
@@ -762,23 +764,25 @@ static bool mon_create_drop(struct chunk *c, struct monster *mon,
 	struct object *obj;
 
 	assert(mon);
+	lore = get_lore(mon->race);
+	effective_race = (mon->original_race) ? mon->original_race : mon->race;
 
-	great = (rf_has(mon->race->flags, RF_DROP_GREAT));
-	good = great || (rf_has(mon->race->flags, RF_DROP_GOOD));
-	gold_ok = (!rf_has(mon->race->flags, RF_ONLY_ITEM));
-	item_ok = (!rf_has(mon->race->flags, RF_ONLY_GOLD));
+	great = (rf_has(effective_race->flags, RF_DROP_GREAT));
+	good = great || (rf_has(effective_race->flags, RF_DROP_GOOD));
+	gold_ok = (!rf_has(effective_race->flags, RF_ONLY_ITEM));
+	item_ok = (!rf_has(effective_race->flags, RF_ONLY_GOLD));
 
 	/* Determine how much we can drop */
-	number = mon_create_drop_count(mon->race, false, false, NULL);
+	number = mon_create_drop_count(effective_race, false, false, NULL);
 
 	/* Uniques that have been stolen from get their quantity reduced */
-	if (rf_has(mon->race->flags, RF_UNIQUE)) {
+	if (monster_is_unique(mon)) {
 		number = MAX(0, number - lore->thefts);
 	}
 
 	/* Give added bonus for unique monsters */
-	monlevel = mon->race->level;
-	if (rf_has(mon->race->flags, RF_UNIQUE)) {
+	monlevel = effective_race->level;
+	if (monster_is_unique(mon)) {
 		monlevel = MIN(monlevel + 15, monlevel * 2);
 		extra_roll = true;
 	}
@@ -789,7 +793,8 @@ static bool mon_create_drop(struct chunk *c, struct monster *mon,
 	level = MIN(level, 100);
 
 	/* Morgoth currently drops all artifacts with the QUEST_ART flag */
-	if (rf_has(mon->race->flags, RF_QUESTOR) && (mon->race->level == 100)) {
+	if (rf_has(effective_race->flags, RF_QUESTOR)
+			&& (effective_race->level == 100)) {
 		/* Search all the artifacts */
 		for (j = 1; j < z_info->a_max; j++) {
 			const struct artifact *art = &a_info[j];
@@ -823,7 +828,7 @@ static bool mon_create_drop(struct chunk *c, struct monster *mon,
 	}
 
 	/* Specified drops */
-	for (drop = mon->race->drops; drop; drop = drop->next) {
+	for (drop = effective_race->drops; drop; drop = drop->next) {
 		if ((unsigned int)randint0(100) >= drop->percent_chance)
 			continue;
 
@@ -846,7 +851,7 @@ static bool mon_create_drop(struct chunk *c, struct monster *mon,
 		/* Set origin details */
 		obj->origin = origin;
 		obj->origin_depth = convert_depth_to_origin(c->depth);
-		obj->origin_race = mon->race;
+		obj->origin_race = effective_race;
 		obj->number = (obj->artifact) ?
 			1 : randint0(drop->max - drop->min) + drop->min;
 
@@ -871,7 +876,7 @@ static bool mon_create_drop(struct chunk *c, struct monster *mon,
 		/* Set origin details */
 		obj->origin = origin;
 		obj->origin_depth = convert_depth_to_origin(c->depth);
-		obj->origin_race = mon->race;
+		obj->origin_race = effective_race;
 
 		/* Try to carry */
 		if (monster_carry(c, mon, obj)) {
@@ -1106,7 +1111,7 @@ static bool place_new_monster_one(struct chunk *c, struct loc grid,
 		return false;
 
 	/* Add to level feeling, note uniques for cheaters */
-	c->mon_rating += race->level * race->level;
+	add_to_monster_rating(c, race->level * race->level);
 
 	/* Check out-of-depth-ness */
 	if (race->level > c->depth) {
@@ -1118,7 +1123,8 @@ static bool place_new_monster_one(struct chunk *c, struct loc grid,
 				msg("Deep monster (%s).", race->name);
 		}
 		/* Boost rating by power per 10 levels OOD */
-		c->mon_rating += (race->level - c->depth) * race->level * race->level;
+		add_to_monster_rating(c, (race->level - c->depth) * race->level
+			* race->level);
 	} else if (rf_has(race->flags, RF_UNIQUE) && OPT(player, cheat_hear)) {
 		msg("Unique (%s).", race->name);
 	}
@@ -1512,6 +1518,20 @@ bool pick_and_place_distant_monster(struct chunk *c, struct loc to_avoid,
 
 	/* Nope */
 	return (false);
+}
+
+/**
+ * Add to the monster rating for the given chunk.
+ *
+ * \param c is the chunk to manipulate
+ * \param part is the amount to add to the rating.
+ */
+void add_to_monster_rating(struct chunk *c, uint32_t part) {
+	if (c->mon_rating < UINT32_MAX - part) {
+		c->mon_rating += part;
+	} else {
+		c->mon_rating = UINT32_MAX;
+	}
 }
 
 struct init_module mon_make_module = {

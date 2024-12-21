@@ -183,7 +183,7 @@ void thrust_away(struct loc centre, struct loc target, int grids_away)
 					monster_swap(grid, next);
 					if (square(cave, grid)->mon < 0) {
 						player_handle_post_move(
-							player, true);
+							player, true, true);
 					}
 
 					/* Jump to new location. */
@@ -207,7 +207,8 @@ void thrust_away(struct loc centre, struct loc target, int grids_away)
 				/* Travel down the path. */
 				monster_swap(grid, next);
 				if (square(cave, grid)->mon < 0) {
-					player_handle_post_move(player, true);
+					player_handle_post_move(player, true,
+						true);
 				}
 
 				/* Jump to new location. */
@@ -223,9 +224,6 @@ void thrust_away(struct loc centre, struct loc target, int grids_away)
 	if (square_isfiery(cave, grid)) {
 		if (square(cave, grid)->mon < 0) {
 			msg("You are thrown into molten lava!");
-		} else if (square(cave, grid)->mon > 0) {
-			struct monster *mon = square_monster(cave, grid);
-			monster_take_terrain_damage(mon);
 		}
 	}
 
@@ -1043,7 +1041,7 @@ static bool project_m_monster_attack(project_monster_handler_context_t *context,
 	struct monster *mon = context->mon;
 
 	/* "Unique" monsters can only be "killed" by the player */
-	if (rf_has(mon->race->flags, RF_UNIQUE)) {
+	if (monster_is_unique(mon)) {
 		/* Reduce monster hp to zero, but don't kill it. */
 		if (dam > mon->hp) dam = mon->hp;
 	}
@@ -1070,10 +1068,10 @@ static bool project_m_monster_attack(project_monster_handler_context_t *context,
 		monster_death(mon, player, false);
 
 		/* Delete the monster */
-		delete_monster_idx(m_idx);
+		delete_monster_idx(cave, m_idx);
 
 		mon_died = true;
-	} else if (!monster_is_mimicking(mon)) {
+	} else if (!monster_is_camouflaged(mon)) {
 		/* Give detailed messages if visible or destroyed */
 		if ((hurt_msg != MON_MSG_NONE) && seen)
 			add_monster_message(mon, hurt_msg, false);
@@ -1105,6 +1103,8 @@ static bool project_m_player_attack(project_monster_handler_context_t *context)
 	enum mon_messages die_msg = context->die_msg;
 	enum mon_messages hurt_msg = context->hurt_msg;
 	struct monster *mon = context->mon;
+	bool display_dam = context->origin.what == SRC_PLAYER
+		&& OPT(player, show_damage);
 
 	/* The monster is going to be killed, so display a specific death message.
 	 * If the monster is not visible to the player, use a generic message.
@@ -1114,7 +1114,12 @@ static bool project_m_player_attack(project_monster_handler_context_t *context)
 	 * of messages. */
 	if (dam > mon->hp) {
 		if (!seen) die_msg = MON_MSG_MORIA_DEATH;
-		add_monster_message(mon, die_msg, false);
+		if (display_dam) {
+			add_monster_message_show_damage(mon, die_msg, false,
+				dam);
+		} else {
+			add_monster_message(mon, die_msg, false);
+		}
 	}
 
 	/* No damage is now going to mean the monster is not hit - and hence
@@ -1128,10 +1133,20 @@ static bool project_m_player_attack(project_monster_handler_context_t *context)
 	 * based on the amount of damage dealt. Also display a message
 	 * if the hit caused the monster to flee. */
 	if (!mon_died) {
-		if (seen && hurt_msg != MON_MSG_NONE)
-			add_monster_message(mon, hurt_msg, false);
-		else if (dam > 0)
-			message_pain(mon, dam);
+		if (display_dam) {
+			if (seen && hurt_msg != MON_MSG_NONE) {
+				add_monster_message_show_damage(mon, hurt_msg,
+					false, dam);
+			} else if (dam > 0) {
+				message_pain_show_damage(mon, dam);
+			}
+		} else {
+			if (seen && hurt_msg != MON_MSG_NONE) {
+				add_monster_message(mon, hurt_msg, false);
+			} else if (dam > 0) {
+				message_pain(mon, dam);
+			}
+		}
 
 		if (seen && fear)
 			add_monster_message(mon, MON_MSG_FLEE_IN_TERROR, true);
@@ -1169,8 +1184,7 @@ static void project_m_apply_side_effects(project_monster_handler_context_t *cont
 		struct monster_race *new;
 
 		/* Uniques cannot be polymorphed; nor can an arena monster */
-		if (rf_has(mon->race->flags, RF_UNIQUE)
-				|| player->upkeep->arena_level) {
+		if (monster_is_unique(mon) || player->upkeep->arena_level) {
 			if (context->seen) add_monster_message(mon, hurt_msg, false);
 			return;
 		}
@@ -1188,7 +1202,7 @@ static void project_m_apply_side_effects(project_monster_handler_context_t *cont
 			return;
 		}
 
-		old = mon->race;
+		old = (mon->original_race) ? mon->original_race : mon->race;
 		new = poly_race(old, player->depth);
 
 		/* Handle polymorph */
@@ -1200,7 +1214,7 @@ static void project_m_apply_side_effects(project_monster_handler_context_t *cont
 			if (context->seen) add_monster_message(mon, hurt_msg, false);
 
 			/* Delete the old monster, and return a new one */
-			delete_monster_idx(m_idx);
+			delete_monster_idx(cave, m_idx);
 			place_new_monster(cave, grid, new, false, false, info,
 							  ORIGIN_DROP_POLY);
 			context->mon = square_monster(cave, grid);
@@ -1359,7 +1373,7 @@ void project_m(struct source origin, int r, struct loc grid, int dam, int typ,
 	context.lore = lore;
 
 	/* See visible monsters */
-	if (monster_is_mimicking(mon)) {
+	if (monster_is_camouflaged(mon)) {
 		if (monster_is_in_view(mon)) {
 			seen = true;
 			context.seen = true;

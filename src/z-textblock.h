@@ -14,6 +14,16 @@
  *  * Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef INCLUDED_Z_TEXTBLOCK_H
@@ -29,8 +39,10 @@ textblock *textblock_new(void);
 void textblock_free(textblock *tb);
 
 
-void textblock_append(textblock *tb, const char *fmt, ...);
-void textblock_append_c(textblock *tb, uint8_t attr, const char *fmt, ...);
+void textblock_append(textblock *tb, const char *fmt, ...)
+	ATTRIBUTE ((format (printf, 2, 3)));
+void textblock_append_c(textblock *tb, uint8_t attr, const char *fmt, ...)
+	ATTRIBUTE ((format (printf, 3, 4)));
 void textblock_append_pict(textblock *tb, uint8_t attr, int c);
 void textblock_append_textblock(textblock *tb, const textblock *tba);
 
@@ -49,9 +61,12 @@ extern int text_out_indent;
 extern int text_out_pad;
 
 extern void text_out_to_file(uint8_t attr, const char *str);
-extern void text_out(const char *fmt, ...);
-extern void text_out_c(uint8_t a, const char *fmt, ...);
-extern void text_out_e(const char *fmt, ...);
+extern void text_out(const char *fmt, ...)
+	ATTRIBUTE ((format (printf, 1, 2)));
+extern void text_out_c(uint8_t a, const char *fmt, ...)
+	ATTRIBUTE ((format (printf, 2, 3)));
+extern void text_out_e(const char *fmt, ...)
+	ATTRIBUTE ((format (printf, 1, 2)));
 
 typedef void (*text_writer)(ang_file *f);
 errr text_lines_to_file(const char *path, text_writer writer);

@@ -22,6 +22,9 @@
 #include "h-basic.h"
 
 
+struct my_rational { unsigned int n, d; }; /* numerator and denominator */
+
+
 /**
  * ------------------------------------------------------------------------
  * Available variables
@@ -41,6 +44,8 @@ extern size_t (*text_mbcs_hook)(wchar_t *dest, const char *src, int n);
 extern int (*text_wctomb_hook)(char *s, wchar_t wchar);
 extern int (*text_wcsz_hook)(void);
 extern int (*text_iswprint_hook)(wint_t wc);
+extern wchar_t *(*text_wcschr_hook)(const wchar_t *wcs, wchar_t wc);
+extern size_t (*text_wcslen_hook)(const wchar_t *s);
 extern void (*plog_aux)(const char *);
 extern void (*quit_aux)(const char *);
 
@@ -147,6 +152,7 @@ extern bool streq(const char *s, const char *t);
 extern bool prefix(const char *s, const char *t);
 extern bool prefix_i(const char *s, const char *t);
 extern bool suffix(const char *s, const char *t);
+extern bool suffix_i(const char *s, const char *t);
 
 #define streq(s, t)		(!strcmp(s, t))
 
@@ -155,6 +161,11 @@ extern bool suffix(const char *s, const char *t);
  */
 extern void strskip(char *s, const char c, const char e);
 extern void strescape(char *s, const char c);
+
+/**
+ * Get the integer value of a hex string
+ */
+extern int hex_str_to_int(const char *s);
 
 /**
  * Change escaped characters into their literal representation
@@ -193,6 +204,18 @@ int text_wcsz(void);
 int text_iswprint(wint_t wc);
 
 /**
+ * Return pointer to the first occurrence of wc in the wide-character
+ * string pointed to by wcs, or NULL if wc does not occur in the
+ * string.
+ */
+wchar_t *text_wcschr(const wchar_t *wcs, wchar_t wc);
+
+/**
+ * Return the number of wide characters in s.
+ */
+size_t text_wcslen(const wchar_t *s);
+
+/**
  * Print an error message
  */
 extern void plog(const char *str);
@@ -217,7 +240,21 @@ uint32_t djb2_hash(const char *str);
 /**
  * Mathematical functions
  */
-int mean(const int *nums, int size);
-int variance(const int *nums, int size);
+int add_guardi(int a, int b);
+int sub_guardi(int a, int b);
+int add_guardi16(int16_t a, int16_t b);
+int sub_guardi16(int16_t a, int16_t b);
+int mean(const int *nums, int size, struct my_rational *frac);
+int variance(const int *nums, int size, bool unbiased, bool of_mean,
+		struct my_rational *frac);
+unsigned int gcd(unsigned int a, unsigned int b);
+struct my_rational my_rational_construct(unsigned int numerator,
+		unsigned int denominator);
+unsigned int my_rational_to_uint(const struct my_rational *a,
+		unsigned int scale, unsigned int *remainder);
+struct my_rational my_rational_product(const struct my_rational *a,
+		const struct my_rational *b);
+struct my_rational my_rational_sum(const struct my_rational *a,
+		const struct my_rational *b);
 
 #endif /* INCLUDED_Z_UTIL_H */

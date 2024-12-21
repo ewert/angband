@@ -40,30 +40,6 @@ enum
 	MFLAG_MAX
 };
 
-
-/**
- * The monster flag types
- */
-enum monster_flag_type {
-	RFT_NONE = 0,	/* placeholder flag */
-	RFT_OBV,		/* an obvious property */
-	RFT_DISP,		/* for display purposes */
-	RFT_GEN,		/* related to generation */
-	RFT_NOTE,		/* especially noteworthy for lore */
-	RFT_BEHAV,		/* behaviour-related */
-	RFT_DROP,		/* drop details */
-	RFT_DET,		/* detection properties */
-	RFT_ALTER,		/* environment shaping */
-	RFT_RACE_N,		/* types of monster (noun) */
-	RFT_RACE_A,		/* types of monster (adjective) */
-	RFT_VULN,		/* vulnerabilities with no corresponding resistance */
-	RFT_VULN_I,		/* vulnerabilities with a corresponding resistance */
-	RFT_RES,		/* elemental resistances */
-	RFT_PROT,		/* immunity from status effects */
-
-	RFT_MAX
-};
-
 #define MFLAG_SIZE                FLAG_SIZE(MFLAG_MAX)
 
 #define mflag_has(f, flag)        flag_has_dbg(f, MFLAG_SIZE, flag, #f, #flag)
@@ -92,6 +68,30 @@ enum
 	#include "list-mon-race-flags.h"
 	#undef RF
 	RF_MAX
+};
+
+
+/**
+ * Categories for the monster race flags
+ */
+enum monster_flag_type {
+	RFT_NONE = 0,	/* placeholder flag */
+	RFT_OBV,		/* an obvious property */
+	RFT_DISP,		/* for display purposes */
+	RFT_GEN,		/* related to generation */
+	RFT_NOTE,		/* especially noteworthy for lore */
+	RFT_BEHAV,		/* behaviour-related */
+	RFT_DROP,		/* drop details */
+	RFT_DET,		/* detection properties */
+	RFT_ALTER,		/* environment shaping */
+	RFT_RACE_N,		/* types of monster (noun) */
+	RFT_RACE_A,		/* types of monster (adjective) */
+	RFT_VULN,		/* vulnerabilities with no corresponding resistance */
+	RFT_VULN_I,		/* vulnerabilities with a corresponding resistance */
+	RFT_RES,		/* elemental resistances */
+	RFT_PROT,		/* immunity from status effects */
+
+	RFT_MAX
 };
 
 #define RF_SIZE                FLAG_SIZE(RF_MAX)
@@ -220,15 +220,11 @@ struct monster_altmsg {
 struct monster_base {
 	struct monster_base *next;
 
-	char *name;						/* Name for recognition in code */
-	char *text;						/* In-game name */
-
+	char *name;			/* Name for recognition in code */
+	char *text;			/* In-game name */
 	bitflag flags[RF_SIZE];         /* Flags */
-	bitflag spell_flags[RSF_SIZE];  /* Spell flags */
-	
-	wchar_t d_char;					/* Default monster character */
-
-	struct monster_pain *pain;				/* Pain messages */
+	wchar_t d_char;			/* Default monster character */
+	struct monster_pain *pain;	/* Pain messages */
 };
 
 

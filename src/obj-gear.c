@@ -482,7 +482,7 @@ static bool gear_excise_object(struct player *p, struct object *obj)
 	pile_excise(&p->gear, obj);
 
 	/* Change the weight */
-	p->upkeep->total_weight -= (obj->number * obj->weight);
+	p->upkeep->total_weight -= obj->number * object_weight_one(obj);
 
 	/* Make sure it isn't still equipped */
 	for (i = 0; i < p->body.count; i++) {
@@ -537,7 +537,7 @@ struct object *gear_object_for_use(struct player *p, struct object *obj,
 		usable = object_split(obj, num);
 
 		/* Change the weight */
-		p->upkeep->total_weight -= (num * obj->weight);
+		p->upkeep->total_weight -= num * object_weight_one(obj);
 
 		if (message) {
 			uint16_t total;
@@ -842,7 +842,8 @@ void inven_carry(struct player *p, struct object *obj, bool absorb,
 
 		if (combine_item) {
 			/* Increase the weight */
-			p->upkeep->total_weight += (obj->number * obj->weight);
+			p->upkeep->total_weight +=
+				obj->number * object_weight_one(obj);
 
 			/* Combine the items, and their known versions */
 			object_absorb(combine_item->known, obj->known);
@@ -871,7 +872,7 @@ void inven_carry(struct player *p, struct object *obj, bool absorb,
 		obj->known->grid = loc(0, 0);
 
 		/* Update the inventory */
-		p->upkeep->total_weight += (obj->number * obj->weight);
+		p->upkeep->total_weight += obj->number * object_weight_one(obj);
 		p->upkeep->notice |= (PN_COMBINE);
 
 		/* Hobbits ID mushrooms on pickup, gnomes ID wands and staffs on pickup */
@@ -950,7 +951,8 @@ void inven_wield(struct object *obj, int slot)
 
 			/* It's still carried; keep its weight in the total. */
 			assert(wielded->number == 1);
-			player->upkeep->total_weight += wielded->weight;
+			player->upkeep->total_weight +=
+				object_weight_one(wielded);
 
 			/* The new item needs new gear and known gear entries */
 			wielded->next = obj->next;
@@ -1188,7 +1190,7 @@ static bool inven_can_stack_partial(struct player *p, const struct object *obj1,
 
 	/*
 	 * Now verify the numbers are suitable for uneven stacks.  Want the
-	 * the leading stack, obj1, to have its count maximized.
+	 * leading stack, obj1, to have its count maximized.
 	 */
 	if (!(cmode & OSTACK_STORE)) {
 		/* The quiver may have stricter limits. */
@@ -1343,7 +1345,6 @@ void pack_overflow(struct object *obj)
 {
 	int i;
 	char o_name[80];
-	bool artifact = false;
 
 	if (!pack_is_overfull()) return;
 
@@ -1369,9 +1370,6 @@ void pack_overflow(struct object *obj)
 	/* Describe */
 	object_desc(o_name, sizeof(o_name), obj, ODESC_PREFIX | ODESC_FULL,
 		player);
-	if (obj->artifact) {
-		artifact = true;
-	}
 
 	/* Message */
 	msg("You drop %s.", o_name);
@@ -1381,10 +1379,7 @@ void pack_overflow(struct object *obj)
 	drop_near(cave, &obj, 0, player->grid, false, true);
 
 	/* Describe */
-	if (artifact)
-		msg("You no longer have the %s.", o_name);
-	else
-		msg("You no longer have %s.", o_name);
+	msg("You no longer have %s.", o_name);
 
 	/* Notice, update, redraw */
 	if (player->upkeep->notice) notice_stuff(player);

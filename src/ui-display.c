@@ -237,7 +237,7 @@ static void prt_exp(int row, int col)
 			player->exp;
 
 	/* Format XP */
-	strnfmt(out_val, sizeof(out_val), "%8d", xp);
+	strnfmt(out_val, sizeof(out_val), "%8ld", xp);
 
 
 	if (player->exp >= player->max_exp) {
@@ -258,7 +258,7 @@ static void prt_gold(int row, int col)
 	char tmp[32];
 
 	put_str("AU ", row, col);
-	strnfmt(tmp, sizeof(tmp), "%9d", player->au);
+	strnfmt(tmp, sizeof(tmp), "%9ld", (long)player->au);
 	c_put_str(COLOUR_L_GREEN, tmp, row, col + 3);
 }
 
@@ -275,15 +275,13 @@ static void prt_equippy(int row, int col)
 
 	struct object *obj;
 
-	/* No equippy chars in bigtile mode */
-	if (tile_width > 1 || tile_height > 1) return;
-
 	/* Dump equippy chars */
 	for (i = 0; i < player->body.count; i++) {
 		/* Object */
 		obj = slot_object(player, i);
 
-		if (obj) {
+		/* Get attr/char for display; clear if big tiles or no object */
+		if (obj && tile_width == 1 && tile_height == 1) {
 			c = object_char(obj);
 			a = object_attr(obj);
 		} else {
@@ -337,9 +335,18 @@ static void prt_sp(int row, int col)
 	uint8_t color = player_sp_attr(player);
 
 	/* Do not show mana unless we should have some */
-	if (player_has(player, PF_NO_MANA) || 
-		(player->lev < player->class->magic.spell_first))
+	if (!player->class->magic.total_spells
+			|| (player->lev < player->class->magic.spell_first)) {
+		/*
+		 * But clear if experience drain may have left no points after
+		 * having points.
+		 */
+		if (player->class->magic.total_spells
+				&& player->exp < player->max_exp) {
+			put_str("            ", row, col);
+		}
 		return;
+	}
 
 	put_str("SP ", row, col);
 
@@ -634,7 +641,7 @@ static int prt_exp_short(int row, int col)
 			player->exp;
 
 	/* Format XP */
-	strnfmt(out_val, sizeof(out_val), "%d", xp);
+	strnfmt(out_val, sizeof(out_val), "%ld", xp);
 
 	if (player->exp >= player->max_exp) {
 		put_str((lev50 ? "EXP:" : "NXT:"), row, col);
@@ -663,7 +670,7 @@ static int prt_gold_short(int row, int col)
 	char tmp[32];
 
 	put_str("AU:", row, col);
-	strnfmt(tmp, sizeof(tmp), "%d", player->au);
+	strnfmt(tmp, sizeof(tmp), "%ld", (long)player->au);
 	c_put_str(COLOUR_L_GREEN, tmp, row, col + 3);
 	return 4+strlen(tmp);
 }
@@ -693,8 +700,8 @@ static int prt_sp_short(int row, int col)
 	uint8_t color = player_sp_attr(player);
 
 	/* Do not show mana unless we should have some */
-	if (player_has(player, PF_NO_MANA) || 
-		(player->lev < player->class->magic.spell_first))
+	if (!player->class->magic.total_spells
+			|| (player->lev < player->class->magic.spell_first))
 		return 0;
 
 	put_str("SP:", row, col);
@@ -1006,7 +1013,7 @@ static size_t prt_state(int row, int col)
 	/* Display the info (or blanks) */
 	c_put_str(attr, text, row, col);
 
-	return strlen(text);
+	return strlen(text) + 1;
 }
 
 static const uint8_t obj_feeling_color[] =
@@ -1163,7 +1170,7 @@ static int longest_terrain_name(void)
 			max = strlen(trap_info[i].name);
 		}
 	}
-	for (i = 0; i < z_info->f_max; i++) {
+	for (i = 0; i < FEAT_MAX; i++) {
 		if (strlen(f_info[i].name) > max) {
 			max = strlen(f_info[i].name);
 		}
@@ -1179,16 +1186,17 @@ static size_t prt_terrain(int row, int col)
 	struct feature *feat = square_feat(cave, player->grid);
 	struct trap *trap = square_trap(cave, player->grid);
 	char buf[30];
+	uint8_t attr;
 
 	if (trap && !square_isinvis(cave, player->grid)) {
-		my_strcpy(buf, trap->kind->name, strlen(trap->kind->name) + 1);
-		my_strcap(buf);
-		c_put_str(trap->kind->d_attr, format("%s ", buf), row, col);
+		my_strcpy(buf, trap->kind->name, sizeof(buf));
+		attr = trap->kind->d_attr;
 	} else {
-		my_strcpy(buf, feat->name, strlen(feat->name) + 1);
-		my_strcap(buf);
-		c_put_str(feat->d_attr, format("%s ", buf), row, col);
+		my_strcpy(buf, feat->name, sizeof(buf));
+		attr = feat->d_attr;
 	}
+	my_strcap(buf);
+	c_put_str(attr, format("%s ", buf), row, col);
 
 	return longest_terrain_name() + 1;
 }
@@ -1884,6 +1892,8 @@ static void update_messages_subwindow(game_event_type type,
 	int i;
 	int w, h;
 	int x, y;
+	bool is_fresh = true;
+	static const char* prev_last_msg = NULL;
 
 	const char *msg;
 
@@ -1894,17 +1904,22 @@ static void update_messages_subwindow(game_event_type type,
 	Term_get_size(&w, &h);
 
 	/* Dump messages */
+	const char* last_msg = NULL;
 	for (i = 0; i < h; i++) {
-		uint8_t color = message_color(i);
 		uint16_t count = message_count(i);
 		const char *str = message_str(i);
+		if (is_fresh && prev_last_msg == str) {
+			is_fresh = false;
+		}
+		uint8_t color = is_fresh? COLOUR_RED: message_color(i);
 
 		if (count == 1)
 			msg = str;
 		else if (count == 0)
 			msg = " ";
-		else
+		else {
 			msg = format("%s <%dx>", str, count);
+		}
 
 		Term_putstr(0, (h - 1) - i, -1, color, msg);
 
@@ -1914,7 +1929,11 @@ static void update_messages_subwindow(game_event_type type,
 
 		/* Clear to end of line */
 		Term_erase(x, y, 255);
+		if (i == 0){
+			last_msg = str;
+		}
 	}
+	prev_last_msg = last_msg;
 
 	Term_fresh();
 	
@@ -2131,8 +2150,13 @@ const char *window_flag_desc[32] =
 	"Display status",
 	"Display item list",
 	"Display player (topbar)",
+#ifdef ALLOW_BORG
+	"Display borg messages",
+	"Display borg status",
+#else
 	NULL,
 	NULL,
+#endif
 	NULL,
 	NULL,
 	NULL,
@@ -2248,7 +2272,7 @@ static void subwindow_flag_changed(int win_idx, uint32_t flag, bool new_state)
 
 		case PW_MESSAGE:
 		{
-			register_or_deregister(EVENT_MESSAGE,
+			register_or_deregister(EVENT_STATE,
 					       update_messages_subwindow,
 					       angband_term[win_idx]);
 			break;
@@ -2488,20 +2512,14 @@ static void new_level_display_update(game_event_type type,
 	Term->offset_y = z_info->dungeon_hgt;
 	Term->offset_x = z_info->dungeon_wid;
 
-	/* If autosave is pending, do it now. */
-	if (player->upkeep->autosave) {
-		save_game();
-		player->upkeep->autosave = false;
-	}
-
 	/* Choose panel */
 	verify_panel();
 
-	/* Hack -- Invoke partial update mode */
-	player->upkeep->only_partial = true;
-
 	/* Clear */
 	Term_clear();
+
+	/* Hack -- Invoke partial update mode */
+	player->upkeep->only_partial = true;
 
 	/* Update stuff */
 	player->upkeep->update |= (PU_BONUS | PU_HP | PU_SPELLS);
@@ -2511,9 +2529,6 @@ static void new_level_display_update(game_event_type type,
 
 	/* Fully update the visuals (and monster distances) */
 	player->upkeep->update |= (PU_UPDATE_VIEW | PU_DISTANCE);
-
-	/* Update stuff */
-	update_stuff(player);
 
 	/* Redraw dungeon */
 	player->upkeep->redraw |= (PR_BASIC | PR_EXTRA | PR_MAP);
@@ -2525,11 +2540,18 @@ static void new_level_display_update(game_event_type type,
 	 * set for a few game turns, manually force an update on level change. */
 	monster_list_force_subwindow_update();
 
-	/* Update stuff */
-	update_stuff(player);
+	/* If autosave is pending, do it now. */
+	if (player->upkeep->autosave) {
+		save_game();
+		player->upkeep->autosave = false;
+	}
 
-	/* Redraw stuff */
-	redraw_stuff(player);
+	/*
+	 * Saving has side effect of calling handle_stuff(), but if we did
+	 * not save or saving no longer calls handle_stuff(), call
+	 * handle_stuff() now to process the pending updates and redraws.
+	 */
+	handle_stuff(player);
 
 	/* Hack -- Kill partial update mode */
 	player->upkeep->only_partial = false;

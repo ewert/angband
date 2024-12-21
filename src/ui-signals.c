@@ -49,6 +49,7 @@ static Signal_Handler_t wrap_signal(int sig, Signal_Handler_t handler)
 static Signal_Handler_t (*signal_aux)(int, Signal_Handler_t) = wrap_signal;
 
 
+#ifdef SIGTSTP
 /**
  * Handle signals -- suspend
  *
@@ -90,6 +91,7 @@ static void handle_signal_suspend(int sig)
 	/* Restore errno */
 	errno = save_errno;
 }
+#endif /* ifdef SIGTSTP */
 
 
 /**
@@ -110,17 +112,29 @@ static void handle_signal_simple(int sig)
 {
 	/* Protect errno from library calls in signal handler */
 	int save_errno = errno;
+	/*
+	 * Use own buffer to avoid interactions with the static variables
+	 * used to implement vformat() (and thus quit_fmt() and format()).
+	 */
+	char msg[48];
 
 	/* Disable handler */
 	(void)(*signal_aux)(sig, SIG_IGN);
 
+	/* Construct the exit message in case it is needed */
+	(void)strnfmt(msg, sizeof(msg), "Exiting on signal %d!", sig);
+
 	/* Nothing to save, just quit */
-	if (!character_generated || character_saved) quit(NULL);
+	if (!character_generated || character_saved) quit(msg);
 
 	/* Count the signals */
 	signal_count++;
 
-	/* Terminate dead characters, suicide from interrupts (after warnings) */
+	/*
+	 * Terminate dead characters; quit without saving (non-setgid
+	 * installations) or suicide (setgid installations) from interrupts
+	 * (after warnings)
+	 */
 	if (player->is_dead) {
 		/* Mark the savefile */
 		my_strcpy(player->died_from, "Abortion", sizeof(player->died_from));
@@ -128,8 +142,9 @@ static void handle_signal_simple(int sig)
 		close_game(false);
 
 		/* Quit */
-		quit("interrupt");
+		quit(msg);
 	} else if (signal_count >= 5) {
+#ifdef SETGID
 		/* Cause of "death" */
 		my_strcpy(player->died_from, "Interrupting", sizeof(player->died_from));
 
@@ -141,10 +156,18 @@ static void handle_signal_simple(int sig)
 
 		/* Close stuff */
 		close_game(false);
+#endif
 
 		/* Quit */
-		quit("interrupt");
+		quit(msg);
 	} else if (signal_count >= 4) {
+		/*
+		 * Remember where the cursor was so it can be restored after
+		 * the message is displayed.
+		 */
+		int cx, cy;
+		errr cbad = Term_locate(&cx, &cy);
+
 		/* Make a noise */
 		Term_xtra(TERM_XTRA_NOISE, 0);
 
@@ -152,7 +175,16 @@ static void handle_signal_simple(int sig)
 		Term_erase(0, 0, 255);
 
 		/* Display the cause */
-		Term_putstr(0, 0, -1, COLOUR_WHITE, "Contemplating suicide!");
+#ifdef SETGID
+		Term_putstr(0, 0, -1, COLOUR_WHITE, "Another interrupt (CTRL-c) will kill your character!");
+#else
+		Term_putstr(0, 0, -1, COLOUR_WHITE, "Another interrupt (CTRL-c) will quit without saving!");
+#endif
+
+		/* Restore the cursor position. */
+		if (!cbad) {
+			Term_gotoxy(cx, cy);
+		}
 
 		/* Flush */
 		Term_fresh();
@@ -174,11 +206,20 @@ static void handle_signal_simple(int sig)
  */
 static void handle_signal_abort(int sig)
 {
+	/*
+	 * Use own buffer to avoid interactions with the static variables
+	 * used to implement vformat() (and thus quit_fmt() and format()).
+	 */
+	char msg[48];
+
 	/* Disable handler */
 	(void)(*signal_aux)(sig, SIG_IGN);
 
+	/* Construct the exit message */
+	(void)strnfmt(msg, sizeof(msg), "Exiting on signal %d!", sig);
+
 	/* Nothing to save, just quit */
-	if (!character_generated || character_saved) quit(NULL);
+	if (!character_generated || character_saved) quit(msg);
 
 	/* Clear the bottom line */
 	Term_erase(0, 23, 255);
@@ -210,7 +251,7 @@ static void handle_signal_abort(int sig)
 	Term_fresh();
 
 	/* Quit */
-	quit("software bug");
+	quit(msg);
 }
 
 

@@ -38,6 +38,7 @@
 #include "obj-make.h"
 #include "obj-pile.h"
 #include "obj-tval.h"
+#include "obj-util.h"
 #include "player-calcs.h"
 #include "player-history.h"
 #include "player-quest.h"
@@ -107,6 +108,55 @@ struct monster *monster_target_monster(effect_handler_context_t *context)
 }
 
 /**
+ * Check that a grid is sufficient for use as teleport destination.
+ *
+ * \param c is the chunk to examine.
+ * \param grid is the grid to test.
+ * \param is_player_moving is true if a player is being teleported; it is
+ * false if a monster is being teleported.
+ * \return true if the specified grid is sufficient for use as a telepoort
+ * destination; otherwise, return false
+ *
+ * In 4.2.4, the sufficient requirements were a floor grid with no players
+ * or monsters, no player traps, no webs, and no objects.  Post 4.2.4,
+ * the requirements are:
+ *     1) passable but not damaging nor automatically triggers a transition
+ *         to a different level or environment (i.e. a shop)
+ *     2) does not already have a player or monster
+ *     3) does not have webs
+ *     3) if a player is moving, it does not have player traps
+ *     4) if a monster is moving, it does not have a glyph of warding
+ * There's some discussion here,
+ * https://angband.live/forums/forum/angband/vanilla/10323-the-evil-eye-commands-you-to-return-or-not .
+ */
+static bool has_teleport_destination_prereqs(struct chunk *c, struct loc grid,
+		bool is_player_moving)
+{
+	if (is_player_moving) {
+		if (!square_ispassable(c, grid)) {
+			return false;
+		}
+		if (square_isplayertrap(c, grid)) {
+			return false;
+		}
+	} else {
+		if (!square_is_monster_walkable(c, grid)) {
+			return false;
+		}
+		if (square_iswarded(c, grid)) {
+			return false;
+		}
+	}
+	if (square(c, grid)->mon
+			|| square_isdamaging(c, grid)
+			|| square_iswebbed(c, grid)
+			|| square_isshop(c, grid)) {
+		return false;
+	}
+	return true;
+}
+
+/**
  * Selects items that have at least one removable curse.
  */
 static bool item_tester_uncursable(const struct object *obj)
@@ -115,12 +165,12 @@ static bool item_tester_uncursable(const struct object *obj)
 	if (c) {
 		size_t i;
 		for (i = 1; i < z_info->curse_max; i++) {
-			if (c[i].power < 100) {
+			if (c[i].power > 0 && c[i].power < 100) {
 				return true;
 			}
 		}
 	}
-    return false;
+	return false;
 }
 
 /**
@@ -129,6 +179,8 @@ static bool item_tester_uncursable(const struct object *obj)
 static bool uncurse_object(struct object *obj, int strength, char *dice_string)
 {
 	int index = 0;
+	int old_weight = obj->number * object_weight_one(obj);
+	int new_weight = old_weight;
 
 	if (get_curse(&index, obj, dice_string)) {
 		struct curse_data curse = obj->curses[index];
@@ -141,6 +193,7 @@ static bool uncurse_object(struct object *obj, int strength, char *dice_string)
 			/* Successfully removed this curse */
 			remove_object_curse(obj->known, index, false);
 			remove_object_curse(obj, index, true);
+			new_weight = obj->number * object_weight_one(obj);
 		} else if (!of_has(obj->flags, OF_FRAGILE)) {
 			/* Failure to remove, object is now fragile */
 			object_desc(o_name, sizeof(o_name), obj, ODESC_FULL,
@@ -152,8 +205,15 @@ static bool uncurse_object(struct object *obj, int strength, char *dice_string)
 			/* Failure - unlucky fragile object is destroyed */
 			struct object *destroyed;
 			bool none_left = false;
-			msg("There is a bang and a flash!");
-			take_hit(player, damroll(5, 5), "Failed uncursing");
+			int dam = damroll(5, 5);
+			char dam_text[16] = "";
+
+			dam = player_apply_damage_reduction(player, dam);
+			if (dam > 0 && OPT(player, show_damage)) {
+				strnfmt(dam_text, sizeof(dam_text), " (%d)",
+					dam);
+			}
+			msg("%s%s", "There is a bang and a flash!", dam_text);
 			if (object_is_carried(player, obj)) {
 				destroyed = gear_object_for_use(player, obj,
 					1, false, &none_left);
@@ -166,6 +226,7 @@ static bool uncurse_object(struct object *obj, int strength, char *dice_string)
 			} else {
 				square_delete_object(cave, obj->grid, obj, true, true);
 			}
+			take_hit(player, dam, "Failed uncursing");
 		} else {
 			/* Non-destructive failure */
 			msg("The removal fails.");
@@ -173,6 +234,7 @@ static bool uncurse_object(struct object *obj, int strength, char *dice_string)
 	} else {
 		return false;
 	}
+	player->upkeep->total_weight += new_weight - old_weight;
 	player->upkeep->notice |= (PN_COMBINE);
 	player->upkeep->update |= (PU_BONUS);
 	player->upkeep->redraw |= (PR_EQUIP | PR_INVEN);
@@ -763,14 +825,20 @@ bool effect_handler_DRAIN_STAT(effect_handler_context_t *context)
 	/* Attempt to reduce the stat */
 	if (player_stat_dec(player, stat, false)){
 		int dam = effect_calculate_value(context, false);
+		char dam_text[32] = "";
+
+		dam = player_apply_damage_reduction(player, dam);
 
 		/* Notice effect */
 		equip_learn_flag(player, flag);
 
 		/* Message */
-		msgt(MSG_DRAIN_STAT, "You feel very %s.", desc_stat(stat, false));
-		if (dam)
-			take_hit(player, dam, "stat drain");
+		if (dam > 0 && OPT(player, show_damage)) {
+			strnfmt(dam_text, sizeof(dam_text), " (%d)", dam);
+		}
+		msgt(MSG_DRAIN_STAT, "You feel very %s.%s",
+			desc_stat(stat, false), dam_text);
+		take_hit(player, dam, "stat drain");
 	}
 
 	return (true);
@@ -1183,9 +1251,13 @@ bool effect_handler_MAP_AREA(effect_handler_context_t *context)
 				}
 			}
 
-			/* Forget unprocessed, unknown grids in the mapping area */
-			if (square_isnotknown(cave, grid))
+			/*
+			 * Forget grids that are both unprocessed and
+			 * misremembered in the mapping area.
+			 */
+			if (square_ismemorybad(cave, grid)) {
 				square_forget(cave, grid);
+			}
 		}
 	}
 
@@ -1243,10 +1315,9 @@ bool effect_handler_READ_MINDS(effect_handler_context_t *context)
 	if (found) {
 		msg("Images form in your mind!");
 		context->ident = true;
-		return true;
 	}
 
-	return false;
+	return true;
 }
 
 /**
@@ -1297,8 +1368,8 @@ bool effect_handler_DETECT_TRAPS(effect_handler_context_t *context)
 
 				/* Identify once */
 				if (!obj->known || obj->known->pval != obj->pval) {
-					/* Hack - know the pile */
-					square_know_pile(cave, grid);
+					/* Hack - see the object */
+					object_see(player, obj);
 
 					/* Know the trap */
 					obj->known->pval = obj->pval;
@@ -1368,14 +1439,17 @@ bool effect_handler_DETECT_DOORS(effect_handler_context_t *context)
 				doors = true;
 			} else if (square_isdoor(cave, grid)) {
 				/* Detect other types of doors. */
-				if (square_isnotknown(cave, grid)) {
+				if (square_ismemorybad(cave, grid)) {
 					square_memorize(cave, grid);
 					square_light_spot(cave, grid);
 					doors = true;
 				}
 			} else if (square_isdoor(player->cave, grid)
-					&& square_isnotknown(cave, grid)) {
-				/* Forget unknown doors in the mapping area */
+					&& square_ismemorybad(cave, grid)) {
+				/*
+				 * Forget misremembered doors in the mapping
+				 * area.
+				 */
 				square_forget(cave, grid);
 			}
 		}
@@ -1448,7 +1522,7 @@ bool effect_handler_DETECT_STAIRS(effect_handler_context_t *context)
  * Detect buried gold around the player.  The height to detect above and below
  * the player is context->y, the width either side of the player context->x.
  */
-bool effect_handler_DETECT_GOLD(effect_handler_context_t *context)
+bool effect_handler_DETECT_ORE(effect_handler_context_t *context)
 {
 	int x, y;
 	int x1, x2, y1, y2;
@@ -1503,44 +1577,19 @@ bool effect_handler_DETECT_GOLD(effect_handler_context_t *context)
 }
 
 /**
- * This is a helper for effect_handler_SENSE_OBJECTS and
- * effect_handler_DETECT_OBJECTS to remove remembered objects at locations
- * sensed or detected as empty.
+ * Help effect_handler_SENSE_GOLD() or effect_handler_SENSE_OBJECTS(): sense
+ * objects of a given class about the player.  The range of detection in y
+ * is within context->y of the player.  The range of detection in x is
+ * within context->x of the player.
  */
-static void forget_remembered_objects(struct chunk *c, struct chunk *knownc, struct loc grid)
-{
-	struct object *obj = square_object(knownc, grid);
-
-	while (obj) {
-		struct object *next = obj->next;
-		struct object *original = c->objects[obj->oidx];
-
-		assert(original);
-		square_excise_object(knownc, grid, obj);
-		obj->grid = loc(0, 0);
-
-		/* Delete objects which no longer exist anywhere */
-		if (obj->notice & OBJ_NOTICE_IMAGINED) {
-			delist_object(knownc, obj);
-			object_delete(player->cave, NULL, &obj);
-			original->known = NULL;
-			delist_object(c, original);
-			object_delete(cave, player->cave, &original);
-		}
-		obj = next;
-	}
-}
-
-/**
- * Sense objects around the player.  The height to sense above and below the
- * player is context->y, the width either side of the player context->x
- */
-bool effect_handler_SENSE_OBJECTS(effect_handler_context_t *context)
+static bool sense_stuff(effect_handler_context_t *context,
+		bool (*pred)(const struct object*),
+		const struct object_kind *unknown_kind)
 {
 	int x, y;
 	int x1, x2, y1, y2;
 
-	bool objects = false;
+	bool have_stuff = false;
 
 	/* Pick an area to sense */
 	y1 = player->grid.y - context->y;
@@ -1553,48 +1602,46 @@ bool effect_handler_SENSE_OBJECTS(effect_handler_context_t *context)
 	if (y2 > cave->height - 1) y2 = cave->height - 1;
 	if (x2 > cave->width - 1) x2 = cave->width - 1;
 
-	/* Scan the area for objects */
+	/* Scan the area */
 	for (y = y1; y <= y2; y++) {
 		for (x = x1; x <= x2; x++) {
 			struct loc grid = loc(x, y);
 			struct object *obj = square_object(cave, grid);
 
-			if (!obj) {
-				/* If empty, remove any remembered objects. */
-				forget_remembered_objects(cave, player->cave, grid);
-				continue;
+			for (; !have_stuff && obj; obj = obj->next) {
+				if ((*pred)(obj)
+						&& (!obj->known
+						|| obj->known->kind == unknown_kind
+						|| !ignore_item_ok(player, obj))) {
+					have_stuff = true;
+				}
 			}
 
-			/* Notice an object is detected */
-			objects = true;
-
-			/* Mark the pile as aware */
-			square_sense_pile(cave, grid);
+			/*
+			 * Become aware of the parts of the pile that match
+			 * the predicate.  Forget remembered parts that match
+			 * the predicate which are no longer there.
+			 */
+			square_sense_pile(cave, grid, pred);
 		}
 	}
 
-	if (objects)
-		msg("You sense the presence of objects!");
-	else if (context->aware)
-		msg("You sense no objects.");
-
-	/* Redraw whole map, monster list */
-	player->upkeep->redraw |= PR_ITEMLIST;
-
-	context->ident = true;
-	return true;
+	return have_stuff;
 }
 
 /**
- * Detect objects around the player.  The height to detect above and below the
- * player is context->y, the width either side of the player context->x
+ * Help effect_handler_DETECT_GOLD() and effect_handler_DETECT_OBJECTS():
+ * detect objects of a given class around the player.  The range of detection
+ * in y is within context->y of the player.  The range of detection in x is
+ * within context->x of the player.
  */
-bool effect_handler_DETECT_OBJECTS(effect_handler_context_t *context)
+static bool detect_stuff(effect_handler_context_t *context,
+		bool (*pred)(const struct object*))
 {
 	int x, y;
 	int x1, x2, y1, y2;
 
-	bool objects = false;
+	bool have_stuff = false;
 
 	/* Pick an area to detect */
 	y1 = player->grid.y - context->y;
@@ -1607,34 +1654,112 @@ bool effect_handler_DETECT_OBJECTS(effect_handler_context_t *context)
 	if (y2 > cave->height - 1) y2 = cave->height - 1;
 	if (x2 > cave->width - 1) x2 = cave->width - 1;
 
-	/* Scan the area for objects */
+	/* Scan the area */
 	for (y = y1; y <= y2; y++) {
 		for (x = x1; x <= x2; x++) {
 			struct loc grid = loc(x, y);
 			struct object *obj = square_object(cave, grid);
 
-			if (!obj) {
-				/* If empty, remove any remembered objects. */
-				forget_remembered_objects(cave, player->cave, grid);
-				continue;
+			/*
+			 * Is there any object matching the predicate which is
+			 * not ignored?
+			 */
+			for (; !have_stuff && obj; obj = obj->next) {
+				if ((*pred)(obj) && !ignore_item_ok(player, obj)) {
+					have_stuff = true;
+				}
 			}
 
-			/* Notice an object is detected */
-			if (!ignore_item_ok(player, obj)) {
-				objects = true;
-			}
-
-			/* Mark the pile as seen */
-			square_know_pile(cave, grid);
+			/*
+			 * Mark the parts of the pile that match the predicate
+			 * as seen.  Forget remembered parts that match the
+			 * predicate which are no longer there.
+			 */
+			square_know_pile(cave, grid, pred);
 		}
 	}
 
-	if (objects)
-		msg("You detect the presence of objects!");
-	else if (context->aware)
-		msg("You detect no objects.");
+	return have_stuff;
+}
 
-	/* Redraw whole map, monster list */
+/**
+ * Sense money on the floor around the player.
+ */
+bool effect_handler_SENSE_GOLD(effect_handler_context_t *context)
+{
+	bool money = sense_stuff(context, tval_is_money, unknown_gold_kind);
+
+	if (money) {
+		msg("You sense the presence of gold!");
+	} else if (context->aware) {
+		msg("You sense no gold.");
+	}
+
+	context->ident = true;
+	return true;
+}
+
+/**
+ * Detect money on the floor around the player.
+ */
+bool effect_handler_DETECT_GOLD(effect_handler_context_t *context)
+{
+	bool money = detect_stuff(context, tval_is_money);
+
+	if (money) {
+		msg("You detect the presence of gold!");
+	} else if (context->aware) {
+		msg("You detect no gold.");
+	}
+
+	context->ident = true;
+	return true;
+}
+
+/**
+ * Help effect_handler_SENSE_OBJECTS() and effect_handler_DETECT_OBJECTS():
+ * negate tval_is_money().
+ */
+static bool tval_is_not_money(const struct object *o)
+{
+	return !tval_is_money(o);
+}
+
+/**
+ * Sense objects which are not money around the player.
+ */
+bool effect_handler_SENSE_OBJECTS(effect_handler_context_t *context)
+{
+	bool objects = sense_stuff(context, tval_is_not_money,
+		unknown_item_kind);
+
+	if (objects) {
+		msg("You sense the presence of objects!");
+	} else if (context->aware) {
+		msg("You sense no objects.");
+	}
+
+	/* Redraw object list */
+	player->upkeep->redraw |= PR_ITEMLIST;
+
+	context->ident = true;
+	return true;
+}
+
+/**
+ * Detect objects which are not money around the player.
+ */
+bool effect_handler_DETECT_OBJECTS(effect_handler_context_t *context)
+{
+	bool objects = detect_stuff(context, tval_is_not_money);
+
+	if (objects) {
+		msg("You detect the presence of objects!");
+	} else if (context->aware) {
+		msg("You detect no objects.");
+	}
+
+	/* Redraw object list */
 	player->upkeep->redraw |= PR_ITEMLIST;
 
 	context->ident = true;
@@ -2243,17 +2368,29 @@ bool effect_handler_BANISH(effect_handler_context_t *context)
 		/* Hack -- Skip Unique Monsters */
 		if (monster_is_unique(mon)) continue;
 
-		/* Skip "wrong" monsters (see warning above) */
-		if ((char) mon->race->d_char != typ) continue;
+		/*
+		 * Skip "wrong" monsters (see warning above); for shape shifters
+		 * it is the original race that matters not whatever shape the
+		 * monster has now.
+		 */
+		if (mon->original_race) {
+			if ((char) mon->original_race->d_char != typ) continue;
+		} else {
+			if ((char) mon->race->d_char != typ) continue;
+		}
 
 		/* Delete the monster */
-		delete_monster_idx(i);
+		delete_monster_idx(cave, i);
 
 		/* Take some damage */
 		dam += randint1(4);
 	}
 
 	/* Hurt the player */
+	dam = player_apply_damage_reduction(player, dam);
+	if (dam > 0 && OPT(player, show_damage)) {
+		msg("You take %d damage.\n", dam);
+	}
 	take_hit(player, dam, "the strain of casting Banishment");
 
 	/* Update monster list window */
@@ -2295,13 +2432,17 @@ bool effect_handler_MASS_BANISH(effect_handler_context_t *context)
 		if (mon->cdis > radius) continue;
 
 		/* Delete the monster */
-		delete_monster_idx(i);
+		delete_monster_idx(cave, i);
 
 		/* Take some damage */
 		dam += randint1(3);
 	}
 
 	/* Hurt the player */
+	dam = player_apply_damage_reduction(player, dam);
+	if (dam > 0 && OPT(player, show_damage)) {
+		msg("You take %d damage.\n", dam);
+	}
 	take_hit(player, dam, "the strain of casting Mass Banishment");
 
 	/* Update monster list window */
@@ -2453,11 +2594,8 @@ bool effect_handler_TELEPORT(effect_handler_context_t *context)
 			/* Must move */
 			if (d == 0) continue;
 
-			/* Require "naked" floor space */
-			if (!square_isempty(cave, grid)) continue;
-
-			/* No monster teleport onto glyph of warding */
-			if (!is_player && square_iswarded(cave, grid)) continue;
+			if (!has_teleport_destination_prereqs(cave, grid,
+					is_player)) continue;
 
 			/* No teleporting into vaults and such, unless there's no choice */
 			if (square_isvault(cave, grid)) {
@@ -2533,7 +2671,8 @@ bool effect_handler_TELEPORT(effect_handler_context_t *context)
 	/* Move player or monster */
 	monster_swap(start, spots->grid);
 	if (is_player) {
-		player_handle_post_move(player, true);
+		player_handle_post_move(player, true,
+			context->origin.what == SRC_MONSTER);
 	}
 
 	/* Clear any projection marker to prevent double processing */
@@ -2653,8 +2792,8 @@ bool effect_handler_TELEPORT_TO(effect_handler_context_t *context)
 			if (square_in_bounds_fully(cave, land)) break;
 		}
 
-		/* Accept "naked" floor grids */
-		if (square_isempty(cave, land)) break;
+		if (has_teleport_destination_prereqs(cave, land,
+				player_moves)) break;
 
 		/* Occasionally advance the distance */
 		if (++ctr > (4 * dis * dis + 4 * dis + 1)) {
@@ -2669,7 +2808,8 @@ bool effect_handler_TELEPORT_TO(effect_handler_context_t *context)
 	/* Move player or monster */
 	monster_swap(start, land);
 	if (player_moves) {
-		player_handle_post_move(player, true);
+		player_handle_post_move(player, true,
+			context->origin.what == SRC_MONSTER);
 	}
 
 	/* Cancel target if necessary */
@@ -2706,7 +2846,7 @@ bool effect_handler_TELEPORT_LEVEL(effect_handler_context_t *context)
 	if (t_mon) {
 		/* Monster is just gone */
 		add_monster_message(t_mon, MON_MSG_DISAPPEAR, false);
-		delete_monster_idx(t_mon->midx);
+		delete_monster_idx(cave, t_mon->midx);
 		return true;
 	}
 
@@ -2757,15 +2897,22 @@ bool effect_handler_TELEPORT_LEVEL(effect_handler_context_t *context)
 			down = false;
 	}
 
-	/* Now actually do the level change */
+	/*
+	 * Now actually do the level change; flush the command queue to
+	 * prevent the character from losing an action when first entering
+	 * the new level (for instance, player moves putting an autopickup
+	 * command in the queue and is then hit by a teleport level spell)
+	 */
 	if (up) {
 		msgt(MSG_TPLEVEL, "You rise up through the ceiling.");
+		cmdq_flush();
 		target_depth = dungeon_get_next_level(player,
 			player->depth, -1);
 		dungeon_change_level(player, target_depth);
 	} else if (down) {
 		msgt(MSG_TPLEVEL, "You sink through the floor.");
 
+		cmdq_flush();
 		if (OPT(player, birth_force_descend)) {
 			target_depth = dungeon_get_next_level(player,
 				player->max_depth, 1);
@@ -2796,7 +2943,8 @@ bool effect_handler_RUBBLE(effect_handler_context_t *context)
 	 * necessary.
 	 */
 	int rubble_grids = randint1(3);
-	int open_grids = count_feats(NULL, square_isempty, false);
+	int open_grids = count_neighbors(NULL, cave, player->grid,
+		square_isempty, false);
 
 	if (rubble_grids > open_grids) {
 		rubble_grids = open_grids;
@@ -2972,6 +3120,8 @@ bool effect_handler_CURSE_ARMOR(effect_handler_context_t *context)
 	} else {
 		int num = randint1(3);
 		int max_tries = 20;
+		int old_weight = obj->number * object_weight_one(obj);
+
 		msg("A terrible black aura blasts your %s!", o_name);
 
 		/* Take down bonus a wee bit */
@@ -2988,6 +3138,10 @@ bool effect_handler_CURSE_ARMOR(effect_handler_context_t *context)
 			append_object_curse(obj, pick, power);
 			num--;
 		}
+
+		/* Account for a weight change, if any */
+		player->upkeep->total_weight +=
+			(obj->number * object_weight_one(obj)) - old_weight;
 
 		/* Recalculate bonuses */
 		player->upkeep->update |= (PU_BONUS);
@@ -3030,6 +3184,8 @@ bool effect_handler_CURSE_WEAPON(effect_handler_context_t *context)
 	} else {
 		int num = randint1(3);
 		int max_tries = 20;
+		int old_weight = obj->number * object_weight_one(obj);
+
 		msg("A terrible black aura blasts your %s!", o_name);
 
 		/* Hurt it a bit */
@@ -3037,7 +3193,7 @@ bool effect_handler_CURSE_WEAPON(effect_handler_context_t *context)
 		obj->to_d = 0 - randint1(3);
 
 		/* Curse it */
-		while (num) {
+		while (num && max_tries) {
 			int pick = randint1(z_info->curse_max - 1);
 			int power = 10 * m_bonus(9, player->depth);
 			if (!curses[pick].poss[obj->tval]) {
@@ -3047,6 +3203,10 @@ bool effect_handler_CURSE_WEAPON(effect_handler_context_t *context)
 			append_object_curse(obj, pick, power);
 			num--;
 		}
+
+		/* Account for a weight change, if any */
+		player->upkeep->total_weight +=
+			(obj->number * object_weight_one(obj)) - old_weight;
 
 		/* Recalculate bonuses */
 		player->upkeep->update |= (PU_BONUS);
@@ -3335,7 +3495,8 @@ bool effect_handler_COMMAND(effect_handler_context_t *context)
 		char m_name[80];
 		monster_desc(m_name, sizeof(m_name), mon, MDESC_STANDARD);
 		msg("%s resists your command!", m_name);
-		return false;
+		/* Take a turn and deduct mana when the monster resists. */
+		return true;
 	}
 
 	/* Player is commanding */
@@ -3459,5 +3620,28 @@ bool effect_handler_SET_VALUE(effect_handler_context_t *context)
 bool effect_handler_CLEAR_VALUE(effect_handler_context_t *context)
 {
 	set_value = 0;
+	return true;
+}
+
+/**
+ * Scramble the player's stats.  This is only intended for use by the
+ * timed effect, TMD_SCRAMBLE.  Other effect chains wanting to incur a
+ * scrambling effect should use TIMED_INC:SCRAMBLE or TIMED_INC_NO_RES:SCRAMBLE.
+ */
+bool effect_handler_SCRAMBLE_STATS(effect_handler_context_t *context)
+{
+	player_scramble_stats(player);
+	return true;
+}
+
+/**
+ * Unscramble the player's stats.  This is only intended for use by the
+ * timed effect, TMD_SCRAMBLE.  Other effect chains wanting to undo a
+ * scrambling effect should use CURE:SCRAMBLE (or perhaps TIMED_DEC:SCRAMBLE
+ * to merely reduce the duration of an existing scramble effect).
+ */
+bool effect_handler_UNSCRAMBLE_STATS(effect_handler_context_t *context)
+{
+	player_fix_scramble(player);
 	return true;
 }

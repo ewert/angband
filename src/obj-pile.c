@@ -402,6 +402,9 @@ bool object_similar(const struct object *obj1, const struct object *obj2,
 	if (object_is_equipped(player->body, obj2))
 		return false;
 
+	/* Mimicked items do not stack */
+	if (obj1->mimicking_m_idx || obj2->mimicking_m_idx) return false;
+
 	/* If either item is unknown, do not stack */
 	if (mode & OSTACK_LIST && obj1->kind != obj1->known->kind) return false;
 	if (mode & OSTACK_LIST && obj2->kind != obj2->known->kind) return false;
@@ -1000,7 +1003,7 @@ static void floor_carry_fail(struct chunk *c, struct object *drop, bool broke)
 		object_delete(player->cave, NULL, &known);
 	}
 	delist_object(c, drop);
-	object_delete(cave, player->cave, &drop);
+	object_delete(c, player->cave, &drop);
 }
 
 /**
@@ -1226,7 +1229,7 @@ void push_object(struct loc grid)
 					 * Give up.  Destroy both the mimic
 					 * and the object.
 					 */
-					delete_monster_idx(obj->mimicking_m_idx);
+					delete_monster_idx(cave, obj->mimicking_m_idx);
 					if (obj->known) {
 						object_delete(player->cave, NULL, &obj->known);
 					}

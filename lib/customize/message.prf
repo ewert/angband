@@ -5,7 +5,7 @@
 #
 # This file includes, if appropriate, various "sub-files".
 #
-# See "lib/help/command.txt" for more information.
+# See "docs/customize.rst" for more information.
 #
 # Format:
 # message:<message-type>:<color>
@@ -23,7 +23,6 @@
 
 # I included all possible message types here for future-proofing, 
 # although some of them are only used as sound-effects at the moment. 
-# sound.cfg can be found in /lib/sounds (Twilight).
 
 # MSG_GENERIC
 message:GENERIC:w
@@ -356,7 +355,7 @@ message:BR_FORCE:w
 # MSG_SUM_MONSTER
 message:SUM_MONSTER:w
 
-# MSG_SUM_ANGEL
+# MSG_SUM_AINU
 message:SUM_AINU:w
 
 # MSG_SUM_UNDEAD

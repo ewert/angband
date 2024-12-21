@@ -387,9 +387,9 @@ static void player_embody(struct player *p)
 /**
  * Get the player's starting money
  */
-static void get_money(void)
+static void get_money(struct player *p)
 {
-	player->au = player->au_birth = z_info->start_gold;
+	p->au = p->au_birth = z_info->start_gold;
 }
 
 void player_init(struct player *p)
@@ -500,8 +500,8 @@ void wield_all(struct player *p)
 
 	/* Now add the unwielded split objects to the gear */
 	if (new_pile) {
-		pile_insert_end(&player->gear, new_pile);
-		pile_insert_end(&player->gear_k, new_known_pile);
+		pile_insert_end(&p->gear, new_pile);
+		pile_insert_end(&p->gear_k, new_known_pile);
 	}
 	return;
 }
@@ -599,6 +599,7 @@ static void player_outfit(struct player *p)
 		if (prop->subtype == OFT_LIGHT) of_on(p->obj_k->flags, i);
 		if (prop->subtype == OFT_DIG) of_on(p->obj_k->flags, i);
 		if (prop->subtype == OFT_THROW) of_on(p->obj_k->flags, i);
+		if (prop->subtype == OFT_CURSE_ONLY) of_on(p->obj_k->flags, i);
 	}
 
 	/* Give the player starting equipment */
@@ -1213,8 +1214,6 @@ void do_cmd_choose_name(struct command *cmd)
 
 	/* Set player name */
 	my_strcpy(player->full_name, str, sizeof(player->full_name));
-
-	string_free((char *) str);
 }
 
 void do_cmd_choose_history(struct command *cmd)
@@ -1228,8 +1227,6 @@ void do_cmd_choose_history(struct command *cmd)
 	/* Get the new history */
 	cmd_get_arg_string(cmd, "history", &str);
 	player->history = string_make(str);
-
-	string_free((char *) str);
 }
 
 void do_cmd_accept_character(struct command *cmd)
@@ -1255,7 +1252,7 @@ void do_cmd_accept_character(struct command *cmd)
 	player_embody(player);
 
 	/* Give the player some money */
-	get_money();
+	get_money(player);
 
 	/* Initialise the spells */
 	player_spells_init(player);

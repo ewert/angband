@@ -49,8 +49,8 @@ static void put_str_centred(int y, int x1, int x2, const char *fmt, ...)
 	tmp = vformat(fmt, vp);
 	va_end(vp);
 
-	/* Centre now */
-	len = strlen(tmp);
+	/* Centre now; account for possible multibyte characters */
+	len = utf8_strlen(tmp);
 	x = x1 + ((x2-x1)/2 - len/2);
 
 	put_str(tmp, y, x);
@@ -58,21 +58,22 @@ static void put_str_centred(int y, int x1, int x2, const char *fmt, ...)
 
 
 /**
- * Display the tombstone
+ * Display the tombstone/retirement screen
  */
-static void print_tomb(void)
+static void display_exit_screen(void)
 {
 	ang_file *fp;
 	char buf[1024];
 	int line = 0;
 	time_t death_time = (time_t)0;
-
+	bool retired = streq(player->died_from, "Retiring");
 
 	Term_clear();
 	(void)time(&death_time);
 
-	/* Open the death file */
-	path_build(buf, sizeof(buf), ANGBAND_DIR_SCREENS, "dead.txt");
+	/* Open the background picture */
+	path_build(buf, sizeof(buf), ANGBAND_DIR_SCREENS,
+		(retired) ? "retire.txt" : "dead.txt");
 	fp = file_open(buf, MODE_READ, FTYPE_TEXT);
 
 	if (fp) {
@@ -97,8 +98,14 @@ static void print_tomb(void)
 	put_str_centred(line++, 8, 8+31, "Level: %d", (int)player->lev);
 	put_str_centred(line++, 8, 8+31, "Exp: %d", (int)player->exp);
 	put_str_centred(line++, 8, 8+31, "AU: %d", (int)player->au);
-	put_str_centred(line++, 8, 8+31, "Killed on Level %d", player->depth);
-	put_str_centred(line++, 8, 8+31, "by %s.", player->died_from);
+	if (retired) {
+		put_str_centred(line++, 8, 8+31, "Retired on Level %d",
+			player->depth);
+	} else {
+		put_str_centred(line++, 8, 8+31, "Killed on Level %d",
+			player->depth);
+		put_str_centred(line++, 8, 8+31, "by %s.", player->died_from);
+	}
 
 	line++;
 
@@ -116,8 +123,6 @@ static void display_winner(void)
 
 	int wid, hgt;
 	int i = 2;
-	int width = 0;
-
 
 	path_build(buf, sizeof(buf), ANGBAND_DIR_SCREENS, "crown.txt");
 	fp = file_open(buf, MODE_READ, FTYPE_TEXT);
@@ -126,15 +131,20 @@ static void display_winner(void)
 	Term_get_size(&wid, &hgt);
 
 	if (fp) {
+		char *pe;
+		long lw;
+		int width;
+
 		/* Get us the first line of file, which tells us how long the */
 		/* longest line is */
 		file_getl(fp, buf, sizeof(buf));
-		sscanf(buf, "%d", &width);
-		if (!width) width = 25;
+		lw = strtol(buf, &pe, 10);
+		width = (pe != buf && lw > 0 && lw < INT_MAX) ? (int)lw : 25;
 
 		/* Dump the file to the screen */
-		while (file_getl(fp, buf, sizeof(buf)))
-			put_str(buf, i++, (wid/2) - (width/2));
+		while (file_getl(fp, buf, sizeof(buf))) {
+			put_str(buf, i++, (wid / 2) - (width / 2));
+		}
 
 		file_close(fp);
 	}
@@ -182,7 +192,7 @@ static void death_file(const char *title, int row)
  */
 static void death_info(const char *title, int row)
 {
-	struct store *home = &stores[STORE_HOME];
+	struct store *home = &stores[f_info[FEAT_HOME].shopnum - 1];
 
 	screen_save();
 
@@ -373,8 +383,8 @@ void death_screen(void)
 		display_winner();
 	}
 
-	/* Tombstone */
-	print_tomb();
+	/* Tombstone/retiring */
+	display_exit_screen();
 
 	/* Flush all input and output */
 	event_signal(EVENT_INPUT_FLUSH);

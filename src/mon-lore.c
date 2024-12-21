@@ -309,7 +309,7 @@ void lore_update(const struct monster_race *race, struct monster_lore *lore)
 
 	/* Assume some "obvious" flags */
 	create_mon_flag_mask(mask, RFT_OBV, RFT_MAX);
-	mflag_union(lore->flags, mask);
+	rf_union(lore->flags, mask);
 
 	/* Blows */
 	for (i = 0; i < z_info->mon_blows_max; i++) {
@@ -328,7 +328,7 @@ void lore_update(const struct monster_race *race, struct monster_lore *lore)
 		lore->armour_known = true;
 		lore->drop_known = true;
 		create_mon_flag_mask(mask, RFT_RACE_A, RFT_RACE_N, RFT_DROP, RFT_MAX);
-		mflag_union(lore->flags, mask);
+		rf_union(lore->flags, mask);
 		rf_on(lore->flags, RF_FORCE_DEPTH);
 	}
 
@@ -1136,9 +1136,9 @@ void lore_append_exp(textblock *tb, const struct monster_race *race,
 					 (long)1000 / player->lev + 5) / 10);
 
 	/* Calculate textual representation */
-	strnfmt(buf, sizeof(buf), "%d", exp_integer);
+	strnfmt(buf, sizeof(buf), "%ld", exp_integer);
 	if (exp_fraction)
-		my_strcat(buf, format(".%02d", exp_fraction), sizeof(buf));
+		my_strcat(buf, format(".%02ld", exp_fraction), sizeof(buf));
 
 	/* Mention the experience */
 	textblock_append(tb, " is worth ");
@@ -1208,8 +1208,7 @@ void lore_append_drop(textblock *tb, const struct monster_race *race,
 					" one or two ");
 			} else {
 				textblock_append(tb, " up to ");
-				textblock_append_c(tb, COLOUR_BLUE,
-					format("%d ", n));
+				textblock_append_c(tb, COLOUR_BLUE, "%d ", n);
 			}
 
 			/* Quality */
@@ -1251,8 +1250,8 @@ void lore_append_drop(textblock *tb, const struct monster_race *race,
 				textblock_append(tb, " one or two");
 			} else {
 				textblock_append(tb, " up to");
-				textblock_append_c(tb, COLOUR_BLUE,
-					format(" %d", nspec));
+				textblock_append_c(tb, COLOUR_BLUE, " %d",
+					nspec);
 			}
 			textblock_append(tb, " specific items");
 		}
@@ -1295,13 +1294,13 @@ void lore_append_abilities(textblock *tb, const struct monster_race *race,
 	/* Describe environment-shaping abilities. */
 	create_mon_flag_mask(current_flags, RFT_ALTER, RFT_MAX);
 	rf_inter(current_flags, known_flags);
-	my_strcpy(start, format("%s can ", initial_pronoun), sizeof(start));
+	strnfmt(start, sizeof(start), "%s can ", initial_pronoun);
 	lore_append_clause(tb, current_flags, COLOUR_WHITE, start, "and", ".  ");
 
 	/* Describe detection traits */
 	create_mon_flag_mask(current_flags, RFT_DET, RFT_MAX);
 	rf_inter(current_flags, known_flags);
-	my_strcpy(start, format("%s is ", initial_pronoun), sizeof(start));
+	strnfmt(start, sizeof(start), "%s is ", initial_pronoun);
 	lore_append_clause(tb, current_flags, COLOUR_WHITE, start, "and", ".  ");
 
 	/* Describe special things */
@@ -1330,7 +1329,7 @@ void lore_append_abilities(textblock *tb, const struct monster_race *race,
 	/* Collect susceptibilities */
 	create_mon_flag_mask(current_flags, RFT_VULN, RFT_VULN_I, RFT_MAX);
 	rf_inter(current_flags, known_flags);
-	my_strcpy(start, format("%s is hurt by ", initial_pronoun), sizeof(start));
+	strnfmt(start, sizeof(start), "%s is hurt by ", initial_pronoun);
 	lore_append_clause(tb, current_flags, COLOUR_VIOLET, start, "and", "");
 	if (!rf_is_empty(current_flags)) {
 		prev = true;
@@ -1348,10 +1347,11 @@ void lore_append_abilities(textblock *tb, const struct monster_race *race,
 			rf_on(current_flags, flag);
 		}
 	}
-	if (prev)
+	if (prev) {
 		my_strcpy(start, ", but resists ", sizeof(start));
-	else
-		my_strcpy(start, format("%s resists ", initial_pronoun), sizeof(start));
+	} else {
+		strnfmt(start, sizeof(start), "%s resists ", initial_pronoun);
+	}
 	lore_append_clause(tb, current_flags, COLOUR_L_UMBER, start, "and", "");
 	if (!rf_is_empty(current_flags)) {
 		prev = true;
@@ -1379,11 +1379,12 @@ void lore_append_abilities(textblock *tb, const struct monster_race *race,
 				rf_off(current_flags, susc_flag);
 		}
 	}
-	if (prev)
+	if (prev) {
 		my_strcpy(start, ", and does not resist ", sizeof(start));
-	else
-		my_strcpy(start, format("%s does not resist ", initial_pronoun),
-				  sizeof(start));
+	} else {
+		strnfmt(start, sizeof(start), "%s does not resist ",
+			initial_pronoun);
+	}
 
 	/* Special case for undead */
 	if (rf_has(known_flags, RF_UNDEAD)) {
@@ -1398,11 +1399,11 @@ void lore_append_abilities(textblock *tb, const struct monster_race *race,
 	/* Collect non-effects */
 	create_mon_flag_mask(current_flags, RFT_PROT, RFT_MAX);
 	rf_inter(current_flags, known_flags);
-	if (prev)
+	if (prev) {
 		my_strcpy(start, ", and cannot be ", sizeof(start));
-	else
-		my_strcpy(start, format("%s cannot be ", initial_pronoun),
-				  sizeof(start));
+	} else {
+		strnfmt(start, sizeof(start), "%s cannot be ", initial_pronoun);
+	}
 	lore_append_clause(tb, current_flags, COLOUR_L_UMBER, start, "or", "");
 	if (!rf_is_empty(current_flags)) {
 		prev = true;
@@ -1497,8 +1498,13 @@ void lore_append_spells(textblock *tb, const struct monster_race *race,
 	const char *initial_pronoun;
 	bool know_hp;
 	bitflag current_flags[RSF_SIZE], test_flags[RSF_SIZE];
+	const struct monster_race *old_ref;
 
 	assert(tb && race && lore);
+
+	/* Set the race for expressions in the spells. */
+	old_ref = ref_race;
+	ref_race = race;
 
 	know_hp = lore->armour_known;
 
@@ -1596,6 +1602,9 @@ void lore_append_spells(textblock *tb, const struct monster_race *race,
 
 		textblock_append(tb, ".  ");
 	}
+
+	/* Restore the previous reference. */
+	ref_race = old_ref;
 }
 
 /**
@@ -1799,10 +1808,11 @@ static void write_lore_entries(ang_file *fff)
 		/* Output 'drop' */
 		if (lore->drops) {
 			struct monster_drop *drop = lore->drops;
-			struct object_kind *kind = drop->kind;
 			char name[120] = "";
 
 			while (drop) {
+				struct object_kind *kind = drop->kind;
+
 				if (kind) {
 					object_short_name(name, sizeof name, kind->name);
 					file_putf(fff, "drop:%s:%s:%d:%d:%d\n",

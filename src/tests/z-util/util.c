@@ -15,26 +15,26 @@ static int test_alloc(void *state) {
 	char buffer[64];
 
 	/* Check it functions at all */
-	strcpy(buffer, "1234567890");
+	my_strcpy(buffer, "1234567890", sizeof(buffer));
 	utf8_clipto(buffer, 5);
 	require(strcmp(buffer, "12345") == 0);
 
 	/* Extremely low input */
-	strcpy(buffer, "Test");
+	my_strcpy(buffer, "Test", sizeof(buffer));
 	utf8_clipto(buffer, 0);
 	require(buffer[0] == 0);
 
 	/* Overly high input */
-	strcpy(buffer, "Test");
+	my_strcpy(buffer, "Test", sizeof(buffer));
 	utf8_clipto(buffer, 10);
 	require(strcmp(buffer, "Test") == 0);
 
 	/* Non-ASCII clipping */
-	strcpy(buffer, "Lómin");
+	my_strcpy(buffer, "Lómin", sizeof(buffer));
 	utf8_clipto(buffer, 2);
 	require(strcmp(buffer, "Ló") == 0);
 
-	strcpy(buffer, "åéïø");
+	my_strcpy(buffer, "åéïø", sizeof(buffer));
 	utf8_clipto(buffer, 3);
 	require(strcmp(buffer, "åéï") == 0);
 
@@ -215,11 +215,35 @@ static int test_utf32_to_utf8(void *state) {
 	ok;
 }
 
+static int test_hex_str_to_int(void *state) {
+	require(hex_str_to_int("1Ba0") == 0x1ba0);
+	require(hex_str_to_int("5z2") == -1);
+	ok;
+}
+
+static int test_strunescape(void *state) {
+	char x_empty[] = "\\x";
+	strunescape(x_empty);
+	require(!strcmp(x_empty, "\\x"));
+	char x_single[] = "\\xa";
+	strunescape(x_single);
+	require(!strcmp(x_single, "\\xa"));
+	char x_test[] = "\\xaD";
+	strunescape(x_test);
+	require(!strcmp(x_test, "\xaD"));
+	char full_test[] = "\\\\test\\z\\xa0\\n4\\xFd";
+	strunescape(full_test);
+	require(!strcmp(full_test, "\\test\\z\xa0\n4\xfd"));
+	ok;
+}
+
 const char *suite_name = "z-util/util";
 struct test tests[] = {
 	{ "utf8_clipto", test_alloc },
 	{ "utf8_fskip", test_utf8_fskip },
 	{ "utf8_rskip", test_utf8_rskip },
 	{ "utf32_to_utf8", test_utf32_to_utf8 },
+	{ "hex_str_to_int", test_hex_str_to_int },
+	{ "strunescape", test_strunescape },
 	{ NULL, NULL }
 };

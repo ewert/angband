@@ -13,6 +13,16 @@
  *  * Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "z-virt.h"
@@ -290,10 +300,13 @@ int message_lookup_by_name(const char *name)
 		#undef MSG
 	};
 	size_t i;
-	unsigned int number;
+	char *pe;
+	unsigned long number = strtoul(name, &pe, 10);
 
-	if (sscanf(name, "%u", &number) == 1)
-		return (number < MSG_MAX) ? (int)number : -1;
+	if (pe != name) {
+		return (contains_only_spaces(pe) && number < MSG_MAX) ?
+			(int)number : -1;
+	}
 
 	for (i = 0; i < N_ELEMENTS(message_names); i++) {
 		if (my_stricmp(name, message_names[i]) == 0)
@@ -306,7 +319,7 @@ int message_lookup_by_name(const char *name)
 /**
  * Return the MSG_ flag that matches the given sound event name.
  *
- * \param name is the sound name from sound.cfg.
+ * \param name is the sound name from sound.prf.
  * \return The MSG_ flag for the corresponding sound.
  */
 int message_lookup_by_sound_name(const char *name)
@@ -331,7 +344,7 @@ int message_lookup_by_sound_name(const char *name)
  * Return the sound name for the given message.
  *
  * \param message is the MSG_ flag to find.
- * \return The sound.cfg sound name.
+ * \return The sound.prf sound name.
  */
 const char *message_sound_name(int message)
 {

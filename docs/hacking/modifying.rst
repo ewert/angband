@@ -182,10 +182,11 @@ object_property.txt
 player_timed.txt
   This file defines some of the properties of timed effects (such as haste and
   confusion) that can apply to the player.  It chiefly contains the messages
-  on changes in these effects, and player attributes which prevent the effects.
-  To add new timed effects or change the way existing ones operate, you will
-  have to alter src/list-player-timed.h and probably other files, and
-  re-compile the game.
+  on changes in these effects, links a timed effect to a resistance or
+  object flag, and specifies player attributes which prevent the effects.
+  To add new timed effects or change the way existing ones operate beyond
+  what can be specified in player_timed.txt, you will have to alter
+  src/list-player-timed.h and probably other files, and re-compile the game.
 
 projection.txt
   This file contains a lot of the defining information about projections -
@@ -193,12 +194,13 @@ projection.txt
   affecting player, monsters, objects, and/or terrain.  In particular, this
   file defines details of the effects of elemental attacks (such as fire or
   shards) and the effectiveness of corresponding player resistance.  New
-  projections have to be included in src/list-projections.h, and the code to
-  implement their effects put in other source files - src/project-obj.c for
-  effects on objects, and other similarly-named files.
+  projections have to be either included in src/list-elements.h (for elemental
+  attacks) or included in src/list-projections.h (for all other projections),
+  and the code to implement their effects put in other source files -
+  src/project-obj.c for effects on objects, and other similarly-named files.
 
 realm.txt
-  This contains a small amount of information about the two current magic
+  This contains a small amount of information about the four current magic
   realms.
 
 summon.txt
@@ -223,6 +225,10 @@ ui_entry_renderer.txt
   something that simply uses different palettes of symbols or colors than
   one of the current renderers, the basic rendering techniques are hard-coded
   in list-ui-entry-renderers.h.
+
+ui_knowledge.txt
+  Handles some configuration of the knowledge menus, namely the layout of
+  the monster categories.
 
 Making Graphical Tilesets
 =========================
@@ -287,7 +293,7 @@ them.
 ============= ================== ====================
 Type          Data File          Example
 ============= ================== ====================
-Terrain       terrain.txt        ``feat:open floor``
+Terrain       terrain.txt        ``feat:FLOOR``
 Trap          trap.txt           ``trap:pit``
 Object        object.txt         ``object:light``
 Monster       monster.txt        ``monster:Kobold``
@@ -312,13 +318,13 @@ it is lit by a torch, or dark. these are selected by appending another colon
 and a specifier to the name. For example, this would be the name of a torch-lit
 up staircase::
 
-  feat:up staircase:torch
+  feat:LESS:torch
 
 It is possible to specify the same tile be used for all possible states of a
 terrain feature by using an asterisk. This example identifies any unknown
 terrain tile (a tile the player hasn't lit or otherwise seen yet)::
 
-  feat:unknown grid:*
+  feat:NONE:*
 
 Given the full name of an object the last thing to do is to specify which tile
 from the tileset to use. Tile locations are given in a coordinate system using
@@ -336,7 +342,7 @@ be 0x90 and so on. To map an object to your tileset you will add one complete
 line to the file per object. This example maps the tile at 0x81:0x81 to the
 terrain feature 'quartz vein' when the quartz vein is lit by torch light::
 
-  feat:closed door:quartz vein:torch:0x81:0x81
+  feat:QUARTZ:torch:0x81:0x81
 
 Before going any further, it is advisable to map a single object in your
 preference file, then start the game up, select your tileset and make sure you
@@ -344,7 +350,7 @@ see your mapped tile in game. If this worked, then you are ready to design and
 map the rest of your tiles. A quick example would be to map a tile for your
 home in the town to the first tile position in your graphics file::
 
-  feat:Home:*:0x80:0x80
+  feat:HOME:*:0x80:0x80
 
 It's possible to have more than one preference file by using a sort of include
 syntax that causes other preference files referenced from your main preference
@@ -376,23 +382,24 @@ If changing data files is not enough for you, you will need to change actual
 game code and recompile it.  The first place to look is in the compiled data
 files, some of which have already been mentioned:
 
-=====================  =======================  ===========================
-list-dun-profiles.h    list-mon-spells.h        list-projections.h
-list-effects.h         list-mon-temp-flags.h    list-randart-properties.h
-list-elements.h        list-mon-timed.h         list-rooms.h
-list-equip-slots.h     list-object-flags.h      list-room-flags.h
-list-history-types.h   list-object-modifiers.h  list-square-flags.h
-list-ignore-types.h    list-options.h           list-stats.h
-list-kind-flags.h      list-origins.h           list-terrain-flags.h
-list-message.h         list-parser-errors.h     list-trap-flags.h
-list-mon-message.h     list-player-flags.h      list-tvals.h
-list-mon-race-flags.h  list-player-timed.h      list-ui-entry-renderers.h
-=====================  =======================  ===========================
+=====================  =========================  =========================
+list-dun-profiles.h    list-mon-temp-flags.h      list-rooms.h
+list-effects.h         list-mon-timed.h           list-room-flags.h
+list-elements.h        list-object-flags.h        list-square-flags.h
+list-equip-slots.h     list-object-modifiers.h    list-stats.h
+list-history-types.h   list-options.h             list-terrain.h
+list-ignore-types.h    list-origins.h             list-terrain-flags.h
+list-kind-flags.h      list-parser-errors.h       list-trap-flags.h
+list-message.h         list-player-flags.h        list-tvals.h
+list-mon-message.h     list-player-timed.h        list-ui-entry-renderers.h
+list-mon-race-flags.h  list-projections.h
+list-mon-spells.h      list-randart-properties.h
+=====================  =========================  =========================
 
 Beyond this, you will have to have some knowledge of the C programming
 language, and can start making changes to the way the game runs or appears.
 Many people have done this - there are over 100 variants of Angband:
 http://angbandplus.github.io/AngbandPlus/
 Should you get to this point, the best thing to do is to discuss your ideas on
-the Angband forums at http://angband.oook.cz.  The people there are typically
-keen to hear new ideas and ways to play.
+the Angband forums at https://live/angband.live/forums/.  The people there are
+typically keen to hear new ideas and ways to play.

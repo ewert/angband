@@ -234,8 +234,13 @@ void flavor_init(void)
 		/* Skip "empty" objects */
 		if (!kind->name) continue;
 
-		/* No flavor yields aware */
-		if (!kind->flavor) kind->aware = true;
+		/*
+		 * No flavor and not kind that only has one instance,
+		 * an artifact, yields aware
+		 */
+		if (!kind->flavor && kind->kidx < z_info->ordinary_kind_max) {
+			kind->aware = true;
+		}
 	}
 }
 
@@ -256,6 +261,88 @@ void flavor_set_all_aware(void)
 		/* Flavor yields aware */
 		if (kind->flavor) kind->aware = true;
 	}
+}
+
+/**
+ * Return the weight, in 1/10ths of pounds and including curses, of one object
+ * from a stack.
+ *
+ * obj->weight is only the base weight and does not include curses.
+ * Modifications to the weight from curses will not cause the weight to
+ * fall outside of the range of [0, 32767].
+ */
+int16_t object_weight_one(const struct object *obj)
+{
+	int16_t result = MAX(obj->weight, 0);
+
+	if (obj->curses) {
+		int i;
+
+		for (i = 1; i < z_info->curse_max; ++i) {
+			if (obj->curses[i].power) {
+				result = modify_weight_for_curse(i, result);
+			}
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Return the hit bonus for an object, including any of its curses.
+ */
+int object_to_hit(const struct object *obj)
+{
+	int result = obj->to_h;
+
+	if (obj->curses) {
+		int i;
+
+		for (i = 1; i < z_info->curse_max; ++i) {
+			if (obj->curses[i].power) {
+				result += curses[i].obj->to_h;
+			}
+		}
+	}
+	return result;
+}
+
+/**
+ * Return the damage bonus for an object, including any of its curses.
+ */
+int object_to_dam(const struct object *obj)
+{
+	int result = obj->to_d;
+
+	if (obj->curses) {
+		int i;
+
+		for (i = 1; i < z_info->curse_max; ++i) {
+			if (obj->curses[i].power) {
+				result += curses[i].obj->to_d;
+			}
+		}
+	}
+	return result;
+}
+
+/**
+ * Return the armor class bonus for an object, including any of its curses.
+ */
+int object_to_ac(const struct object *obj)
+{
+	int result = obj->to_a;
+
+	if (obj->curses) {
+		int i;
+
+		for (i = 1; i < z_info->curse_max; ++i) {
+			if (obj->curses[i].power) {
+				result += curses[i].obj->to_a;
+			}
+		}
+	}
+	return result;
 }
 
 /**
@@ -490,24 +577,25 @@ struct ego_item *lookup_ego_item(const char *name, int tval, int sval)
 int lookup_sval(int tval, const char *name)
 {
 	int k;
-	unsigned int r;
+	char *pe;
+	unsigned long r = strtoul(name, &pe, 10);
 
-	if (sscanf(name, "%u", &r) == 1)
-		return r;
+	if (pe != name) {
+		return (contains_only_spaces(pe) && r < INT_MAX) ? (int)r : -1;
+	}
 
 	/* Look for it */
 	for (k = 0; k < z_info->k_max; k++) {
 		struct object_kind *kind = &k_info[k];
 		char cmp_name[1024];
 
-		if (!kind || !kind->name) continue;
+		if (!kind || !kind->name || kind->tval != tval) continue;
 
 		obj_desc_name_format(cmp_name, sizeof cmp_name, 0, kind->name, 0,
 							 false);
 
 		/* Found a match */
-		if (kind->tval == tval && !my_stricmp(cmp_name, name))
-			return kind->sval;
+		if (!my_stricmp(cmp_name, name)) return kind->sval;
 	}
 
 	return -1;
@@ -705,6 +793,16 @@ bool obj_can_takeoff(const struct object *obj)
 	return !obj_has_flag(obj, OF_STICKY);
 }
 
+/*
+ * Can only throw an item that is not equipped or the equipped weapon if it
+ * can be taken off.
+ */
+bool obj_can_throw(const struct object *obj)
+{
+	return !object_is_equipped(player->body, obj)
+		|| (tval_is_melee_weapon(obj) && obj_can_takeoff(obj));
+}
+
 /* Can only put on wieldable items */
 bool obj_can_wear(const struct object *obj)
 {
@@ -795,9 +893,9 @@ struct effect *object_effect(const struct object *obj)
 /**
  * Does the given object need to be aimed?
  */ 
-bool obj_needs_aim(struct object *obj)
+bool obj_needs_aim(const struct object *obj)
 {
-	struct effect *effect = object_effect(obj);
+	const struct effect *effect = object_effect(obj);
 
 	/* If the effect needs aiming, or if the object type needs
 	   aiming, this object needs aiming. */
@@ -994,8 +1092,8 @@ static msg_tag_t msg_tag_lookup(const char *tag)
 /**
  * Print a message from a string, customised to include details about an object
  */
-void print_custom_message(struct object *obj, const char *string, int msg_type,
-		const struct player *p)
+void print_custom_message(const struct object *obj, const char *string,
+		int msg_type, const struct player *p)
 {
 	char buf[1024] = "\0";
 	const char *next;
@@ -1009,7 +1107,8 @@ void print_custom_message(struct object *obj, const char *string, int msg_type,
 	next = strchr(string, '{');
 	while (next) {
 		/* Copy the text leading up to this { */
-		strnfcat(buf, 1024, &end, "%.*s", next - string, string); 
+		strnfcat(buf, 1024, &end, "%.*s", (int) (next - string),
+			string);
 
 		s = next + 1;
 		while (*s && isalpha((unsigned char) *s)) s++;
@@ -1057,7 +1156,7 @@ void print_custom_message(struct object *obj, const char *string, int msg_type,
 
 		next = strchr(string, '{');
 	}
-	strnfcat(buf, 1024, &end, string);
+	strnfcat(buf, 1024, &end, "%s", string);
 
 	msgt(msg_type, "%s", buf);
 }

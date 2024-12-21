@@ -23,7 +23,6 @@
 #include "angband.h"
 #include "cave.h"
 #include "datafile.h"
-#include "math.h"
 #include "game-event.h"
 #include "generate.h"
 #include "init.h"
@@ -520,6 +519,8 @@ void place_object(struct chunk *c, struct loc grid, int level, bool good,
 		object_delete(c, NULL, &new_obj);
 		return;
 	} else {
+		uint32_t sqrating;
+
 		list_object(c, new_obj);
 		if (new_obj->artifact) {
 			c->good_item = true;
@@ -527,8 +528,15 @@ void place_object(struct chunk *c, struct loc grid, int level, bool good,
 		/* Avoid overflows */
 		if (rating > 2500000) {
 			rating = 2500000;
+		} else if (rating < -2500000) {
+			rating = -2500000;
 		}
-		c->obj_rating += (rating / 100) * (rating / 100);
+		sqrating = (rating / 100) * (rating / 100);
+		if (c->obj_rating < UINT32_MAX - sqrating) {
+			c->obj_rating += sqrating;
+		} else {
+			c->obj_rating = UINT32_MAX;
+		}
 	}
 }
 
@@ -732,10 +740,11 @@ void alloc_stairs(struct chunk *c, int feat, int num, int minsep, bool sepany,
  * \param num number to place
  * \param depth generation depth
  * \param origin item origin (if appropriate)
+ * \return the number of entites that were not allocated.
  *
  * See alloc_object() for more information.
  */
-void alloc_objects(struct chunk *c, int set, int typ, int num, int depth,
+int alloc_objects(struct chunk *c, int set, int typ, int num, int depth,
 		uint8_t origin)
 {
 	int k, l = 0;
@@ -743,6 +752,7 @@ void alloc_objects(struct chunk *c, int set, int typ, int num, int depth,
 		bool ok = alloc_object(c, set, typ, depth, origin);
 		if (!ok) l++;
 	}
+	return l;
 }
 
 
@@ -908,6 +918,27 @@ void vault_monsters(struct chunk *c, struct loc grid, int depth, int num)
 	}
 }
 
+/**
+ * Mark artifacts in a failed chunk as not created
+ */
+void uncreate_artifacts(struct chunk *c)
+{
+	int y, x;
+
+	/* Also mark created artifacts as not created ... */
+	for (y = 0; y < c->height; y++) {
+		for (x = 0; x < c->width; x++) {
+			struct loc grid = loc(x, y);
+			struct object *obj = square_object(c, grid);
+			while (obj) {
+				if (obj->artifact) {
+					mark_artifact_created(obj->artifact, false);
+				}
+				obj = obj->next;
+			}
+		}
+	}
+}
 
 /**
  * Dump the given level for post-mortem analysis; handle all I/O.

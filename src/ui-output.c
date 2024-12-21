@@ -22,8 +22,6 @@
 #include "ui-output.h"
 #include "z-textblock.h"
 
-int16_t screen_save_depth;
-
 /**
  * ------------------------------------------------------------------------
  * Regions
@@ -136,7 +134,8 @@ void textui_textblock_place(textblock *tb, region orig_area, const char *header)
 
 	if (header != NULL) {
 		area.page_rows--;
-		c_prt(COLOUR_L_BLUE, header, area.row, area.col);
+		Term_erase(area.col, area.row, area.width);
+		c_put_str(COLOUR_L_BLUE, header, area.row, area.col);
 		area.row++;
 	}
 
@@ -173,15 +172,17 @@ struct keypress textui_textblock_show(textblock *tb, region orig_area, const cha
 
 	if (header != NULL) {
 		area.page_rows--;
-		c_prt(COLOUR_L_BLUE, header, area.row, area.col);
+		Term_erase(area.col, area.row, area.width);
+		c_put_str(COLOUR_L_BLUE, header, area.row, area.col);
 		area.row++;
 	}
 
 	if (n_lines > (size_t) area.page_rows) {
 		int start_line = 0;
 
-		c_prt(COLOUR_WHITE, "", area.row + area.page_rows, area.col);
-		c_prt(COLOUR_L_BLUE, "(Up/down or ESCAPE to exit.)",
+		Term_erase(area.col, area.row + area.page_rows, area.width);
+		Term_erase(area.col, area.row + area.page_rows + 1, area.width);
+		c_put_str(COLOUR_L_BLUE, "(Up/down or ESCAPE to exit.)",
 				area.row + area.page_rows + 1, area.col);
 
 		/* Pager mode */
@@ -213,8 +214,9 @@ struct keypress textui_textblock_show(textblock *tb, region orig_area, const cha
 		display_area(textblock_text(tb), textblock_attrs(tb), line_starts,
 				line_lengths, n_lines, area, 0);
 
-		c_prt(COLOUR_WHITE, "", area.row + n_lines, area.col);
-		c_prt(COLOUR_L_BLUE, "(Press any key to continue.)",
+		Term_erase(area.col, area.row + n_lines, area.width);
+		Term_erase(area.col, area.row + n_lines + 1, area.width);
+		c_put_str(COLOUR_L_BLUE, "(Press any key to continue.)",
 				area.row + n_lines + 1, area.col);
 		ch = inkey();
 	}
@@ -405,11 +407,12 @@ void prt(const char *str, int row, int col) {
 /**
  * Screen loading and saving can be done to an arbitrary depth but it's
  * important that every call to screen_save() is balanced by a call to
- * screen_load() later on.  'screen_save_depth' is used by the game to keep
- * track of whether it should try to update the map and sidebar or not,
- * so if you miss out a screen_load you will not get proper game updates.
+ * screen_load() or screen_load_all() later on.  'screen_save_depth' is used
+ * by the game to keep track of whether it should try to update the map and
+ * sidebar or not, so if you miss out a screen_load or screen_load_all you will
+ * not get proper game updates.
  *
- * Term_save() / Term_load() do all the heavy lifting here.
+ * Term_save() / Term_load() / Term_load_all() do all the heavy lifting here.
  */
 
 /**
@@ -436,6 +439,17 @@ void screen_load(void)
 {
 	event_signal(EVENT_MESSAGE_FLUSH);
 	Term_load();
+	screen_save_depth--;
+}
+
+/**
+ * Load the screen by replaying all the saves in reverse order with a redraw
+ * for each and decrease the "icky" depth.
+ */
+void screen_load_all(void)
+{
+	event_signal(EVENT_MESSAGE_FLUSH);
+	Term_load_all();
 	screen_save_depth--;
 }
 

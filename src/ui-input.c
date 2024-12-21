@@ -28,6 +28,7 @@
 #include "player-path.h"
 #include "savefile.h"
 #include "target.h"
+#include "ui-birth.h"
 #include "ui-command.h"
 #include "ui-context.h"
 #include "ui-curse.h"
@@ -116,6 +117,17 @@ struct keypress *inkey_next = NULL;
  */
 static bool keymap_auto_more;
 
+#ifdef ALLOW_BORG
+
+/*
+ * Mega-Hack -- special "inkey_hack" hook.  XXX XXX XXX
+ *
+ * This special function hook allows the "Borg" (see elsewhere) to take
+ * control of the "inkey()" function, and substitute in fake keypresses.
+ */
+struct keypress(*inkey_hack)(int flush_first) = NULL;
+
+#endif /* ALLOW_BORG */
 
 /**
  * Get a keypress from the user.
@@ -208,6 +220,24 @@ ui_event inkey_ex(void)
 
 	/* Forget pointer */
 	inkey_next = NULL;
+
+#ifdef ALLOW_BORG
+	/* Mega-Hack -- Use the special hook */
+	if (inkey_hack)
+	{
+		ke.key = (*inkey_hack)(inkey_xtra);
+		if (ke.key.type != EVT_NONE)
+		{
+			/* Cancel the various "global parameters" */
+			inkey_flag = false;
+			inkey_scan = 0;
+			ke.type = EVT_KBRD;
+
+			/* Accept result */
+			return (ke);
+		}
+	}
+#endif /* ALLOW_BORG */
 
 	/* Get the cursor state */
 	(void)Term_get_cursor(&cursor_state);
@@ -366,6 +396,58 @@ static void msg_flush(int x)
 	Term_erase(0, 0, 255);
 }
 
+/**
+ * Like msg_flush() but split what has already been pushed to the Term's
+ * buffer to make room for the "-more-" prompt.
+ *
+ * \param w is the number of columns in the terminal
+ * \param x points to the integer storing the column where the next
+ * message will start.
+ */
+static void msg_flush_split_existing(int w, int *x)
+{
+	/* Default place to split what's there */
+	int split = MIN(*x, w - 8);
+	int i = split;
+	wchar_t *svc = NULL;
+	int *sva = NULL;
+
+	/* Find the rightmost split point. */
+	while (i > w / 2) {
+		int a;
+		wchar_t c;
+
+		--i;
+		Term_what(i, 0, &a, &c);
+		if (c == L' ') {
+			split = i;
+			break;
+		}
+	}
+
+	/* Remember what's on and after the split point. */
+	*x -= split;
+	if (*x > 0) {
+		svc = mem_alloc(*x * sizeof(*svc));
+		sva = mem_alloc(*x * sizeof(*sva));
+		for (i = 0; i < *x; ++i) {
+			Term_what(i + split, 0, &sva[i], &svc[i]);
+		}
+	}
+
+	Term_erase(split, 0, w);
+	msg_flush(split + 1);
+
+	/* Put back what was remembered. */
+	if (*x > 0) {
+		for (i = 0; i < *x; ++i) {
+			Term_putch(i, 0, sva[i], svc[i]);
+		}
+		mem_free(sva);
+		mem_free(svc);
+	}
+}
+
 static int message_column = 0;
 
 
@@ -435,13 +517,15 @@ void display_message(game_event_type unused, game_event_data *data, void *user)
 	/* Hack -- flush when requested or needed */
 	if (message_column && (!msg || ((message_column + n) > (w - 8)))) {
 		/* Flush */
-		msg_flush(message_column);
+		if (message_column <= w - 8) {
+			msg_flush(message_column);
+			message_column = 0;
+		} else {
+			msg_flush_split_existing(w, &message_column);
+		}
 
 		/* Forget it */
 		msg_flag = false;
-
-		/* Reset */
-		message_column = 0;
 	}
 
 	/* No message */
@@ -460,17 +544,20 @@ void display_message(game_event_type unused, game_event_data *data, void *user)
 	color = message_type_color(type);
 
 	/* Split message */
-	while (n > w - 1) {
+	while (message_column + n > w - 1) {
+		/* Default split */
+		int split = MAX(w - 8 - message_column, 0);
+		int check = split;
 		char oops;
 
-		int check, split;
-
-		/* Default split */
-		split = w - 8;
-
 		/* Find the rightmost split point */
-		for (check = (w / 2); check < w - 8; check++)
-			if (t[check] == ' ') split = check;
+		while (check > MAX(w / 2 - message_column, 0)) {
+			--check;
+			if (t[check] == ' ') {
+				split = check;
+				break;
+			}
+		}
 
 		/* Save the split character */
 		oops = t[split];
@@ -479,10 +566,10 @@ void display_message(game_event_type unused, game_event_data *data, void *user)
 		t[split] = '\0';
 
 		/* Display part of the message */
-		Term_putstr(0, 0, split, color, t);
+		Term_putstr(message_column, 0, split, color, t);
 
 		/* Flush it */
-		msg_flush(split + 1);
+		msg_flush(message_column + split + 1);
 
 		/* Restore the split character */
 		t[split] = oops;
@@ -491,7 +578,7 @@ void display_message(game_event_type unused, game_event_data *data, void *user)
 		t[--split] = ' ';
 
 		/* Prepare to recurse on the rest of "buf" */
-		t += split; n -= split;
+		t += split; n -= split; message_column = 0;
 	}
 
 	/* Display the tail of the message */
@@ -527,8 +614,17 @@ void message_flush(game_event_type unused, game_event_data *data, void *user)
 	/* Flush when needed */
 	if (message_column) {
 		/* Print pending messages */
-		if (Term)
-			msg_flush(message_column);
+		if (Term) {
+			int w, h;
+
+			(void)Term_get_size(&w, &h);
+			while (message_column > w - 8) {
+				msg_flush_split_existing(w, &message_column);
+			}
+			if (message_column) {
+				msg_flush(message_column);
+			}
+		}
 
 		/* Forget it */
 		msg_flag = false;
@@ -1428,7 +1524,8 @@ static bool textui_get_rep_dir(int *dp, bool allow_5)
 		inkey_scan = SCAN_OFF;
 
 		if (ke.type == EVT_NONE ||
-			(ke.type == EVT_KBRD && target_dir(ke.key) == 0)) {
+				(ke.type == EVT_KBRD
+				&& !target_dir_allow(ke.key, allow_5))) {
 			prt("Direction or <click> (Escape to cancel)? ", 0, 0);
 			ke = inkey_ex();
 		}
@@ -1515,7 +1612,6 @@ static bool textui_get_aim_dir(int *dp)
 {
 	/* Global direction */
 	int dir = 0;
-
 	ui_event ke;
 
 	const char *p;
@@ -1528,6 +1624,12 @@ static bool textui_get_aim_dir(int *dp)
 
 	/* Ask until satisfied */
 	while (!dir) {
+		/*
+		 * Whether to generate an audible warning about a targeting
+		 * failure.
+		 */
+		bool need_beep = false;
+
 		/* Choose a prompt */
 		if (!target_okay())
 			p = "Direction ('*' or <click> to target, \"'\" for closest, Escape to cancel)? ";
@@ -1552,12 +1654,18 @@ static bool textui_get_aim_dir(int *dp)
 					dir = 5;
 			} else if (ke.key.code == '\'') {
 				/* Set to closest target */
-				if (target_set_closest(TARGET_KILL, NULL))
+				if (target_set_closest(TARGET_KILL, NULL)) {
 					dir = 5;
+				} else {
+					need_beep = true;
+				}
 			} else if (ke.key.code == 't' || ke.key.code == '5' ||
 					   ke.key.code == '0' || ke.key.code == '.') {
-				if (target_okay())
+				if (target_okay()) {
 					dir = 5;
+				} else {
+					need_beep = true;
+				}
 			} else {
 				/* Possible direction */
 				int keypresses_handled = 0;
@@ -1569,10 +1677,12 @@ static bool textui_get_aim_dir(int *dp)
 					 * the currently "Pending" direction. XXX */
 					this_dir = target_dir(ke.key);
 
-					if (this_dir)
+					if (this_dir) {
 						dir = dir_transitions[dir][this_dir];
-					else
+					} else {
+						need_beep = true;
 						break;
+					}
 
 					if (player->opts.lazymove_delay == 0 || ++keypresses_handled > 1)
 						break;
@@ -1586,7 +1696,7 @@ static bool textui_get_aim_dir(int *dp)
 		}
 
 		/* Error */
-		if (!dir) bell();
+		if (need_beep) bell();
 	}
 
 	/* No direction */
@@ -1742,10 +1852,16 @@ ui_event textui_get_command(int *count)
 				}
 
 				case '^': {
-					char ch;
 					/* Allow "control chars" to be entered */
-					if (get_com("Control: ", &ch))
-						ke.key.code = KTRL(ch);
+					if (!get_com_ex("Control: ", &ke)
+							|| ke.type != EVT_KBRD) {
+						continue;
+					}
+					if (ENCODE_KTRL(ke.key.code)) {
+						ke.key.code = KTRL(ke.key.code);
+					} else {
+						ke.key.mods |= KC_MOD_CONTROL;
+					}
 					break;
 				}
 			}

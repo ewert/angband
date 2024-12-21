@@ -110,13 +110,6 @@ struct term_win
  *	- Flag "never_frosh"
  *	  Never call the "TERM_XTRA_FROSH" action
  *
- *
- *	- Value "attr_blank"
- *	  Use this "attr" value for "blank" grids
- *
- *	- Value "char_blank"
- *	  Use this "char" value for "blank" grids
- *
  *	- Flag "complex_input"
  *	  Distinguish between Enter/^m/^j, Tab/^i, etc.
  *
@@ -185,9 +178,6 @@ struct term
 	bool never_bored;
 	bool never_frosh;
 	int sidebar_mode;
-
-	int attr_blank;
-	wchar_t char_blank;
 
 	bool complex_input;
 
@@ -329,6 +319,11 @@ extern int col_map[SIDEBAR_MAX];
 #define PW_STATUS           0x00000800L /* Display status */
 #define PW_ITEMLIST         0x00001000L /* Display item list */
 #define PW_PLAYER_3         0x00002000L /* Display player (topbar) */
+#ifdef ALLOW_BORG
+ /* xxx */
+#define PW_BORG_1           0x00004000L /* Display borg messages */
+#define PW_BORG_2           0x00008000L /* Display borg status */
+#endif
 
 #define PW_MAPS (PW_MAP | PW_OVERHEAD)
 
@@ -407,6 +402,7 @@ extern errr Term_inkey(ui_event *ch, bool wait, bool take);
 
 extern errr Term_save(void);
 extern errr Term_load(void);
+extern errr Term_load_all(void);
 
 extern errr Term_resize(int w, int h);
 

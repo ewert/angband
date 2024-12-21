@@ -233,7 +233,7 @@ static void show_obj(int obj_num, int row, int col, bool cursor,
 
 	/* Weight */
 	if (mode & OLIST_WEIGHT) {
-		int weight = obj->weight * obj->number;
+		int weight = obj->number * object_weight_one(obj);
 		strnfmt(buf, sizeof(buf), "%4d.%1d lb", weight / 10, weight % 10);
 		put_str(buf, row + obj_num, col + ex_offset_ctr);
 	}
@@ -301,7 +301,21 @@ static void build_obj_list(int last, struct object **list, item_tester tester,
 
 		/* Show full slot labels for equipment (or quiver in subwindow) */
 		if (equip) {
-			strnfmt(buf, sizeof(buf), "%-14s: ", equip_mention(player, i));
+			const char *mention = equip_mention(player, i);
+			size_t u8len = utf8_strlen(mention);
+
+			if (u8len < 14) {
+				strnfmt(buf, sizeof(buf), "%s%*s", mention,
+					(int)(14 - u8len), " ");
+			} else {
+				char *mention_copy = string_make(mention);
+
+				if (u8len > 14) {
+					utf8_clipto(mention_copy, 14);
+				}
+				strnfmt(buf, sizeof(buf), "%s", mention_copy);
+				string_free(mention_copy);
+			}
 			my_strcpy(items[num_obj].equip_label, buf,
 					  sizeof(items[num_obj].equip_label));
 		} else if ((in_term || dead) && quiver) {
@@ -310,7 +324,7 @@ static void build_obj_list(int last, struct object **list, item_tester tester,
 					  sizeof(items[num_obj].equip_label));
 		} else {
 			strnfmt(items[num_obj].equip_label,
-					sizeof(items[num_obj].equip_label), "");
+				sizeof(items[num_obj].equip_label), "%s", "");
 		}
 
 		/* Save the object */
@@ -336,7 +350,7 @@ static void set_obj_names(bool terse, const struct player *p)
 		/* Null objects are used to skip lines, or display only a label */		
 		if (!obj) {
 			if ((i < num_head) || streq(items[i].label, "In quiver"))
-				strnfmt(items[i].o_name, sizeof(items[i].o_name), "");
+				strnfmt(items[i].o_name, sizeof(items[i].o_name), "%s", "");
 			else
 				strnfmt(items[i].o_name, sizeof(items[i].o_name), "(nothing)");
 		} else {
@@ -624,9 +638,13 @@ bool get_item_allow(const struct object *obj, unsigned char ch, cmd_code cmd,
 
 	unsigned n;
 
-	/* Hack - Only shift the command key if it actually needs to be shifted. */
+	/*
+	 * Hack - Only shift the command key if it actually needs to be shifted.
+	 * Because UN_KTRL('ctrl-d') (i.e. rogue-like ignore command) gives 'd'
+	 * which is the drop command in both keysets, use UN_KTRL_CAP().
+	 */
 	if (ch < 0x20)
-		ch = UN_KTRL(ch);
+		ch = UN_KTRL_CAP(ch);
 
 	/* The inscription to look for */
 	verify_inscrip[1] = ch;
@@ -634,7 +652,7 @@ bool get_item_allow(const struct object *obj, unsigned char ch, cmd_code cmd,
 	/* Look for the inscription */
 	n = check_for_inscrip(obj, verify_inscrip);
 
-	/* Also look for for the inscription '!*' */
+	/* Also look for the inscription '!*' */
 	if (!is_harmless)
 		n += check_for_inscrip(obj, "!*");
 
@@ -714,11 +732,7 @@ static bool get_tag(struct object **tagged_obj, char tag, cmd_code cmd,
 				return true;
 			}
 
-			cmdkey = cmd_lookup_key(cmd, mode);
-
-			/* Hack - Only shift the command key if it actually needs to be. */
-			if (cmdkey < 0x20)
-				cmdkey = UN_KTRL(cmdkey);
+			cmdkey = cmd_lookup_key_unktrl(cmd, mode);
 
 			/* Check the special tags */
 			if ((s[1] == cmdkey) && (s[2] == tag)) {
@@ -1251,7 +1265,7 @@ bool textui_get_item(struct object **choice, const char *pmt, const char *str,
 		z_info->floor_size;
 
 	floor_list = mem_zalloc(floor_max * sizeof(*floor_list));
-	throwing_list = mem_zalloc(throwing_max * sizeof(*floor_list));
+	throwing_list = mem_zalloc(throwing_max * sizeof(*throwing_list));
 	olist_mode = 0;
 	item_mode = mode;
 	item_cmd = cmd;

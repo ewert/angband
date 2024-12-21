@@ -729,16 +729,16 @@ int context_menu_object(struct object *obj)
 
 			if (obj->number > 1) {
 				/* 'D' is used for ignore in rogue keymap, so swap letters. */
-				cmdkey = (mode == KEYMAP_MODE_ORIG) ? 'D' : 'k';
+				cmdkey = (mode == KEYMAP_MODE_ORIG) ? 'D' : 'A';
 				menu_dynamic_add_label(m, "Drop All", cmdkey,
 									   MENU_VALUE_DROP_ALL, labels);
 			}
-		} else if (square_shopnum(cave, player->grid) == STORE_HOME) {
+		} else if (square(cave, player->grid)->feat == FEAT_HOME) {
 			ADD_LABEL("Drop", CMD_DROP, MN_ROW_VALID);
 
 			if (obj->number > 1) {
 				/* 'D' is used for ignore in rogue keymap, so swap letters. */
-				cmdkey = (mode == KEYMAP_MODE_ORIG) ? 'D' : 'k';
+				cmdkey = (mode == KEYMAP_MODE_ORIG) ? 'D' : 'A';
 				menu_dynamic_add_label(m, "Drop All", cmdkey,
 									   MENU_VALUE_DROP_ALL, labels);
 			}
@@ -751,7 +751,10 @@ int context_menu_object(struct object *obj)
 		ADD_LABEL("Pick up", CMD_PICKUP, valid);
 	}
 
-	ADD_LABEL("Throw", CMD_THROW, MN_ROW_VALID);
+	if (obj_can_throw(obj)) {
+		ADD_LABEL("Throw", CMD_THROW, MN_ROW_VALID);
+	}
+
 	ADD_LABEL("Inscribe", CMD_INSCRIBE, MN_ROW_VALID);
 
 	if (obj_has_inscrip(obj))
@@ -879,7 +882,7 @@ int context_menu_object(struct object *obj)
 		if (selected == CMD_DROP &&
 			square_isshop(cave, player->grid)) {
 			struct command *gc = cmdq_peek();
-			if (square_shopnum(cave, player->grid) == STORE_HOME)
+			if (square(cave, player->grid)->feat == FEAT_HOME)
 				gc->code = CMD_STASH;
 			else
 				gc->code = CMD_SELL;
@@ -1129,7 +1132,7 @@ static void cmd_sub_entry(struct menu *menu, int oid, bool cursor, int row,
 
 	/*
 	 * Include keypress for commands that aren't placeholders to drive the
-	 * the menu system.
+	 * menu system.
 	 */
 	if (kp.code) {
 		Term_addch(attr, L' ');
@@ -1154,6 +1157,11 @@ static bool cmd_menu(struct command_list *list, void *selection_p)
 
 	ui_event evt;
 	struct cmd_info **selection = selection_p;
+	/*
+	 * By default, cause the containing menu to break out of its event
+	 * handling when this function returns.
+	 */
+	bool result = false;
 
 	/* Set up the menu */
 	menu_init(&menu, MN_SKIN_SCROLL, &commands_menu);
@@ -1167,35 +1175,61 @@ static bool cmd_menu(struct command_list *list, void *selection_p)
 	screen_save();
 	window_make(area.col - 2, area.row - 1, area.col + 39, area.row + 13);
 
-	/* Select an entry */
-	evt = menu_select(&menu, 0, true);
+	while (1) {
+		/* Select an entry */
+		evt = menu_select(&menu, 0, true);
 
-	/* Load de screen */
-	screen_load();
-
-	if (evt.type == EVT_SELECT) {
-		if (list->list[menu.cursor].cmd ||
-				list->list[menu.cursor].hook) {
-			/* It's a proper command. */
-			*selection = &list->list[menu.cursor];
-		} else {
+		if (evt.type == EVT_SELECT) {
+			if (list->list[menu.cursor].cmd ||
+					list->list[menu.cursor].hook) {
+				/* It's a proper command. */
+				*selection = &list->list[menu.cursor];
+				break;
+			} else {
+				/*
+				 * It's a placeholder that's a parent for a
+				 * nested menu.
+				 */
+				/*
+				 * Look up the list of commands for the nested
+				 * menu.
+				 */
+				if (list->list[menu.cursor].nested_cached_idx == -1) {
+					list->list[menu.cursor].nested_cached_idx =
+						cmd_list_lookup_by_name(list->list[menu.cursor].nested_name);
+				}
+				if (list->list[menu.cursor].nested_cached_idx >= 0) {
+					/* Display a menu for it. */
+					if (!cmd_menu(&cmds_all[list->list[menu.cursor].nested_cached_idx], selection_p)) {
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+		} else if (evt.type == EVT_ESCAPE) {
 			/*
-			 * It's a placeholder that's a parent for a
-			 * nested menu.
+			 * Return to the containing menu and don't break out all
+			 * the way to main game loop.
 			 */
-			/* Look up the list of commands for the nested menu. */
-			if (list->list[menu.cursor].nested_cached_idx == -1) {
-				list->list[menu.cursor].nested_cached_idx =
-					cmd_list_lookup_by_name(list->list[menu.cursor].nested_name);
-			}
-			if (list->list[menu.cursor].nested_cached_idx >= 0) {
-				/* Display a menu for it. */
-				return cmd_menu(&cmds_all[list->list[menu.cursor].nested_cached_idx], selection_p);
-			}
+			result = true;
+			break;
 		}
 	}
 
-	return false;
+	/*
+	 * Load the screen.  Do a more expensive update if not breaking out
+	 * all the way from the menus and there may be partially overwritten
+	 * big tiles.
+	 */
+	if (result && screen_save_depth > 1
+			&& (tile_width > 1 || tile_height > 1)) {
+		screen_load_all();
+	} else {
+		screen_load();
+	}
+
+	return result;
 }
 
 

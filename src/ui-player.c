@@ -30,6 +30,7 @@
 #include "player-timed.h"
 #include "player-util.h"
 #include "store.h"
+#include "ui-birth.h"
 #include "ui-display.h"
 #include "ui-entry.h"
 #include "ui-entry-renderers.h"
@@ -358,16 +359,17 @@ static void display_player_equippy(int y, int x)
 		/* Object */
 		obj = slot_object(player, i);
 
-		/* Skip empty objects */
-		if (!obj) continue;
-
-		/* Get attr/char for display */
-		a = object_attr(obj);
-		c = object_char(obj);
+		/* Get attr/char for display; clear if big tiles or no object */
+		if (obj && tile_width == 1 && tile_height == 1) {
+			a = object_attr(obj);
+			c = object_char(obj);
+		} else {
+			a = COLOUR_WHITE;
+			c = L' ';
+		}
 
 		/* Dump */
-		if ((tile_width == 1) && (tile_height == 1))
-		        Term_putch(x + i, y, a, c);
+		Term_putch(x + i, y, a, c);
 	}
 }
 
@@ -635,7 +637,7 @@ static const char *show_adv_exp(void)
 		static char buffer[30];
 		int32_t advance = (player_exp[player->lev - 1]
 			* player->expfact / 100L);
-		strnfmt(buffer, sizeof(buffer), "%d", advance);
+		strnfmt(buffer, sizeof(buffer), "%ld", (long)advance);
 		return buffer;
 	}
 	else {
@@ -734,16 +736,16 @@ static struct panel *get_panel_combat(void) {
 	/* Melee */
 	obj = equipped_item_by_slot_name(player, "weapon");
 	bth = (player->state.skills[SKILL_TO_HIT_MELEE] * 10) / BTH_PLUS_ADJ;
-	dam = player->known_state.to_d + (obj ? obj->known->to_d : 0);
-	hit = player->known_state.to_h + (obj ? obj->known->to_h : 0);
-
-	panel_space(p);
-
-	if (obj) {
-		melee_dice = obj->dd;
-		melee_sides = obj->ds;
+	dam = player->known_state.to_d;
+	hit = player->known_state.to_h;
+	if (obj && obj->known) {
+		melee_dice = obj->known->dd;
+		melee_sides = obj->known->ds;
+		dam += object_to_dam(obj->known);
+		hit += object_to_hit(obj->known);
 	}
 
+	panel_space(p);
 	panel_line(p, COLOUR_L_BLUE, "Melee", "%dd%d,%+d", melee_dice, melee_sides, dam);
 	panel_line(p, COLOUR_L_BLUE, "To-hit", "%d,%+d", bth / 10, hit);
 	panel_line(p, COLOUR_L_BLUE, "Blows", "%d.%d/turn",
@@ -752,8 +754,12 @@ static struct panel *get_panel_combat(void) {
 	/* Ranged */
 	obj = equipped_item_by_slot_name(player, "shooting");
 	bth = (player->state.skills[SKILL_TO_HIT_BOW] * 10) / BTH_PLUS_ADJ;
-	hit = player->known_state.to_h + (obj ? obj->known->to_h : 0);
-	dam = obj ? obj->known->to_d : 0;
+	dam = 0;
+	hit = player->known_state.to_h;
+	if (obj && obj->known) {
+		dam += object_to_dam(obj->known);
+		hit += object_to_hit(obj->known);
+	}
 
 	panel_space(p);
 	panel_line(p, COLOUR_L_BLUE, "Shoot to-dam", "%+d", dam);
@@ -918,7 +924,7 @@ void write_character_dump(ang_file *fff)
 	int a;
 	wchar_t c;
 
-	struct store *home = &stores[STORE_HOME];
+	struct store *home = &stores[f_info[FEAT_HOME].shopnum - 1];
 	struct object **home_list = mem_zalloc(sizeof(struct object *) *
 										   z_info->store_inven_max);
 	char o_name[80];
@@ -973,7 +979,7 @@ void write_character_dump(ang_file *fff)
 	display_player(1);
 
 	/* Print a header */
-	file_putf(fff, format("%-20s%s\n", "Resistances", "Abilities"));
+	file_putf(fff, "%-20s%s\n", "Resistances", "Abilities");
 
 	/* Dump part of the screen */
 	ylim = ((cached_config->n_resist_by_region[0] >
@@ -1011,7 +1017,7 @@ void write_character_dump(ang_file *fff)
 	file_putf(fff, "\n");
 
 	/* Print a header */
-	file_putf(fff, format("%-20s%s\n", "Hindrances", "Modifiers"));
+	file_putf(fff, "%-20s%s\n", "Hindrances", "Modifiers");
 
 	/* Dump part of the screen */
 	ylim = ((cached_config->n_resist_by_region[2] >
@@ -1058,7 +1064,12 @@ void write_character_dump(ang_file *fff)
 		{
 			file_putf(fff, "> %s\n", message_str((int16_t)i));
 		}
-		file_putf(fff, "\nKilled by %s.\n\n", player->died_from);
+		if (streq(player->died_from, "Retiring")) {
+			file_putf(fff, "\nRetired.\n\n");
+		} else {
+			file_putf(fff, "\nKilled by %s.\n\n",
+				player->died_from);
+		}
 	}
 
 
@@ -1141,10 +1152,19 @@ void write_character_dump(ang_file *fff)
 
 		file_putf(fff, "  [%s]\n\n", title);
 		for (opt = 0; opt < OPT_MAX; opt++) {
-			if (option_type(opt) != i) continue;
+			const char *desc;
+			size_t u8len;
 
-			file_putf(fff, "%-45s: %s (%s)\n",
-			        option_desc(opt),
+			if (option_type(opt) != i) continue;
+			desc = option_desc(opt);
+			u8len = utf8_strlen(desc);
+			if (u8len < 45) {
+				file_putf(fff, "%s%*s", desc,
+					(int)(45 - u8len), " ");
+			} else {
+				file_putf(fff, "%s", desc);
+			}
+			file_putf(fff, ": %s (%s)\n",
 			        player->opts.opt[opt] ? "yes" : "no ",
 			        option_name(opt));
 		}
@@ -1159,7 +1179,7 @@ void write_character_dump(ang_file *fff)
 	 */
 	if (OPT(player, birth_randarts)) {
 		file_putf(fff, "  [Randart seed]\n\n");
-		file_putf(fff, "%08x\n\n", seed_randart);
+		file_putf(fff, "%08lx\n\n", (unsigned long)seed_randart);
 	}
 
 	mem_free(home_list);

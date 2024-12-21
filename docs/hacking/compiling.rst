@@ -74,19 +74,21 @@ To compile and run the unit tests, do this::
     make -f Makefile.osx tests
 
 If you want to rerun just one part, say monster/attack, of the unit tests,
-that's most easily done by::
+that's most easily done from the top directory of the source distribution::
+
+    src/tests/monster/attack.exe
+
+Somewhat older versions configure the test cases so they should be run
+from src/tests.  For those you would either use::
 
     cd src/tests
     monster/attack.exe
 
-Previous versions put the test executables in src/tests/bin.  With those
-versions, the second line above would be::
+or, for the even older versions that put the test executables in src/tests/bin,
+use::
 
+    cd src/tests
     bin/monster/attack
-
-The reason for changing directories to src/tests is to match up with how the
-tests were compiled:  they expect Angband's configuration data to be in
-../../lib.
 
 Statistics build
 ~~~~~~~~~~~~~~~~
@@ -100,9 +102,9 @@ of the standard build with those debugging commands enabled would be::
     cd src
     make -f Makefile.osx OPT="-DUSE_STATS -O2"
 
-If you had already built everything without statistcs enabled, you would need to
-run either "rm wiz-stats.o" or "make -f Makefile.osx clean" immediately after
-running "cd src".
+If you had already built everything without statistics enabled, you would need
+to run either "rm wiz-stats.o" or "make -f Makefile.osx clean" immediately
+after running "cd src".
 
 Linux / other UNIX
 ------------------
@@ -115,13 +117,14 @@ can optionally build (GCU, SDL, SDL2, and X11) using arguments to configure
 such as --enable-sdl, --disable-x11, etc. Each front end has different
 dependencies (e.g. ncurses, SDL libraries, etc).
 
-If your source files are from cloning the git repository, you'll first need
-to run this to create the configure script::
+If your source files are from rephial.org, from a "Source code" link on the
+github releases page, or from cloning the git repository, you'll first need to
+run this to create the configure script::
 
     ./autogen.sh
 
-That is not necessary if your source files are from the source archive,
-a .tar.gz file, for a release.
+That is not necessary for source files that are from the github releases page
+but not from a "Source code" link on that page.
 
 To build Angband to be run in-place, then run this::
 
@@ -232,14 +235,24 @@ the name or number of the group to use.  If you do not set the group, the games
 group will be used.  Another option creates a read-only installation with any
 variable state, including the high score and save files, stored on a per-user
 basis in the user's own directories.  To enable that option, pass
--DREADONLY_INSTALL=ON to cmake.  Turning on both SHARED_INSTALL and
-READONLY_INSTALL is not supported and will cause cmake to exit with an error.
-Turning either SHARED_INSTALL or READONLY_INSTALL when SUPPORT_WINDOWS_FRONTEND
-is on is also not supported and will cause cmake to exit with an error.  To
-customize where the shared and read-only installations place files, pass
--DCMAKE_INSTALL_PREFIX=prefix to install all the files within the given prefix
-(i.e. using -DCMAKE_INSTALL_PREFIX=/opt/Angband-4.2.3 would place all the files
-within /opt/Angband-4.2.3 or its subdirectories).  For finer-grained placement
+-DREADONLY_INSTALL=ON to cmake.  With either SHARED_INSTALL or READONLY_INSTALL,
+you will need to run 'make install' after the other steps for compiling with
+CMake.  As an example, this would build a shared installation with an
+executable that is setgid for the games group::
+
+    mkdir build && cd build
+    cmake -DSHARED_INSTALL=ON -DSUPPORT_GCU_FRONTEND=ON ..
+    make
+    sudo make install
+
+Turning on both SHARED_INSTALL and READONLY_INSTALL is not supported and will
+cause cmake to exit with an error.  Turning either SHARED_INSTALL or
+READONLY_INSTALL when SUPPORT_WINDOWS_FRONTEND is on is also not supported
+and will cause cmake to exit with an error.  To customize where the shared
+and read-only installations place files, pass -DCMAKE_INSTALL_PREFIX=prefix
+to install all the files within the given prefix (i.e. using
+-DCMAKE_INSTALL_PREFIX=/opt/Angband-4.2.3 would place all the files within
+/opt/Angband-4.2.3 or its subdirectories).  For finer-grained placement
 of the files within the given prefix, you could also set CMAKE_INSTALL_BINDIR
 (for the subdirectory of prefix where the executable will be placed; by
 default that is bin), CMAKE_INSTALL_DATAROOTDIR (for the subdirectory of
@@ -263,21 +276,28 @@ This type of build now also uses autotools so the overall procedure is very
 similar to that for a native build.  The key difference is setting up to
 cross-compile when running configure.
 
-If your source files are from cloning the git repository, you'll first need
-to run this to create the configure script::
+If your source files are from rephial.org, from a "Source code" link on the
+github releases page, or from cloning the git repository, you'll first need to
+run this to create the configure script::
 
-        ./autogen.sh
+	./autogen.sh
 
-That is not necessary if your source files are from the source archive,
-a .tar.gz file, for a release.
+That is not necessary for source files that are from the github releases page
+but not from a "Source code" link on that page.
 
-Then configure the cross-comilation and perform the compilation itself::
+Then configure the cross-compilation and perform the compilation itself::
 
-	./configure --enable-win --build=i686-pc-linux-gnu --host=i586-mingw32msvc
+	./configure --enable-win --build=i686-pc-linux-gnu --host=i686-w64-mingw32
 	make install
 
-The last step only works with very recent versions.  For older ones, use this
-instead of the last step::
+You may need to change the --build and --host options there to match your
+system. Mingw installs commands like 'i686-w64-mingw32-gcc'. The value of --host
+should be that same command with the '-gcc' removed. Instead of i686 you may
+see i686, amd64, etc. The value of --build should be the host you're building
+on (see http://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.68/html_node/Specifying-Target-Triplets.html#Specifying%20Names for
+gory details of how these triplets are arrived at).  The 'make install' step
+only works with very recent version.  For older ones, use this instead of the
+last step::
 
 	make
 	cp src/angband.exe .
@@ -287,12 +307,6 @@ To run the result, you can use wine like this::
 
 	wine angband.exe
 
-Mingw installs commands like 'i586-mingw32msvc-gcc'. The value of --host
-should be that same command with the '-gcc' removed. Instead of i586 you may
-see i686, amd64, etc. The value of --build should be the host you're building
-on. (See http://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.68/html_node/Specifying-Target-Triplets.html#Specifying%20Names for
-gory details of how these triplets are arrived at)
-
 TODO: except for recent versions (after Angband 4.2.3) you likely need to
 manually disable curses (add --disable-curses to the options passed to
 configure), or the host curses installation will be found causing the build
@@ -300,8 +314,42 @@ process to fail when linking angband.exe (the error message will likely be
 "cannot find -lncursesw" and "cannot find -ltinfo").  Most of the --with or
 --enable options for configure are not appropriate when using --enable-win.
 The ones that are okay are --with-private-dirs (on by default),
---with-gamedata-in-lib (has no effect), --enable-release,
---enable-more-gcc-warnings, and --enable-skip-old-int-typedefs.
+--with-gamedata-in-lib (has no effect), and --enable-release.
+
+A build using Mingw cross-compiler is also possible with CMake.  You will
+need to have a toolchain file appropriate for Mingw on your system.  Some
+information on toolchain files can be found at https://cmake.org/cmake/help/book/mastering-cmake/chapter/Cross%20Compiling%20With%20CMake.html .
+On a Debian 11 system using Mingw from the gcc-mingw-w64 package (that puts
+the Mingw executables in /usr/bin with the prefix, i686-w64-mingw32-, and
+has the other files for cross-compiling in /usr/i686-w64-mingw32), this
+worked as the contents of a minimal toolchain file::
+
+	set(CMAKE_SYSTEM_NAME Windows)
+	set(CMAKE_C_COMPILER i686-w64-mingw32-gcc)
+	set(CMAKE_RC_COMPILER i686-w64-mingw32-windres)
+	set(CMAKE_FIND_ROOT_PATH /usr/i686-w64-mingw32)
+	set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+	set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+	set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+With Wine installed on that system, you could add this to the toolchain file::
+
+	set(CMAKE_CROSSCOMPILING_EMULATOR wine)
+
+so the unit test cases could be run from cmake (for instance with
+"cmake --build . --target allunittests").
+
+If the toolchain file was saved as /home/user/mingw-cross.cmake, then you could
+use this to perform the build::
+
+	mkdir build && cd build
+	cmake -DCMAKE_TOOLCHAIN_FILE=/home/user/mingw-cross.cmake ..
+	cmake --build .
+
+That will leave an Angband.exe and the needed .dll files in the directory
+where cmake was run.  That executable can be run with wine:
+
+	wine Angband.exe
 
 Debug build
 ~~~~~~~~~~~
@@ -313,7 +361,7 @@ When debugging crashes it can be very useful to get more information about *what
     ./configure [options]
     SANITIZE_FLAGS="-fsanitize=undefined -fsanitize=address" make
 
-Note that compiling with this tools will require installing additional dependancies: libubsan libasan (names of the packages might be different in your distribution).
+Note that compiling with these tools will require installing additional dependencies: libubsan libasan (names of the packages might be different in your distribution).
 
 There is probably a way to get these tools to work on Windows. If you know how, please add the information to this file.
 
@@ -367,7 +415,7 @@ including --enable-stats in the options to configure.  For that to work, you'll
 need to have sqlite3's headers and libraries installed (on Debian and Ubuntu,
 the libsqlite3-dev package and its dependencies provides those).   If using
 CMake, pass -DSUPPORT_STATS_FRONTEND=ON to cmake to get the statistics front
-end and support for the debugging commnands related to statistics; like builds
+end and support for the debugging commands related to statistics; like builds
 with configure that use --enable-stats, that requires sqlite3.  With CMake, you
 also have an the option to only include support for the debugging commands
 related to statistics:  pass -DSUPPORT_STATS_BACKEND=ON to cmake and either do
@@ -390,13 +438,14 @@ Using MinGW
 This build now also uses autotools, so should be very similar to the Linux
 build. Open the MinGW shell (MSYS) by running msys.bat.
 
-If your source files are from cloning the git repository, you'll first need
-to run this in the directory to create the configure script::
+If your source files are from rephial.org, from a "Source code" link on the
+github releases page, or from cloning the git repository, you'll first need to
+run this to create the configure script::
 
         ./autogen.sh
 
-That is not necessary if your source files are from the source archive,
-a .tar.gz file, for a release.
+That is not necessary for source files that are from the github releases page
+but not from a "Source code" link on that page.
 
 Then run these commands::
 
@@ -416,13 +465,14 @@ can run with or without Cygwin.
 Use the Cygwin setup.exe to install the mingw-gcc-core package and any
 dependencies suggested by the installer.
 
-If your source files are from cloning the git repository, you'll first need
-to run this in the directory to create the configure script::
+If your source files are from rephial.org, from a "Source code" link on the
+github releases page, or from cloning the git repository, you'll first need to
+run this to create the configure script::
 
-        ./autogen.sh
+	./autogen.sh
 
-That is not necessary if your source files are from the source archive,
-a .tar.gz file, for a release.
+That is not necessary for source files that are from the github releases page
+but not from a "Source code" link on that page.
 
 Then run these commands::
 
@@ -442,14 +492,18 @@ Using MSYS2 (with MinGW64)
 
 Install the dependencies by::
 
-	pacman -S make mingw-w64-x86_64-toolchain mingw-w64-x86_64-ncurses
+	pacman -S make mingw-w64-x86_64-gcc
 
-Additional dependencies for SDL2 client::
+The additional dependency for ncurses is::
 
-	pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_gfx \
-		  mingw-w64-x86_64-SDL2_image mingw-w64-x86_64-SDL2_ttf
+	pacman -S mingw-w64-x86_64-ncurses
 
-Then run the following to compile with ncurse::
+Additional dependencies for the SDL2 client are::
+
+	pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_image \
+		mingw-w64-x86_64-SDL2_ttf
+
+Then run the following to compile with ncurses::
 
 	cd src
 	make -f Makefile.msys2
@@ -459,11 +513,22 @@ For SDL2, do::
 	cd src
 	make -f Makefile.msys2.sdl2
 
-Go to the root of the source directory and start angband by::
+Very recent versions of Makefile.msys2.sdl2 allow use of SDL2 sound; to build
+with that you'll need SDL2_mixer installed in addition to the other SDL2
+libraries mentioned above::
+
+	pacman -S mingw-w64-x86_64-SDL2_mixer
+
+Then the executable with SDL2 sound support can be built with::
+
+	cd src
+	make -f Makefile.msys2.sdl2 SOUND=yes
+
+Once built, go to the root of the source directory and start angband by::
 
 	./angband.exe -uPLAYER
 
-The ncurse client may not be able to start properly from msys2 shell, try::
+The ncurses client may not be able to start properly from msys2 shell, try::
 
 	start bash
 
@@ -487,7 +552,8 @@ Using eclipse (Indigo) on Windows (with MinGW)
 * Go to C/C++ Build | Toolchain Editor, select "Gnu Make Builder" instead of "CDT Internal Builder"
 * go to C/C++ Build, uncheck "Generate Makefiles automatically"
 
-You still need to run ./autogen.sh, if your source files are from cloning the
+You still need to run ./autogen.sh, if your source files are from a
+"Source code" link on the github releases page or from cloning the
 git repository, and ./configure manually, outside eclipse (see above)
 
 Using Visual Studio
@@ -554,6 +620,31 @@ connect to the target device::
 
 Afterwards, the debugging target will pause automatically and it can be debugged as usual
 using GDB.
+
+Cross-building for DOS with DJGPP
+---------------------------------
+These instructions were written using a Slackware64-15.0 host.
+
+Install the following cross-compiler:
+https://github.com/andrewwutw/build-djgpp
+
+	git clone https://github.com/andrewwutw/build-djgpp.git
+	cd build-djgpp
+	DJGPP_PREFIX=$HOME/local/cross-djgpp ./build-djgpp.sh 10.3.0
+
+Then build angband using the cross-compiler:
+
+	cd angband/src
+	PATH=$PATH:$HOME/local/cross-djgpp/bin
+	make -f Makefile.ibm
+
+Optionally build the documentation (requires Sphinx):
+
+	make -f Makefile.ibm docs
+
+To create the angband.zip distribution
+
+	make -f Makefile.ibm dist
 
 Documentation
 -------------

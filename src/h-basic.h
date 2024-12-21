@@ -21,14 +21,6 @@
 
 #else
 
-/**
- * Using C99, assume we have stdint and stdbool
- */
-# if (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) \
-  || (defined(_MSC_VER) && _MSC_VER >= 1600L)
-#  define HAVE_STDINT_H 1
-# endif
-
 # if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #  define HAVE_STDbool_H
 # endif
@@ -129,7 +121,11 @@
 # include <unistd.h>
 #endif
 
-
+#if defined(__GNUC__) || defined(__clang__)
+#define ATTRIBUTE __attribute__
+#else
+#define ATTRIBUTE(x)
+#endif
 
 /**
  * ------------------------------------------------------------------------
@@ -139,31 +135,9 @@
 
 /**
  * errr is an error code
- *
- * byte/s16b/u16b/s32b/u32b/s64b/u64b have been deprecated; use the
- * standard uint8_t, int16_t, uint16_t, ... types instead.  Those typedefs
- * will still be defined if SKIP_ANGBAND_OLD_INT_TYPEDEFS is not set.
- *
- * A "byte" is an unsigned byte of memory.
- * s16b/u16b are exactly 2 bytes (where possible)
- * s32b/u32b are exactly 4 bytes (where possible)
  */
 
 typedef int errr;
-
-#ifndef SKIP_ANGBAND_OLD_INT_TYPEDEFS
-/* Use guaranteed-size types */
-typedef uint8_t byte;
-
-typedef uint16_t u16b;
-typedef int16_t s16b;
-
-typedef uint32_t u32b;
-typedef int32_t s32b;
-
-typedef uint64_t u64b;
-typedef int64_t s64b;
-#endif
 
 /** Debugging macros ***/
 

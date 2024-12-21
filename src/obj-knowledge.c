@@ -84,6 +84,7 @@ static void init_rune(void)
 		if (prop->subtype == OFT_LIGHT) continue;
 		if (prop->subtype == OFT_DIG) continue;
 		if (prop->subtype == OFT_THROW) continue;
+		if (prop->subtype == OFT_CURSE_ONLY) continue;
 		count++;
 	}
 	for (i = 0; i < OBJ_MOD_MAX; i++) {
@@ -180,6 +181,7 @@ static void init_rune(void)
 		if (prop->subtype == OFT_LIGHT) continue;
 		if (prop->subtype == OFT_DIG) continue;
 		if (prop->subtype == OFT_THROW) continue;
+		if (prop->subtype == OFT_CURSE_ONLY) continue;
 
 		rune_list[count++] = (struct rune)
 			{ RUNE_VAR_FLAG, i, 0, prop->name };
@@ -560,9 +562,9 @@ bool object_is_in_store(const struct object *obj)
 	struct object *obj1;
 
 	/* Check all the store objects */
-	for (i = 0; i < MAX_STORES; i++) {
+	for (i = 0; i < z_info->store_max; i++) {
 		struct store *s = &stores[i];
-		if (s->sidx == STORE_HOME) continue;
+		if (s->feat == FEAT_HOME) continue;
 		for (obj1 = s->stock; obj1; obj1 = obj1->next)
 			if (obj1 == obj) return true;
 	}
@@ -1043,22 +1045,32 @@ void player_know_object(struct player *p, struct object *obj)
 	obj->known->to_d = p->obj_k->to_d * obj->to_d;
 
 	/* Set modifiers */
-	for (i = 0; i < OBJ_MOD_MAX; i++)
-		if (p->obj_k->modifiers[i])
+	for (i = 0; i < OBJ_MOD_MAX; i++) {
+		if (p->obj_k->modifiers[i]) {
 			obj->known->modifiers[i] = obj->modifiers[i];
+		} else {
+			obj->known->modifiers[i] = 0;
+		}
+	}
 
 	/* Set elements */
-	for (i = 0; i < ELEM_MAX; i++)
+	for (i = 0; i < ELEM_MAX; i++) {
 		if (p->obj_k->el_info[i].res_level == 1) {
 			obj->known->el_info[i].res_level = obj->el_info[i].res_level;
 			obj->known->el_info[i].flags = obj->el_info[i].flags;
+		} else {
+			obj->known->el_info[i].res_level = 0;
+			obj->known->el_info[i].flags = 0;
 		}
+	}
 
 	/* Set object flags */
+	of_wipe(obj->known->flags);
 	for (flag = of_next(p->obj_k->flags, FLAG_START); flag != FLAG_END;
 		 flag = of_next(p->obj_k->flags, flag + 1)) {
-		if (of_has(obj->flags, flag))
+		if (of_has(obj->flags, flag)) {
 			of_on(obj->known->flags, flag);
+		}
 	}
 
 	/* Curse object structures are finished now */
@@ -1068,27 +1080,47 @@ void player_know_object(struct player *p, struct object *obj)
 
 	/* Set brands */
 	if (obj->brands) {
+		bool known_brand = false;
+
 		for (i = 1; i < z_info->brand_max; i++) {
 			if (player_knows_brand(p, i) && obj->brands[i]) {
 				if (!obj->known->brands) {
-					obj->known->brands = mem_zalloc(z_info->brand_max *
-													sizeof(bool));
+					obj->known->brands = mem_zalloc(
+						z_info->brand_max *
+						sizeof(bool));
 				}
 				obj->known->brands[i] = true;
+				known_brand = true;
+			} else if (obj->known->brands) {
+				obj->known->brands[i] = false;
 			}
+		}
+		if (!known_brand && obj->known->brands) {
+			mem_free(obj->known->brands);
+			obj->known->brands = NULL;
 		}
 	}
 
 	/* Set slays */
 	if (obj->slays) {
+		bool known_slay = false;
+
 		for (i = 1; i < z_info->slay_max; i++) {
 			if (player_knows_slay(p, i) && obj->slays[i]) {
 				if (!obj->known->slays) {
-					obj->known->slays = mem_zalloc(z_info->slay_max *
-												   sizeof(bool));
+					obj->known->slays = mem_zalloc(
+						z_info->slay_max *
+						sizeof(bool));
 				}
 				obj->known->slays[i] = true;
+				known_slay = true;
+			} else if (obj->known->slays) {
+				obj->known->slays[i] = false;
 			}
+		}
+		if (!known_slay && obj->known->slays) {
+			mem_free(obj->known->slays);
+			obj->known->slays = NULL;
 		}
 	}
 
@@ -1120,10 +1152,21 @@ void player_know_object(struct player *p, struct object *obj)
 	if (player_knows_ego(p, obj->ego, obj)) {
 		seen = obj->ego->everseen;
 		obj->known->ego = obj->ego;
+	} else {
+		obj->known->ego = NULL;
 	}
 
-	if (object_non_curse_runes_known(obj) && tval_is_jewelry(obj)) {
-		seen = (obj->artifact) ? true : obj->kind->everseen;
+	if (tval_is_jewelry(obj)) {
+		if (object_non_curse_runes_known(obj)) {
+			seen = (obj->artifact) ? true : obj->kind->everseen;
+			object_flavor_aware(p, obj);
+		}
+	} else if (obj->kind->kidx >= z_info->ordinary_kind_max) {
+		/*
+		 * Become aware if it is a special artifact that isn't
+		 * jewelry.
+		 */
+		seen = true;
 		object_flavor_aware(p, obj);
 	}
 
@@ -1183,7 +1226,7 @@ void update_player_object_knowledge(struct player *p)
 		player_know_object(p, obj);
 
 	/* Store objects */
-	for (i = 0; i < MAX_STORES; i++) {
+	for (i = 0; i < z_info->store_max; i++) {
 		struct store *s = &stores[i];
 		for (obj = s->stock; obj; obj = obj->next)
 			player_know_object(p, obj);
@@ -1334,6 +1377,53 @@ void player_learn_flag(struct player *p, int flag)
 	player_learn_rune(p, rune_index(RUNE_VAR_FLAG, flag), true);
 	update_player_object_knowledge(p);
 }
+
+/**
+ * Learn a slay.
+ */
+void player_learn_slay(struct player *p, int index)
+{
+	/* Learn about the slay */
+	if (!player_knows_slay(p, index)) {
+		int i;
+
+		/* Find the rune index */
+		for (i = 1; i < z_info->slay_max; i++) {
+			if (same_monsters_slain(i, index)) {
+				break;
+			}
+		}
+		assert(i < z_info->slay_max);
+
+		/* Learn the rune */
+		player_learn_rune(p, rune_index(RUNE_VAR_SLAY, i), true);
+		update_player_object_knowledge(p);
+	}
+}
+
+/**
+ * Learn a brand.
+ */
+void player_learn_brand(struct player *p, int index)
+{
+	/* Learn about the brand */
+	if (!player_knows_brand(p, index)) {
+		int i;
+
+		/* Find the rune index */
+		for (i = 1; i < z_info->brand_max; i++) {
+			if (streq(brands[i].name, brands[index].name)) {
+				break;
+			}
+		}
+		assert(i < z_info->brand_max);
+
+		/* Learn the rune */
+		player_learn_rune(p, rune_index(RUNE_VAR_BRAND, i), true);
+		update_player_object_knowledge(p);
+	}
+}
+
 
 /**
  * Learn a curse
@@ -1707,7 +1797,11 @@ void object_learn_unknown_rune(struct player *p, struct object *obj)
 	int i = object_find_unknown_rune(p, obj);
 
 	/* No unknown runes */
-	if (i < 0) return;
+	if (i < 0) {
+		obj->known->notice |= OBJ_NOTICE_ASSESSED;
+		player_know_object(player, obj);
+		return;
+	}
 
 	/* Learn the rune */
 	player_learn_rune(p, i, true);
@@ -1836,59 +1930,6 @@ void object_learn_on_use(struct player *p, struct object *obj)
 
 	p->upkeep->notice |= PN_IGNORE;
 }
-
-/**
- * Notice any slays on a particular object which affect a particular monster.
- *
- * \param obj is the object on which we are noticing slays
- * \param mon the monster we are trying to slay
- */
-void object_learn_slay(struct player *p, struct object *obj, int index)
-{
-	/* Learn about the slay */
-	if (!player_knows_slay(p, index)) {
-		int i;
-
-		/* Find the rune index */
-		for (i = 1; i < z_info->slay_max; i++) {
-			if (same_monsters_slain(i, index)) {
-				break;
-			}
-		}
-		assert(i < z_info->slay_max);
-
-		/* Learn the rune */
-		player_learn_rune(p, rune_index(RUNE_VAR_SLAY, i), true);
-		update_player_object_knowledge(p);
-	}
-}
-
-/**
- * Notice any brands on a particular object which affect a particular monster.
- *
- * \param obj is the object on which we are noticing brands
- * \param mon the monster we are trying to brand
- */
-void object_learn_brand(struct player *p, struct object *obj, int index)
-{
-	/* Learn about the brand */
-	if (!player_knows_brand(p, index)) {
-		int i;
-
-		/* Find the rune index */
-		for (i = 1; i < z_info->brand_max; i++) {
-			if (streq(brands[i].name, brands[index].name)) {
-				break;
-			}
-		}
-		assert(i < z_info->brand_max);
-
-		/* Learn the rune */
-		player_learn_rune(p, rune_index(RUNE_VAR_BRAND, i), true);
-		update_player_object_knowledge(p);
-	}
-}
-
 
 /**
  * Learn attack bonus on making a ranged attack.
@@ -2238,7 +2279,7 @@ void object_flavor_aware(struct player *p, struct object *obj)
 		object_set_base_known(p, obj1);
 
 	/* Store objects */
-	for (i = 0; i < MAX_STORES; i++) {
+	for (i = 0; i < z_info->store_max; i++) {
 		struct store *s = &stores[i];
 		for (obj1 = s->stock; obj1; obj1 = obj1->next)
 			object_set_base_known(p, obj1);

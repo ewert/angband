@@ -35,7 +35,6 @@
 #include "game-world.h"
 #include "generate.h"
 #include "init.h"
-#include "math.h"
 #include "mon-make.h"
 #include "mon-move.h"
 #include "mon-spell.h"
@@ -223,75 +222,66 @@ static errr run_parse_profile(struct parser *p) {
 
 static errr finish_parse_profile(struct parser *p) {
 	struct cave_profile *n, *c = parser_priv(p);
-	int i, num;
+	int num;
 
-	z_info->profile_max = 0;
 	/* Count the list */
+	z_info->profile_max = 0;
 	while (c) {
-		struct room_profile *r = c->room_profiles;
-		c->n_room_profiles = 0;
-
 		z_info->profile_max++;
 		c = c->next;
-		while (r) {
-			c->n_room_profiles++;
-			r = r->next;
-		}
 	}
 
 	/* Allocate the array and copy the records to it */
 	cave_profiles = mem_zalloc(z_info->profile_max * sizeof(*c));
 	num = z_info->profile_max - 1;
 	for (c = parser_priv(p); c; c = n) {
-		struct room_profile *r_new = NULL;
-
 		/* Main record */
 		memcpy(&cave_profiles[num], c, sizeof(*c));
 		n = c->next;
-		if (num < z_info->profile_max - 1)
+		if (num < z_info->profile_max - 1) {
 			cave_profiles[num].next = &cave_profiles[num + 1];
-		else
+		} else {
 			cave_profiles[num].next = NULL;
-
-		/* Count the room profiles */
-		if (c->room_profiles) {
-			struct room_profile *r = c->room_profiles;
-			c->n_room_profiles = 0;
-
-			while (r) {
-				c->n_room_profiles++;
-				r = r->next;
-			}
 		}
 
-		/* Now allocate the room profile array */
 		if (c->room_profiles) {
-			struct room_profile *r_temp, *r_old = c->room_profiles;
+			struct room_profile *r_old = c->room_profiles;
+			struct room_profile *r_new;
+			int i;
 
-			/* Allocate space and copy */
-			r_new = mem_zalloc(c->n_room_profiles * sizeof(*r_new));
-			for (i = 0; i < c->n_room_profiles; i++) {
-				memcpy(&r_new[i], r_old, sizeof(*r_old));
+			/* Count the room profiles */
+			cave_profiles[num].n_room_profiles = 0;
+			while (r_old) {
+				++cave_profiles[num].n_room_profiles;
 				r_old = r_old->next;
-				if (!r_old) break;
 			}
 
-			/* Make next point correctly */
-			for (i = 0; i < c->n_room_profiles; i++)
-				if (r_new[i].next)
-					r_new[i].next = &r_new[i + 1];
+			/* Now allocate the room profile array */
+			r_new = mem_zalloc(cave_profiles[num].n_room_profiles
+				* sizeof(*r_new));
 
-			/* Tidy up */
 			r_old = c->room_profiles;
-			r_temp = r_old;
-			while (r_temp) {
-				r_temp = r_old->next;
-				mem_free(r_old);
-				r_old = r_temp;
+			for (i = 0; i < cave_profiles[num].n_room_profiles; i++) {
+				struct room_profile *r_temp = r_old;
+
+				/* Copy from the linked list to the array */
+				memcpy(&r_new[i], r_old, sizeof(*r_old));
+
+				/* Set the next profile pointer correctly. */
+				if (r_new[i].next) {
+					r_new[i].next = &r_new[i + 1];
+				}
+
+				/* Tidy up and advance to the next profile. */
+				r_old = r_old->next;
+				mem_free(r_temp);
 			}
+
+			cave_profiles[num].room_profiles = r_new;
+		} else {
+			cave_profiles[num].n_room_profiles = 0;
+			cave_profiles[num].room_profiles = NULL;
 		}
-		cave_profiles[num].room_profiles = r_new;
-		cave_profiles[num].n_room_profiles = c->n_room_profiles;
 
 		mem_free(c);
 		num--;
@@ -693,8 +683,8 @@ static void place_feeling(struct chunk *c)
 			/* Pick a random dungeon coordinate */
 			struct loc grid = loc(randint0(c->width), randint0(c->height));
 
-			/* Check to see if it is not passable */
-			if (!square_ispassable(c, grid))
+			/* Check to see if it can be used as a feeling square */
+			if (!square_allowsfeel(c, grid))
 				continue;
 
 			/* Check to see if it is already marked */
@@ -1140,9 +1130,14 @@ static struct chunk *cave_generate(struct player *p, int height, int width)
 		/* Choose a profile and build the level */
 		dun->profile = choose_profile(p);
 		event_signal_string(EVENT_GEN_LEVEL_START, dun->profile->name);
-		chunk = dun->profile->builder(p, height, width);
+		chunk = dun->profile->builder(p, height, width, &error);
 		if (!chunk) {
-			error = "Failed to find builder";
+			if (!error) {
+				error = "unspecified level builder failure";
+			}
+			if (OPT(p, cheat_room)) {
+				msg("Generation restarted: %s.", error);
+			}
 			cleanup_dun_data(dun);
 			event_signal_flag(EVENT_GEN_LEVEL_END, false);
 			continue;
@@ -1150,21 +1145,22 @@ static struct chunk *cave_generate(struct player *p, int height, int width)
 
 		/* Ensure quest monsters */
 		if (dun->quest) {
-			int i2;
-			for (i2 = 1; i2 < z_info->r_max; i2++) {
-				struct monster_race *race = &r_info[i2];
+			for (i = 0; i < z_info->quest_max; i++) {
+				struct quest *q = &player->quests[i];
 				struct monster_group_info info = { 0, 0 };
 				struct loc grid;
 
-				/* The monster must be an unseen quest monster of this depth. */
-				if (race->cur_num > 0) continue;
-				if (!rf_has(race->flags, RF_QUESTOR)) continue;
-				if (race->level != chunk->depth) continue;
-	
-				/* Pick a location and place the monster */
-				find_empty(chunk, &grid);
-				place_new_monster(chunk, grid, race, true, true, info,
-								  ORIGIN_DROP);
+				if (q->level != chunk->depth) continue;
+
+				/* If the quest monster is unique and has already been placed, don't place again */
+				if (rf_has(q->race->flags, RF_UNIQUE) && q->race->cur_num > 0) continue;
+
+				/* Pick a location and place the monster(s) */
+				for (int n = 0; n < q->max_num; n++) {
+					find_empty(chunk, &grid);
+					place_new_monster(chunk, grid, q->race, true, true, info,
+									  ORIGIN_DROP);
+				}
 			}
 		}
 
@@ -1201,6 +1197,7 @@ static struct chunk *cave_generate(struct player *p, int height, int width)
 			if (OPT(p, cheat_room)) {
 				msg("Generation restarted: %s.", error);
 			}
+			uncreate_artifacts(chunk);
 			cave_clear(chunk, p);
 			event_signal_flag(EVENT_GEN_LEVEL_END, false);
 		}
@@ -1275,7 +1272,7 @@ static void sanitize_player_loc(struct chunk *c, struct player *p)
 	ix = randint0(c->width - 1) + 1;
 	iy = randint0(c->height - 1) + 1;
 	ty = iy;
-	tx = tx + 1;
+	tx = ix + 1;
 	if (tx >= c->width - 1) {
 		tx = 1;
 		ty = ty + 1;
