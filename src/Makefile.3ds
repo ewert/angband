@@ -41,7 +41,7 @@ TARGET		:=	$(PROGNAME)
 BUILD		:=	3ds-build
 SOURCES		:=	nds
 DATA		:=
-INCLUDES	:=
+INCLUDES	:=	.
 GRAPHICS	:=
 GFXBUILD	:=	$(BUILD)
 #ROMFS		:=	romfs
@@ -69,7 +69,7 @@ endif
 CFLAGS	+=	$(INCLUDE) -D__3DS__
 
 # Angband flags
-CFLAGS	+=	-DNDS -DHAVE_DIRENT_H
+CFLAGS	+=	-DNDS -DHAVE_DIRENT_H -DALLOW_BORG
 
 CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 
@@ -186,10 +186,10 @@ endif
 .PHONY: all clean
 
 #---------------------------------------------------------------------------------
-all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES)
+all: $(BUILD) $(BUILD)/borg $(GFXBUILD) $(DEPSDIR) $(DEPSDIR)/borg $(ROMFS_T3XFILES) $(T3XHFILES)
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile.3ds $(PROGNAME).3dsx
 
-$(BUILD):
+$(BUILD) $(BUILD)/borg:
 	@mkdir -p $@
 
 ifneq ($(GFXBUILD),$(BUILD))
@@ -197,8 +197,8 @@ $(GFXBUILD):
 	@mkdir -p $@
 endif
 
-ifneq ($(DEPSDIR),$(BUILD))
-$(DEPSDIR):
+ifneq ($(DEPSDIR),$(BUILD))     
+$(DEPSDIR) $(DEPSDIR)/borg:
 	@mkdir -p $@
 endif
 

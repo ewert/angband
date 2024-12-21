@@ -35,7 +35,6 @@
 #include "game-world.h"
 #include "generate.h"
 #include "init.h"
-#include "math.h"
 #include "mon-make.h"
 #include "mon-move.h"
 #include "mon-spell.h"
@@ -684,8 +683,8 @@ static void place_feeling(struct chunk *c)
 			/* Pick a random dungeon coordinate */
 			struct loc grid = loc(randint0(c->width), randint0(c->height));
 
-			/* Check to see if it is not passable */
-			if (!square_ispassable(c, grid))
+			/* Check to see if it can be used as a feeling square */
+			if (!square_allowsfeel(c, grid))
 				continue;
 
 			/* Check to see if it is already marked */
@@ -1131,9 +1130,14 @@ static struct chunk *cave_generate(struct player *p, int height, int width)
 		/* Choose a profile and build the level */
 		dun->profile = choose_profile(p);
 		event_signal_string(EVENT_GEN_LEVEL_START, dun->profile->name);
-		chunk = dun->profile->builder(p, height, width);
+		chunk = dun->profile->builder(p, height, width, &error);
 		if (!chunk) {
-			error = "Failed to find builder";
+			if (!error) {
+				error = "unspecified level builder failure";
+			}
+			if (OPT(p, cheat_room)) {
+				msg("Generation restarted: %s.", error);
+			}
 			cleanup_dun_data(dun);
 			event_signal_flag(EVENT_GEN_LEVEL_END, false);
 			continue;
@@ -1141,21 +1145,22 @@ static struct chunk *cave_generate(struct player *p, int height, int width)
 
 		/* Ensure quest monsters */
 		if (dun->quest) {
-			int i2;
-			for (i2 = 1; i2 < z_info->r_max; i2++) {
-				struct monster_race *race = &r_info[i2];
+			for (i = 0; i < z_info->quest_max; i++) {
+				struct quest *q = &player->quests[i];
 				struct monster_group_info info = { 0, 0 };
 				struct loc grid;
 
-				/* The monster must be an unseen quest monster of this depth. */
-				if (race->cur_num > 0) continue;
-				if (!rf_has(race->flags, RF_QUESTOR)) continue;
-				if (race->level != chunk->depth) continue;
-	
-				/* Pick a location and place the monster */
-				find_empty(chunk, &grid);
-				place_new_monster(chunk, grid, race, true, true, info,
-								  ORIGIN_DROP);
+				if (q->level != chunk->depth) continue;
+
+				/* If the quest monster is unique and has already been placed, don't place again */
+				if (rf_has(q->race->flags, RF_UNIQUE) && q->race->cur_num > 0) continue;
+
+				/* Pick a location and place the monster(s) */
+				for (int n = 0; n < q->max_num; n++) {
+					find_empty(chunk, &grid);
+					place_new_monster(chunk, grid, q->race, true, true, info,
+									  ORIGIN_DROP);
+				}
 			}
 		}
 
@@ -1192,6 +1197,7 @@ static struct chunk *cave_generate(struct player *p, int height, int width)
 			if (OPT(p, cheat_room)) {
 				msg("Generation restarted: %s.", error);
 			}
+			uncreate_artifacts(chunk);
 			cave_clear(chunk, p);
 			event_signal_flag(EVENT_GEN_LEVEL_END, false);
 		}

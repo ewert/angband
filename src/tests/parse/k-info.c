@@ -412,7 +412,7 @@ static int test_effect0(void *state) {
 	eq(e->subtype, 0);
 	eq(e->radius, 0);
 	eq(e->other, 0);
-	eq(e->msg, 0);
+	null(e->msg);
 	/* Check for an effect with a subtype but without a radius or other. */
 	r = parser_parse(p, "effect:TIMED_INC:CUT");
 	eq(r, PARSE_ERROR_NONE);
@@ -533,7 +533,7 @@ static int test_missing_dice0(void *state) {
 
 	eq(r, PARSE_ERROR_NONE);
 	/*
-	 * Specifying and expression without preceding dice should do nothing
+	 * Specifying an expression without preceding dice should do nothing
 	 * and not flag an error.
 	 */
 	r = parser_parse(p, "expr:B:PLAYER_LEVEL:/ 6 + 1");

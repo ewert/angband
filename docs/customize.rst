@@ -60,13 +60,13 @@ So, you can save some settings - for example, keymaps - to the ``Mage.prf`` file
 
 You may also enter single user pref commands directly, using the special "Enter a user pref command" command, activated by pressing ``"``.
 
-You may have to use the redraw command (``^R``) after changing certain of the aspects of the game to allow Angband to adapt to your changes.
+You may have to use the redraw command (``^r``) after changing certain of the aspects of the game to allow Angband to adapt to your changes.
 
 
 Ignoring items
 ==============
 
-Angband allows you to ignore specific items that you don't want to see anymore. These items are marked 'ignored' and any similar items are hidden from view. The easiest way to ignore an item is with the ``k`` (or ``^D``) command; the object is dropped and then hidden from view.  When ignoring an object, you will be given a choice of ignoring just that object, or all objects like it in some way.
+Angband allows you to ignore specific items that you don't want to see anymore. These items are marked 'ignored' and any similar items are hidden from view. The easiest way to ignore an item is with the ``k`` (or ``^d``) command; the object is dropped and then hidden from view.  When ignoring an object, you will be given a choice of ignoring just that object, or all objects like it in some way. If you accidentally ignore an item or find yourself in a situation where you want to see if a previously ignored item is available nearby, one way to handle that is to turn off ignoring for all items with the ``K`` (or ``O``) command, go to the item you want, unignore it with the ``k`` (or ``^d``) command, and then turn on ignoring again with the ``K`` (or ``O``) command. When ignoring has been turned off for all items, you will see ``Unignoring`` in the status line at the bottom of the screen.
 
 The entire ignoring system can also be accessed from the options menu (``=``) by choosing ``i`` for ``Item ignoring setup``.  This allows ignore settings for non-wearable items, and quality and ego ignore settings (described below) for wearable items, to be viewed or changed.
 
@@ -101,7 +101,7 @@ Inscribing an item with '=g':
 	picking up ammunition after a shootout.  If there is a number
 	immediately after the 'g', then the amount picked up automatically
 	will be limited.  If you have inscribed a spellbook with '=g4' and have
-	four or more copies in your pack, you will not automatially pick up
+	four or more copies in your pack, you will not automatically pick up
 	any more copies when you have the 'pickup if in inventory' option
 	enabled.  If you have three copies in your pack with that inscription
 	and happen to find a pile of two copies, you'll automatically pick up
@@ -256,7 +256,7 @@ the subwindows and uses David Gervais's graphical tiles to display the map.
 You can close a subwindow with the standard close control on the window's
 upper right corner.  Closing the main window with the standard control causes
 the game to save its current state and then exit.  You can reopen or also
-close a subwindow via the "Visibilty" menu, the first entry in the "Window"
+close a subwindow via the "Visibility" menu, the first entry in the "Window"
 menu for the main window.  To move a window, use the standard procedure:
 position the mouse pointer on the window's title bar and then click and drag
 the mouse to change the window's position.  Click and drag on the edges or
@@ -320,7 +320,7 @@ With the X11 front end, the number of windows opened is set by the '-n' option
 on the command line, i.e. running ``./angband -mx11 -- -n4`` will open the
 main window and subwindows one through three if the executable is in the
 current working directory.  To control the font, placement, and size used for
-each of the windows, set enviroment variables before running Angband.  Those
+each of the windows, set environment variables before running Angband.  Those
 environment variables for window 'z' where 'z' is an integer between 0 (the
 main window) and 7 are:
 
@@ -391,7 +391,7 @@ and drags within the displayed subwindows to change the positions for those
 subwindows.  Disable both "Move" and "Size", by clicking on one if it is
 enabled, to restore passing input to the game's core.
 
-Within "Menu", the first entries control properties each of the displayed
+Within "Menu", the first entries control properties for each of the displayed
 terminal windows within that application window.  For the main window, you
 can set the font, graphical tile set, whether the window is shown with borders
 or not, and whether or not the window will be shown on top of the other windows.
@@ -403,7 +403,8 @@ will be shown on top of the other windows.
 
 Below the entries for the contained terminal windows, is an entry,
 "Fullscreen" for toggling fullscreen mode for that application window.  That
-entry will be gray when fullscreen mode is off and white when it is on.
+entry will display a rectangle at the end of the entry when fullscreen mode
+is on.  That rectangle will be absent when fullscreen mode is off.
 
 In the primary application window which contains the main window, there is an
 entry, "Send Keypad Modifier", after that for whether key strokes from the
@@ -417,7 +418,16 @@ keypad.  https://github.com/angband/angband/issues/4522 has an example of the
 problems that can be avoided by not sending the keypad modifier.
 
 Below "Send Keypad Modifier" in the primary application window's "Menu" is
-"Windows", use that to bring up one of the additional application windows.
+"Menu Shortcuts...".  That allows you to set a keystroke to transfer control
+to a window's menu.  By default, no such keystrokes are defined.  That avoids
+potential conflicts with any keymaps you may have.  While in the menus,
+keystrokes can be used for navigation.  The in-game horizontal and vertical
+movement keys will work to move between controls as will Tab (to go to the
+"next" control) and Shift-Tab (to go to the previous control).  Enter will
+activate a menu item if it can be activated.  Trying to descend further into
+the menus with the in-game movement keys will also activate if a menu item if
+it is as deep as you can go.  Below "Menu Shortcuts..." is "Windows":  use
+that to bring up one of the additional application windows.
 
 The final two entries in "Menu" are "About" for displaying an information
 dialog about the game and "Quit" to save the game and exit.
@@ -425,7 +435,7 @@ dialog about the game and "Quit" to save the game and exit.
 When you leave the game, the current settings for the SDL interface are saved
 as ``sdl2init.txt`` in the same directory as is used for preference files, see
 `User Pref Files`_ for details.  Those settings will be automatically reloaded
-the next time you start the SDL interface.
+the next time you start the SDL2 interface.
 
 Mac
 ~~~
@@ -452,8 +462,11 @@ application and then choosing from one of the entries in the Graphics option.
 Choosing "Classic ASCII" will display the map as text.  Any of the other options
 will use some form of graphical tiles to display the map.  If you wish to
 adjust how graphical tiles are scaled to match up with the currently selected
-font in the main window, select 'Change Tile Set Scaling...' in the Settings
-menu.
+font in the main window, use the 'Tile Size' menu in the Settings menu.  The
+100% entry in the 'Tile Size' menu will cause a tile to be displayed as
+close as possible to its native resolution.  The 200% entry will cause a
+tile to be displayed as close as possible to twice the tile's native width and
+height.
 
 When you leave the game, the current Mac-specific settings are saved and will
 be automatically reloaded when you restart.  The settings are stored in

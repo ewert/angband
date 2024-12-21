@@ -6,6 +6,7 @@
  *             26 Apr 2011
  */
 
+#include "mon-make.h"
 #include "mon-util.h"
 #include "player-birth.h"
 #include "test-utils.h"
@@ -21,6 +22,7 @@ int setup_tests(void **state) {
 
 int teardown_tests(void *state) {
 	mem_free(state);
+	cleanup_angband();
 	return 0;
 }
 
@@ -32,7 +34,7 @@ static int test_match_monster_bases(void *state) {
 	base = (&r_info[3])->base;
 	require(match_monster_bases(base, "canine", NULL));
 	require(match_monster_bases(base, "zephyr hound", "canine", NULL));
-	require(!match_monster_bases(base, "angel", NULL));
+	require(!match_monster_bases(base, "ainu", NULL));
 	require(!match_monster_bases(base, "lich", "vampire", "wraith", NULL));
 
 	/* Morgoth */
@@ -119,6 +121,9 @@ static int test_nearby_kin(void *state) {
 	require(seen_w2 > 0);
 	require(seen_a0 > 0);
 	require(seen_a1 > 0);
+
+	wipe_mon_list(c, player);
+	cave_free(c);
 
 	ok;
 }

@@ -35,8 +35,8 @@ the game that you wish to do the command multiple times, unless you press a
 key or are otherwise disturbed. To enter a "repeat count", type ``0``,
 followed by the numerical count, followed by the command. You must type
 'space' before entering certain commands. Skipping the numerical count
-yields a count of 99. An option allows certain commands (open, disarm,
-alter, etc) to auto-repeat.
+yields a count of 99 for the open, tunnel, disarm, alter, and close
+commands. All other commands do not repeat unless requested.
 
 Some commands will prompt for extra information, such as a direction, an
 inventory or equipment item, a spell, a textual inscription, the symbol of
@@ -103,7 +103,7 @@ Original Keyset Command Summary
 ``m``  Cast a spell                  ``M``  Display map of entire level
 ``n``  Repeat previous command       ``N``  (unused)
 ``o``  Open a door or chest          ``O``  (unused)
-``p``  (unused)                      ``P``  (unused)
+``p``  Walk to unexplored location   ``P``  (unused)
 ``q``  Quaff a potion                ``Q``  Kill character & quit
 ``r``  Read a scroll                 ``R``  Rest for a period
 ``s``  Steal (rogues only)           ``S``  See abilities
@@ -129,7 +129,7 @@ Original Keyset Command Summary
 ``[``  Display visible monster list  ``^m`` (special - return)
 ``]``  Display visible object list   ``^n`` (unused)
 ``-``  (unused)                      ``^o`` Show previous message
-``_``  Enter store                   ``^p`` Show previous messages
+``_``  (unused)                      ``^p`` Show previous messages
 ``+``  Alter grid                    ``^q`` (unused)
 ``=``  Set options                   ``^r`` Redraw the screen
 ``;``  Walk (with pickup)            ``^s`` Save and don't quit
@@ -137,9 +137,9 @@ Original Keyset Command Summary
 ``'``  Target closest monster        ``^u`` (unused)
 ``"``  Enter a user pref command     ``^v`` (unused)
 ``,``  Stay still (with pickup)      ``^w`` (special - wizard mode)
-``<``  Go up staircase               ``^x`` Save and quit
+``<``  Go up/to up staircase         ``^x`` Save and quit
 ``.``  Run                           ``^y`` (unused)
-``>``  Go down staircase             ``^z`` (unused)
+``>``  Go down/to down staircase     ``^z`` (unused)
 ``\``  (special - bypass keymap)     ``~``  Check knowledge
  \`    (special - escape)            ``?``  Display help
 ``/``  Identify symbol
@@ -165,7 +165,7 @@ Roguelike Keyset Command Summary
  ``m``  Cast a spell                  ``M``  Display map of entire level
  ``n``  (walk - south east)           ``N``  (run - south east)
  ``o``  Open a door or chest          ``O``  Toggle ignore
- ``p``  (unused)                      ``P``  Browse a book
+ ``p``  Walk to unexplored location   ``P``  Browse a book
  ``q``  Quaff a potion                ``Q``  Kill character & quit
  ``r``  Read a scroll                 ``R``  Rest for a period
  ``s``  Steal (rogues only)           ``S``  See abilities
@@ -191,7 +191,7 @@ Roguelike Keyset Command Summary
  ``[``  Display visible monster list  ``^m`` (special - return)
  ``]``  Display visible object list   ``^n`` (alter - south east)
  ``-``  Walk into a trap              ``^o`` Show previous message
- ``_``  Enter store                   ``^p`` Show previous messages
+ ``_``  (unused)                      ``^p`` Show previous messages
  ``+``  Alter grid                    ``^q`` (unused)
  ``=``  Set options                   ``^r`` Redraw the screen
  ``;``  Walk (with pickup)            ``^s`` Save and don't quit
@@ -199,9 +199,9 @@ Roguelike Keyset Command Summary
  ``'``  Target closest monster        ``^u`` (alter - north east)
  ``"``  Enter a user pref command     ``^v`` Repeat previous command
  ``,``  Run                           ``^w`` (special - wizard mode)
- ``<``  Go up staircase               ``^x`` Save and quit
+ ``<``  Go up/to up staircase         ``^x`` Save and quit
  ``.``  Stay still (with pickup)      ``^y`` (alter - north west)
- ``>``  Go down staircase             ``^z`` (unused)
+ ``>``  Go down/to down staircase     ``^z`` (unused)
  ``\``  (special - bypass keymap)     ``~``  Check knowledge
   \`    (special - escape)            ``?``  Display help
  ``/``  Identify symbol
@@ -219,12 +219,12 @@ control keys, and often, you can disable their special effects.
 If you are playing on a UNIX or similar system, then 'Ctrl-c' will
 interrupt Angband. The second and third interrupt will induce a warning
 bell, and the fourth will induce both a warning bell and a special message,
-since the fifth will quit the game, after killing your character. Also,
-'Ctrl-z' will suspend the game, and return you to the original command
-shell, until you resume the game with the 'fg' command. There is now a
-compilation option to force the game to prevent the "double 'ctrl-z'
-escape death trick". The 'Ctrl-\\' and 'Ctrl-d' and 'Ctrl-s' keys
-should not be intercepted.
+since the fifth will either quit without saving (if Angband was compiled
+without the SETGID option which puts the save files in a shared location for
+all users) or kill your character (if Angband was compiled with the SETGID
+option). Also, 'Ctrl-z' will suspend the game, and return you to the original
+command shell, until you resume the game with the 'fg' command. The 'Ctrl-\\'
+and 'Ctrl-d' and 'Ctrl-s' keys should not be intercepted.
  
 It is often possible to specify "control-keys" without actually pressing
 the control key, by typing a caret (``^``) followed by the key. This is
@@ -264,7 +264,9 @@ be repeated will flash by on the line at the bottom of the screen.
 To give a count to a command, type 0, the repeat count, and then the
 command. If you want to give a movement command and you are using the
 original command set (where the movement commands are digits), press space
-after the count and you will be prompted for the command.
+after the count and you will be prompted for the command.  The open, tunnel,
+disarm, alter, and close commands default to having a repeat count of 99;
+all other commands default to not repeating at all.
  
 Counted commands are very useful for time consuming commands, as they
 automatically terminate on success, or if you are attacked. You may also
@@ -273,10 +275,6 @@ character. This character is ignored, but it is safest to use a 'SPACE'
 or 'ESCAPE' which are always ignored as commands in case you type the
 command just after the count expires.
 
-You can tell Angband to automatically use a repeat count of 99 with
-commands you normally want to repeat (open, disarm, tunnel, bash, alter,
-etc) by setting the 'always_repeat' option.
-  
 Selection of Objects
 ====================
  

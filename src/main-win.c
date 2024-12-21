@@ -72,9 +72,18 @@
 #include "ui-prefs.h"
 #include "win/win-menu.h"
 
-/* Make sure the winver allows the AlphaBlend function */
-#if (WINVER < 0x0500)
+/* Set the minimum version of Windows to accept so AlphaBlend() is available */
+#ifndef WINVER
 #define WINVER 0x0500
+#elif WINVER < 0x0500
+#undef WINVER
+#define WINVER 0x0500
+#endif
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0500
+#elif _WIN32_WINNT < 0x0500
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0500
 #endif
 
 #include <locale.h>
@@ -88,6 +97,14 @@
 
 #define HAS_CLEANUP
 
+#ifdef ALLOW_BORG
+
+/*
+ * Hack -- allow use of "screen saver" mode
+ */
+#define USE_SAVER
+
+#endif /* ALLOW_BORG */
 
 /**
  * This may need to be removed for some compilers XXX XXX XXX
@@ -168,9 +185,10 @@
 #include <shellapi.h>
 
 /**
- * Include the support for loading bitmaps
+ * Include the support for loading bitmaps and saving screenshots
  */
 #include "win/readdib.h"
+#include "win/scrnshot.h"
 
 #include <wingdi.h>
 
@@ -255,11 +273,6 @@ static term_data data[MAX_TERM_DATA];
  */
 static term_data *my_td;
 
-/**
- * Default window layout function
- */
-int default_layout_win(term_data *data, int maxterms);
-
 
 /**
  * game in progress
@@ -286,6 +299,14 @@ static void monitor_new_savefile(game_event_type ev_type,
 	game_event_data *ev_data, void *user);
 static void finish_monitoring_savefile(game_event_type ev_type,
 	game_event_data *ev_data, void *user);
+
+/* prototype functions passed to windows */
+size_t Term_mbstowcs_win(wchar_t* dest, const char* src, int n);
+int Term_wcsz_win(void);
+int Term_wctomb_win(char* s, wchar_t wchar);
+int Term_iswprint_win(wint_t wc);
+LRESULT FAR PASCAL AngbandSaverProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 
 /**
  * screen paletted, i.e. 256 colors
@@ -418,28 +439,6 @@ static uint8_t win_pal[MAX_COLORS] =
 
 
 static int gamma_correction;
-
-
-
-#if 0
-/**
- * Hack -- given a pathname, point at the filename
- */
-static const char *extract_file_name(const char *s)
-{
-	const char *p;
-
-	/* Start at the end */
-	p = s + strlen(s) - 1;
-
-	/* Back up to divider */
-	while ((p >= s) && (*p != ':') && (*p != '\\')) p--;
-
-	/* Return file name */
-	return (p+1);
-}
-#endif /* 0 */
-
 
 static void show_win_error(void)
 {
@@ -1210,13 +1209,14 @@ typedef struct
 /**
  * Load a sound
  */
-static bool load_sound_win(const char *filename, int file_type, struct sound_data *data)
+static bool load_sound_win(const char *filename, int ftyp,
+		struct sound_data *sd)
 {
 	win_sample *sample = NULL;
 
-	sample = (win_sample *)(data->plat_data);
+	sample = (win_sample *)(sd->plat_data);
 
-	switch (file_type) {
+	switch (ftyp) {
 		case WIN_MP3:
 			if (!sample)
 				sample = mem_zalloc(sizeof(*sample));
@@ -1233,7 +1233,7 @@ static bool load_sound_win(const char *filename, int file_type, struct sound_dat
 			}
 
 			if (0 != sample->op.wDeviceID) {
-				data->status = SOUND_ST_LOADED;
+				sd->status = SOUND_ST_LOADED;
 			} else {
 				mem_free(sample);
 				sample = NULL;
@@ -1246,7 +1246,7 @@ static bool load_sound_win(const char *filename, int file_type, struct sound_dat
 
 			sample->filename = mem_zalloc(strlen(filename) + 1);
 			my_strcpy(sample->filename, filename, strlen(filename) + 1);
-			data->status = SOUND_ST_LOADED;
+			sd->status = SOUND_ST_LOADED;
 			break;
 
 		default:
@@ -1255,9 +1255,9 @@ static bool load_sound_win(const char *filename, int file_type, struct sound_dat
 	}
 
 	if (sample) {
-		sample->type = file_type;
+		sample->type = ftyp;
 	}
-	data->plat_data = (void *)sample;
+	sd->plat_data = (void *)sample;
 
 	return (NULL != sample);
 }
@@ -1265,11 +1265,11 @@ static bool load_sound_win(const char *filename, int file_type, struct sound_dat
 /**
  * Play a sound
  */
-static bool play_sound_win(struct sound_data *data)
+static bool play_sound_win(struct sound_data *sd)
 {
 	MCI_PLAY_PARMS pp;
 
-	win_sample *sample = (win_sample *)(data->plat_data);
+	win_sample *sample = (win_sample *)(sd->plat_data);
 
 	if (sample) {
 		switch (sample->type) {
@@ -1300,9 +1300,9 @@ static bool play_sound_win(struct sound_data *data)
 	return true;
 }
 
-static bool unload_sound_win(struct sound_data *data)
+static bool unload_sound_win(struct sound_data *sd)
 {
-	win_sample *sample = (win_sample *)(data->plat_data);
+	win_sample *sample = (win_sample *)(sd->plat_data);
 
 	if (sample) {
 		switch (sample->type) {
@@ -1321,8 +1321,8 @@ static bool unload_sound_win(struct sound_data *data)
 		}
 
 		mem_free(sample);
-		data->plat_data = NULL;
-		data->status = SOUND_ST_UNKNOWN;
+		sd->plat_data = NULL;
+		sd->status = SOUND_ST_UNKNOWN;
 	}
 
 	return true;
@@ -1338,7 +1338,7 @@ static bool close_audio_win(void)
 	return true;
 }
 
-const struct sound_file_type *supported_files_win(void)
+static const struct sound_file_type *supported_files_win(void)
 {
 	return supported_sound_files;
 }
@@ -1781,7 +1781,7 @@ static errr Term_xtra_win_react(void)
 	for (i = 0; i < MAX_TERM_DATA; i++) {
 		term *old = Term;
 
-		term_data *td = &data[i];
+		td = &data[i];
 
 		/* Update resized windows */
 		if ((td->cols != td->t.wid) || (td->rows != td->t.hgt)) {
@@ -2334,6 +2334,7 @@ static errr Term_pict_win(int x, int y, int n,
 	return 0;
 }
 
+
 /**
  * Windows cannot naturally handle UTF-8 using the standard locale and
  * C library routines, such as mbstowcs().
@@ -2378,7 +2379,6 @@ size_t Term_mbstowcs_win(wchar_t *dest, const char *src, int n)
 											src, -1, NULL, 0) - 1);
 	}
 }
-
 
 int Term_wcsz_win(void)
 {
@@ -3173,7 +3173,7 @@ static void setup_menus(void)
 		/* Menu "Options", Item "Graphics" */
 		mode = graphics_modes;
 		while (mode) {
-			if ((mode->grafID == 0) || (mode->file && mode->file[0])) {
+			if ((mode->grafID == 0) || (mode->file[0])) {
 				EnableMenuItem(hm, mode->grafID + IDM_OPTIONS_GRAPHICS_NONE, MF_ENABLED);
 			}
 			mode = mode->pNext;
@@ -3246,12 +3246,54 @@ static void check_for_save_file(LPSTR cmd_line)
 
 #ifdef USE_SAVER
 
+#ifdef ALLOW_BORG
+
+/*
+ * Hook into the inkey() function so that flushing keypresses
+ * doesn't affect us.
+ *
+ * ToDo: Try to implement recording and playing back of games
+ * by saving/reading the keypresses to/from a file. Note that
+ * interrupting certain actions (resting, running, and other
+ * repeated actions) would mess that up, so this would have to
+ * be switched off when recording.
+ */
+
+extern struct keypress(*inkey_hack)(int flush_first);
+
+static struct keypress screensaver_inkey_hack_buffer[1024];
+
+static struct keypress screensaver_inkey_hack(int flush_first)
+{
+	static size_t screensaver_inkey_hack_index = 0;
+
+	if (screensaver_inkey_hack_index < sizeof(screensaver_inkey_hack_buffer))
+		return (screensaver_inkey_hack_buffer[screensaver_inkey_hack_index++]);
+	else
+	{
+		struct keypress key = { EVT_KBRD, ESCAPE, 0 };
+		return key;
+	}
+}
+
+#endif /* ALLOW_BORG */
+
 /**
  * Start the screensaver
  */
 static void start_screensaver(void)
 {
 	bool file_exist;
+#ifdef ALLOW_BORG
+	int i, j;
+	struct keypress key = { EVT_KBRD, 0, 0 };
+#endif /* ALLOW_BORG */
+
+	/* Set up the display handlers and things. */
+	init_display();
+	init_angband();
+
+	textui_init();
 
 	/* Set 'savefile' to a safe name */
 	savefile_set_name(saverfilename, true, false);
@@ -3273,9 +3315,91 @@ static void start_screensaver(void)
 	/* Low priority */
 	SendMessage(data[0].w, WM_COMMAND, IDM_OPTIONS_LOW_PRIORITY, 0);
 
+#ifdef ALLOW_BORG
+	/*
+	 * MegaHack - Try to start the Borg.
+	 *
+	 * The simulated keypresses will be processed when play_game()
+	 * is called.
+	 */
+
+	inkey_hack = screensaver_inkey_hack;
+	j = 0;
+
+	/*
+	 * If no savefile is present or then go through the steps necessary
+	 * to create a random character.  If a savefile already is present
+	 * then the simulated keypresses will either clean away any [-more-]
+	 * prompts (if the character is alive), or create a new random
+	 * character.
+	 *
+	 * Luckily it's possible to send the same keypresses no matter if
+	 * the character is alive, dead, or not even yet created.
+	 */
+	key.code = ESCAPE;
+	screensaver_inkey_hack_buffer[j++] = key; /* Gender */
+	screensaver_inkey_hack_buffer[j++] = key; /* Race */
+	screensaver_inkey_hack_buffer[j++] = key; /* Class */
+	key.code = 'n';
+	screensaver_inkey_hack_buffer[j++] = key; /* Modify options */
+	key.code = KC_ENTER;
+	screensaver_inkey_hack_buffer[j++] = key; /* Reroll */
+
+	if (!file_exist)
+	{
+		/* Savefile name */
+		int n = strlen(saverfilename);
+		for (i = 0; i < n; i++)
+		{
+			key.code = saverfilename[i];
+			screensaver_inkey_hack_buffer[j++] = key;
+		}
+	}
+
+	key.code = KC_ENTER;
+	screensaver_inkey_hack_buffer[j++] = key; /* Return */
+	key.code = ESCAPE;
+	screensaver_inkey_hack_buffer[j++] = key; /* Character info */
+
+	/*
+	 * Make sure the "verify_special" options is off, so that we can
+	 * get into Borg mode without confirmation.
+	 *
+	 * Try just marking the savefile correctly.
+	 */
+	player->noscore |= (NOSCORE_BORG);
+
+	/*
+	 * Make sure the "OPT(cheat_live)" option is set, so that the Borg can
+	 * automatically restart.
+	 */
+	key.code = '5';
+	screensaver_inkey_hack_buffer[j++] = key; /* Cheat options */
+
+	/* Cursor down to "cheat live" */
+	key.code = '2';
+	for (i = 0; i < OPT_cheat_live - OPT_cheat_hear - 1; i++)
+		screensaver_inkey_hack_buffer[j++] = key;
+
+	key.code = 'y';
+	screensaver_inkey_hack_buffer[j++] = key; /* Switch on "OPT(cheat_live)" */
+	key.code = ESCAPE;
+	screensaver_inkey_hack_buffer[j++] = key; /* Leave cheat options */
+	screensaver_inkey_hack_buffer[j++] = key; /* Leave options */
+
+	/*
+	 * Now start the Borg!
+	 */
+
+	key.code = KTRL('Z');
+	screensaver_inkey_hack_buffer[j++] = key; /* Enter borgmode */
+	key.code = 'z';
+	screensaver_inkey_hack_buffer[j++] = key; /* Run Borg */
+#endif /* ALLOW_BORG */
+
 
 	/* Play game */
-	play_game();
+	play_game(GAME_LOAD);
 }
 
 #endif /* USE_SAVER */
@@ -3597,7 +3721,6 @@ static void process_menus(WORD wCmd)
 					"This will reset the size and layout of the angband windows\n based on your screen size. Do you want to continue?",
 					VERSION_NAME, MB_YESNO|MB_ICONWARNING) == IDYES) {
 				term *old = Term;
-				int i;
 				RECT rc;
 
 				(void)default_layout_win(data,MAX_TERM_DATA);
@@ -3914,7 +4037,6 @@ static void process_menus(WORD wCmd)
 				                           0, 0, GetSystemMetrics(SM_CXSCREEN),
 				                           GetSystemMetrics(SM_CYSCREEN),
 				                           NULL, NULL, hInstance, NULL);
-
 				if (hwndSaver) {
 					for (i = MAX_TERM_DATA - 1; i >= 0; --i) {
 						td = &data[i];
@@ -3983,7 +4105,6 @@ static void process_menus(WORD wCmd)
 			time_t ltime;
 			struct tm *today;
 			int len;
-			bool SaveWindow_PNG(HWND hWnd, LPSTR lpFileName);
 
 			time( &ltime );
 			today = localtime( &ltime );
@@ -4088,7 +4209,7 @@ static void handle_wm_paint(HWND hWnd)
 }
 
 
-int extract_modifiers(keycode_t ch, bool kp) {
+static int extract_modifiers(keycode_t ch, bool kp) {
 	bool mc = false;
 	bool ms = false;
 	bool ma = false;
@@ -5023,7 +5144,6 @@ static void init_stuff(void)
 	my_strcpy(path + strlen(path) - 4, ".INI", 5);
 
 #ifdef USE_SAVER
-
 	/* Try to get the path to the Angband folder */
 	if (screensaver) {
 		/* Extract the filename of the savefile for the screensaver */
@@ -5032,13 +5152,12 @@ static void init_stuff(void)
 
 		GetPrivateProfileStringA("Angband", "AngbandPath", "", tmp,
 			sizeof(tmp), path);
-
 		strnfmt(path, sizeof(path), "%sangband.ini", tmp);
 	}
 
 #endif /* USE_SAVER */
 
-	/* Save the the name of the ini-file */
+	/* Save the name of the ini-file */
 	ini_file = string_make(path);
 
 	/* Analyze the path */
@@ -5074,6 +5193,7 @@ static void init_stuff(void)
 	validate_dir(ANGBAND_DIR_SAVE);
 	validate_dir(ANGBAND_DIR_PANIC);
 	validate_dir(ANGBAND_DIR_SCORES);
+	validate_dir(ANGBAND_DIR_ARCHIVE);
 
 	/* Build the filename */
 	path_build(path, sizeof(path), ANGBAND_DIR_SCREENS, "news.txt");
@@ -5258,6 +5378,9 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
 	/* Set the system suffix */
 	ANGBAND_SYS = "win";
 
+	/* Set command hook */
+	cmd_get_hook = textui_get_cmd;
+
 #ifdef USE_SAVER
 	if (screensaver) {
 		/* Start the screensaver */
@@ -5267,9 +5390,6 @@ int FAR PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
 		quit(NULL);
 	}
 #endif /* USE_SAVER */
-
-	/* Set command hook */
-	cmd_get_hook = textui_get_cmd;
 
 	/*
 	 * Set action that needs to be done if restarting without exiting.
@@ -5368,7 +5488,7 @@ static void monitor_new_savefile(game_event_type ev_type,
 }
 
 /**
- * Respond to EVENT_LEAVE_WORLD events by ceasing to monitor the savefile.
+ * Respond to EVENT_LEAVE_GAME events by ceasing to monitor the savefile.
  */
 static void finish_monitoring_savefile(game_event_type ev_type,
 		game_event_data *ev_data, void *user)

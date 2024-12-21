@@ -346,7 +346,7 @@ static bool rd_monster(struct chunk *c, struct monster *mon)
 
 	/* Now delete the monster if necessary */
 	if (delete) {
-		delete_monster(mon->grid);
+		delete_monster(c, mon->grid);
 	}
 
 	return true;
@@ -1178,7 +1178,8 @@ int rd_gear(void)
 	for (obj = player->gear, known_obj = player->gear_k; obj;
 		 obj = obj->next, known_obj = known_obj->next) {
 		obj->known = known_obj;
-		player->upkeep->total_weight += (obj->number * obj->weight);
+		player->upkeep->total_weight +=
+			obj->number * object_weight_one(obj);
 	}
 
 	calc_inventory(player);

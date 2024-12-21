@@ -68,15 +68,13 @@ void do_cmd_wizard(void)
 }
 
 /**
- * Commit suicide
+ * Retire
  */
-void do_cmd_suicide(struct command *cmd)
+void do_cmd_retire(struct command *cmd)
 {
-	/* Commit suicide */
+	/* Treat retired character as dead to satisfy end of game logic. */
 	player->is_dead = true;
-
-	/* Cause of death */
-	my_strcpy(player->died_from, "Quitting", sizeof(player->died_from));
+	my_strcpy(player->died_from, "Retiring", sizeof(player->died_from));
 }
 
 /**
@@ -116,3 +114,34 @@ void do_cmd_note(void)
 	/* Add a history entry */
 	history_add(player, note, HIST_USER_INPUT);
 }
+
+#ifdef ALLOW_BORG
+
+extern void do_cmd_borg(void);
+
+/*
+ * Verify use of "borg" mode
+ */
+void do_cmd_try_borg(void)
+{
+	/* Ask first time */
+	if (!(player->noscore & NOSCORE_BORG))
+	{
+		/* Mention effects */
+		msg("You are about to use the dangerous, unsupported, borg commands!");
+		msg("Your machine may crash, and your savefile may become corrupted!");
+		event_signal(EVENT_MESSAGE_FLUSH);
+
+		/* Verify request */
+		if (!get_check("Are you sure you want to use the borg commands? "))
+			return;
+
+		/* Mark savefile */
+		player->noscore |= NOSCORE_BORG;
+	}
+
+	/* Okay */
+	do_cmd_borg();
+}
+
+#endif /* ALLOW_BORG */

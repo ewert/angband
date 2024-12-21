@@ -95,6 +95,9 @@ enum
 #define NOSCORE_WIZARD		0x0002
 #define NOSCORE_DEBUG		0x0008
 #define NOSCORE_JUMPING     0x0010
+#ifdef ALLOW_BORG
+#define NOSCORE_BORG		0x0020
+#endif
 
 /**
  * Terrain that the player has a chance of digging through
@@ -477,7 +480,6 @@ struct player_upkeep {
 	int resting;			/* Resting counter */
 
 	int running;				/* Running counter */
-	bool running_withpathfind;	/* Are we using the pathfinder ? */
 	bool running_firststep;		/* Is this our first step running? */
 
 	struct object **quiver;	/* Quiver objects */
@@ -487,6 +489,9 @@ struct player_upkeep {
 	int equip_cnt;			/* Number of items in equipment */
 	int quiver_cnt;			/* Number of items in the quiver */
 	int recharge_pow;		/* Power of recharge effect */
+	int step_count;			/* Pathfinding: number of steps left */
+	int16_t *steps;			/* Pathfinding: steps in reverse order */
+	struct loc path_dest;		/* Pathfinding: destination grid */
 };
 
 /**

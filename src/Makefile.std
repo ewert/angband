@@ -3,10 +3,10 @@
 #
 # This makefile probably requires GNU make.
 #
-# This makefile is intended for use with Unix machines running X11, gtk or 
+# This makefile is intended for use with Unix machines running X11, SDL or
 # (n)curses.  You can choose which you want to compile for below.
 #
-# You can also place your alterations to a file in the src/ directory called 
+# You can also place your alterations to a file in the src/ directory called
 # "config", in which case that file will override what is specified here.
 #
 
@@ -35,6 +35,12 @@ SYS_gcu = -DUSE_GCU -DUSE_NCURSES -lncursesw
 # Support SDL frontend (main-sdl.c) if SYS_sdl is set
 # SYS_sdl = -DUSE_SDL $(shell sdl-config --cflags) $(shell sdl-config --libs) -lSDL_ttf -lSDL_image
 
+# Support SDL2 frontend (main-sdl2.c) if SYS_sdl2 SYS_sdl2_objs are set; note
+# that it is not possible to build both the SDL and SDL2 front end at the same
+# time
+# SYS_sdl2 = -DUSE_SDL2 $(shell sdl2-config --cflags) $(shell sdl2-config --libs) -lSDL2_ttf -lSDL2_image
+# SYS_sdl2_objs = $(SDL2MAINFILES)
+
 # Support stats pseudo-frontend if SYS_stats and SYS_stats_objs are set
 # If sqlite3's header, sqlite3.h, isn't in the compiler's default path for
 # include files, you'll have to change CFLAGS so directory which has the header
@@ -44,24 +50,34 @@ SYS_gcu = -DUSE_GCU -DUSE_NCURSES -lncursesw
 # for libraries, you'll have to change LIBS so that directory with the library
 # is searched (i.e. if it's in /some/nonstandarad/path/lib then you'd add
 # -L/some/nonstandard/path/lib to LIBS for most compilers).
-# SYS_stats = -DUSE_STATS -lsqlite3
+# SYS_stats = -DUSE_STATS -lsqlite3 -lm
 # SYS_stats_objs = $(STATSMAINFILES)
 
-# Support SDL_mixer for sound if SOUND_sdl and SOUND_sdl_objs are set
+# Support SDL_mixer for sound if SOUND_sdl and SOUND_SDL_OBJS are set.  Use
+# SOUND_sdl2 rather than SOUND_sdl if you are using the SDL2 front end or you
+# are not using the SDL front end and want sound via SDL2.
 #SOUND_sdl = -DSOUND -DSOUND_SDL $(shell sdl-config --cflags) $(shell sdl-config --libs) -lSDL_mixer
+#SOUND_sdl2 = -DSOUND -DSOUND_SDL2 $(shell sdl2-config --cflags) $(shell sdl2-config --libs) -lSDL2_mixer
 #SOUND_sdl_objs = $(SNDSDLFILES)
+
+# Compile in support for the Borg but do not include Borg players in the
+# high scores.  If you want Borg players in the high scores as well, use the
+# second line below.  If you do not want the Borg at all, comment out both of
+# these lines.
+BORG_FLAGS = -DALLOW_BORG
+#BORG_FLAGS = -DALLOW_BORG -DSCORE_BORGS
 
 
 # Basic compiler stuff
 CC = gcc
 WARNINGS = -W -Wall -Wextra -Wold-style-definition -Wmissing-declarations -Wredundant-decls -Wpointer-arith -Wcast-align -Wwrite-strings -Winline -Wformat-security -Winit-self -Wmissing-include-dirs -Wundef -Wmissing-format-attribute -Wnested-externs -Wunreachable-code -Wno-unused-parameter -Wno-missing-field-initializers
-CFLAGS = -O0 -g $(WARNINGS)
+CFLAGS = -O0 -g $(WARNINGS) $(BORG_FLAGS)
 
 # Add additional search directives here
 # Example: -I/usr/X11R6/include -I/usr/include/ncurses
 INCLUDES = -I.
 # Example: -L/usr/X11R6/lib 
-LIBS = -lm
+LIBS =
 
 
 
@@ -75,13 +91,13 @@ LIBS = -lm
 
 
 # Extract CFLAGS and LIBS from the system definitions
-MODULES = $(SYS_x11) $(SYS_gcu) $(SYS_sdl) $(SOUND_sdl) $(SYS_stats)
+MODULES = $(SYS_x11) $(SYS_gcu) $(SYS_sdl) $(SYS_sdl2) $(SOUND_sdl) $(SOUND_sdl2) $(SYS_stats)
 CFLAGS += $(patsubst -l%,,$(MODULES)) $(INCLUDES) -DPRIVATE_USER_PATH="\"~/.angband\""
 LIBS += $(patsubst -D%,,$(patsubst -I%,, $(MODULES)))
 
 
 # Object definitions
-OBJS = $(BASEOBJS) main.o $(SYS_stats_objs) main-gcu.o main-x11.o main-sdl.o $(SOUND_sdl_objs)
+OBJS = $(BASEOBJS) main.o $(SYS_stats_objs) main-gcu.o main-x11.o main-sdl.o $(SYS_sdl2_objs) $(SOUND_sdl_objs)
 
 
 
@@ -163,7 +179,7 @@ depend:
 
 
 # Some file dependencies
-%.o: %.c
+.c.o:
 	@printf "%10s %-20s\n" CC $<
 	@$(CC) $(CFLAGS) -o $@ -c $<
 

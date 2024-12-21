@@ -54,7 +54,7 @@ int setup_tests(void **state) {
 	k_info = mem_zalloc(z_info->k_max * sizeof(*k_info));
 	kb_info = mem_zalloc(TV_MAX * sizeof(*kb_info));
 	kb_info[TV_LIGHT].tval = TV_LIGHT;
-	/* Do minimal setup to for testing slay, brand, and curse directives. */
+	/* Do minimal setup for testing slay, brand, and curse directives. */
 	z_info->slay_max = (uint8_t) N_ELEMENTS(dummy_slays);
 	slays = dummy_slays;
 	z_info->brand_max = (uint8_t) N_ELEMENTS(dummy_brands);
@@ -147,7 +147,7 @@ static int test_name0(void *state) {
 
 	eq(r, PARSE_ERROR_NONE);
 	a = parser_priv(state);
-	require(a);
+	notnull(a);
 	require(streq(a->name, "of Thrain"));
 	ok;
 }
@@ -170,7 +170,7 @@ static int test_base_object0(void *state) {
 
 	eq(r, PARSE_ERROR_NONE);
 	a = parser_priv(state);
-	require(a);
+	notnull(a);
 	eq(a->tval, TV_LIGHT);
 	eq(a->sval, z_info->ordinary_kind_max);
 	ok;
@@ -444,9 +444,9 @@ static int test_time0(void *state) {
 
 	eq(r, PARSE_ERROR_NONE);
 	a = parser_priv(state);
-	require(a);
+	notnull(a);
 	k = lookup_kind(a->tval, a->sval);
-	noteq(k, NULL);
+	notnull(k);
 	if (k->kidx >= z_info->ordinary_kind_max) {
 		eq(k->time.base, 20);
 		eq(k->time.sides, 30);
@@ -465,7 +465,7 @@ static int test_msg0(void *state) {
 	r = parser_parse(state, "msg:bar");
 	eq(r, 0);
 	a = parser_priv(state);
-	require(a);
+	notnull(a);
 	require(streq(a->alt_msg, "foobar"));
 	ok;
 }
@@ -479,7 +479,7 @@ static int test_desc0(void *state) {
 	r = parser_parse(state, "desc: quxx");
 	eq(r, 0);
 	a = parser_priv(state);
-	require(a);
+	notnull(a);
 	require(streq(a->text, "baz quxx"));
 	ok;
 }

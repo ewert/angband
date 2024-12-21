@@ -244,7 +244,7 @@ static void change_path(const char *info)
 		}
 	}
 
-	quit_fmt("Unrecognised -d paramater %s", path);
+	quit_fmt("Unrecognised -d parameter %s", path);
 }
 
 
@@ -280,9 +280,15 @@ static void list_saves(void)
 {
 	savefile_getter g = NULL;
 
-	if (!got_savefile(&g) && !got_savefile_dir(g)) {
+	if (!got_savefile(&g)) {
+		bool nodir = !got_savefile_dir(g);
+
 		cleanup_savefile_getter(g);
-		quit_fmt("Cannot open savefile directory");
+		if (nodir) {
+			quit_fmt("Cannot open savefile directory");
+		}
+		printf("There are no savefiles you can use.\n");
+		return;
 	}
 
 	printf("Savefiles you can use are:\n");

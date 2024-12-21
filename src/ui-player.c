@@ -736,16 +736,16 @@ static struct panel *get_panel_combat(void) {
 	/* Melee */
 	obj = equipped_item_by_slot_name(player, "weapon");
 	bth = (player->state.skills[SKILL_TO_HIT_MELEE] * 10) / BTH_PLUS_ADJ;
-	dam = player->known_state.to_d + (obj ? obj->known->to_d : 0);
-	hit = player->known_state.to_h + (obj ? obj->known->to_h : 0);
-
-	panel_space(p);
-
-	if (obj) {
-		melee_dice = obj->dd;
-		melee_sides = obj->ds;
+	dam = player->known_state.to_d;
+	hit = player->known_state.to_h;
+	if (obj && obj->known) {
+		melee_dice = obj->known->dd;
+		melee_sides = obj->known->ds;
+		dam += object_to_dam(obj->known);
+		hit += object_to_hit(obj->known);
 	}
 
+	panel_space(p);
 	panel_line(p, COLOUR_L_BLUE, "Melee", "%dd%d,%+d", melee_dice, melee_sides, dam);
 	panel_line(p, COLOUR_L_BLUE, "To-hit", "%d,%+d", bth / 10, hit);
 	panel_line(p, COLOUR_L_BLUE, "Blows", "%d.%d/turn",
@@ -754,8 +754,12 @@ static struct panel *get_panel_combat(void) {
 	/* Ranged */
 	obj = equipped_item_by_slot_name(player, "shooting");
 	bth = (player->state.skills[SKILL_TO_HIT_BOW] * 10) / BTH_PLUS_ADJ;
-	hit = player->known_state.to_h + (obj ? obj->known->to_h : 0);
-	dam = obj ? obj->known->to_d : 0;
+	dam = 0;
+	hit = player->known_state.to_h;
+	if (obj && obj->known) {
+		dam += object_to_dam(obj->known);
+		hit += object_to_hit(obj->known);
+	}
 
 	panel_space(p);
 	panel_line(p, COLOUR_L_BLUE, "Shoot to-dam", "%+d", dam);
@@ -1060,7 +1064,12 @@ void write_character_dump(ang_file *fff)
 		{
 			file_putf(fff, "> %s\n", message_str((int16_t)i));
 		}
-		file_putf(fff, "\nKilled by %s.\n\n", player->died_from);
+		if (streq(player->died_from, "Retiring")) {
+			file_putf(fff, "\nRetired.\n\n");
+		} else {
+			file_putf(fff, "\nKilled by %s.\n\n",
+				player->died_from);
+		}
 	}
 
 
@@ -1143,10 +1152,19 @@ void write_character_dump(ang_file *fff)
 
 		file_putf(fff, "  [%s]\n\n", title);
 		for (opt = 0; opt < OPT_MAX; opt++) {
-			if (option_type(opt) != i) continue;
+			const char *desc;
+			size_t u8len;
 
-			file_putf(fff, "%-45s: %s (%s)\n",
-			        option_desc(opt),
+			if (option_type(opt) != i) continue;
+			desc = option_desc(opt);
+			u8len = utf8_strlen(desc);
+			if (u8len < 45) {
+				file_putf(fff, "%s%*s", desc,
+					(int)(45 - u8len), " ");
+			} else {
+				file_putf(fff, "%s", desc);
+			}
+			file_putf(fff, ": %s (%s)\n",
 			        player->opts.opt[opt] ? "yes" : "no ",
 			        option_name(opt));
 		}

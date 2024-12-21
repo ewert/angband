@@ -730,7 +730,7 @@ static enum parser_error parse_prefs_monster_base(struct parser *p)
 	return PARSE_ERROR_NONE;
 }
 
-static void set_trap_graphic(int trap_idx, int light_idx, uint8_t attr, char ch) {
+static void set_trap_graphic(int trap_idx, int light_idx, uint8_t attr, wchar_t ch) {
 	if (light_idx < LIGHTING_MAX) {
 		trap_x_attr[light_idx][trap_idx] = attr;
 		trap_x_char[light_idx][trap_idx] = ch;
@@ -862,7 +862,7 @@ static enum parser_error parse_prefs_gf(struct parser *p)
 	assert(d != NULL);
 	if (d->bypass) return PARSE_ERROR_NONE;
 
-	/* Parse the type, which is a | seperated list of PROJ_ constants */
+	/* Parse the type, which is a | separated list of PROJ_ constants */
 	s = string_make(parser_getsym(p, "type"));
 	t = strtok(s, "| ");
 	while (t) {
@@ -1220,12 +1220,9 @@ static bool process_pref_file_named(const char *path, bool quiet, bool user) {
 		e = PARSE_ERROR_INTERNAL; /* signal failure to callers */
 	} else {
 		char line[1024];
-		int line_no = 0;
 
 		struct parser *p = init_parse_prefs(user);
 		while (file_getl(f, line, sizeof line)) {
-			line_no++;
-
 			e = parser_parse(p, line);
 			if (e != PARSE_ERROR_NONE) {
 				print_error(path, p);

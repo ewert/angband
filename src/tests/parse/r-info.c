@@ -7,8 +7,10 @@
 #include "mon-spell.h"
 #include "object.h"
 #include "obj-util.h"
+#ifndef WINDOWS
 #include <locale.h>
 #include <langinfo.h>
+#endif
 
 static char dummy_chest_1[24] = "& Small wooden chest~";
 static char dummy_chest_2[24] = "& Small iron chest~";
@@ -166,6 +168,10 @@ static int test_missing_header_record0(void *state) {
 	null(mr);
 	r = parser_parse(p, "plural:red-hatted elves");
 	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
+	r = parser_parse(p, "base:townsfolk");
+	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
+	r = parser_parse(p, "glyph:!");
+	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
 	r = parser_parse(p, "color:r");
 	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
 	r = parser_parse(p, "speed:110");
@@ -187,6 +193,8 @@ static int test_missing_header_record0(void *state) {
 	r = parser_parse(p, "rarity:2");
 	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
 	r = parser_parse(p, "experience:25");
+	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
+	r = parser_parse(state, "blow:CLAW:FIRE:9d12");
 	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
 	r = parser_parse(p, "flags:IM_POIS");
 	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
@@ -219,6 +227,8 @@ static int test_missing_header_record0(void *state) {
 	r = parser_parse(p, "mimic:chest:small wooden chest");
 	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
 	r = parser_parse(p, "shape:townsfolk");
+	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
+	r = parser_parse(p, "color-cycle:fancy:crystal");
 	eq(r, PARSE_ERROR_MISSING_RECORD_HEADER);
 	ok;
 }
@@ -285,6 +295,7 @@ static int test_glyph0(void *state) {
 	mr = (struct monster_race*) parser_priv(p);
 	notnull(mr);
 	eq(mr->d_char, L'!');
+#ifndef WINDOWS
 	if (setlocale(LC_CTYPE, "") && streq(nl_langinfo(CODESET), "UTF-8")) {
 		/*
 		 * Check that a glyph outside of the ASCII range works.  Using
@@ -299,6 +310,7 @@ static int test_glyph0(void *state) {
 		eq(nc, 1);
 		eq(mr->d_char, wcs[0]);
 	}
+#endif
 	ok;
 }
 

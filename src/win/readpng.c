@@ -37,7 +37,7 @@
  * Forces libpng to use the version of fread() from the run time library
  * that this program was compiled with.
  */
-void ReadFileFunc(png_structp png_ptr, png_bytep data, png_size_t length) {
+static void ReadFileFunc(png_structp png_ptr, png_bytep data, png_size_t length) {
 	FILE *file = (FILE *)png_get_io_ptr(png_ptr);
 	fread(data, sizeof(png_byte), length, file);
 }
@@ -351,8 +351,8 @@ bool ReadDIB2_PNG(HWND hWnd, LPSTR lpFileName, DIBINIT *pInfo, DIBINIT *pMask, b
 		free(row_pointers[y]);
 	}
 	free(row_pointers);
-	
-	/* release all the the PNG Structures */
+
+	/* release all the PNG Structures */
 	if (info_ptr) {
 		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
 		info_ptr = NULL;
