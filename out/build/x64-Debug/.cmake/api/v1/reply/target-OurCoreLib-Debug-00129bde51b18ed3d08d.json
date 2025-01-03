@@ -1,0 +1,2454 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/buildid.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cave-map.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cave-square.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cave-view.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cave.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cmd-cave.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cmd-core.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cmd-misc.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cmd-obj.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cmd-pickup.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cmd-spoil.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/cmd-wizard.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/datafile.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/debug.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/effect-handler-attack.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/effect-handler-general.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/effects.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/effects-info.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/game-event.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/game-input.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/game-world.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/gen-cave.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/gen-chunk.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/gen-monster.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/gen-room.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/gen-util.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/generate.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/grafmode.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/guid.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/init.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/load.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/message.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-attack.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-blows.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-desc.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-group.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-init.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-list.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-lore.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-make.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-move.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-msg.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-predicate.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-spell.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-summon.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-timed.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/mon-util.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-chest.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-curse.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-desc.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-gear.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-ignore.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-info.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-init.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-knowledge.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-list.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-make.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-pile.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-power.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-properties.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-randart.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-slays.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-tval.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/obj-util.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/option.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/parser.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-attack.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-birth.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-calcs.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-class.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-history.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-path.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-properties.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-quest.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-race.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-spell.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-timed.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player-util.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/player.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/project-feat.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/project-mon.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/project-obj.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/project-player.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/project.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/randname.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/save.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/save-charoutput.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/savefile.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/score.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/sound-core.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/source.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/store.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/target.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/trap.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-birth.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-command.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-context.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-curse.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-death.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-display.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-effect.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-entry-combiner.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-entry-renderers.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-entry.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-equip-cmp.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-event.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-game.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-help.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-history.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-init.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-input.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-keymap.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-knowledge.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-map.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-menu.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-mon-list.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-mon-lore.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-obj-list.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-object.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-options.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-output.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-player-properties.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-player.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-prefs.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-score.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-signals.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-spell.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-spoil.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-store.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-target.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-term.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-visuals.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/ui-wizard.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/wiz-debug.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/wiz-spoil.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/wiz-stats.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-bitflag.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-color.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-dice.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-expression.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-file.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-form.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-quark.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-queue.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-rand.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-textblock.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-type.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-util.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/z-virt.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-attack-munchkin.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-caution.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-cave-light.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-cave-util.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-cave-view.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-cave.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-danger.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-escape.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-fight-attack.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-fight-defend.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-fight-perm.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-flow-dark.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-flow-glyph.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-flow-kill.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-flow-misc.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-flow-stairs.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-flow-take.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-flow.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-formulas.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-formulas-calc.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-home-notice.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-home-power.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-init.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-inventory.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-io.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-item-activation.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-item-analyze.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-item-decurse.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-item-enchant.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-item-id.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-item-use.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-item-val.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-item-wear.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-item.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-junk.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-light.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-log.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-magic-play.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-magic.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-messages-react.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-messages.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-power.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-prepared.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-projection.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-recover.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-reincarnate.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-store-buy.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-store-sell.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-store.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-think-dungeon-util.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-think-dungeon.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-think-store.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-think.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-trait-swap.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-trait.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-update.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg-util.c.obj"
+		},
+		{
+			"path" : "CMakeFiles/OurCoreLib.dir/./src/borg/borg.c.obj"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"ADD_LIBRARY",
+			"TARGET_COMPILE_DEFINITIONS",
+			"CONFIGURE_WINDOWS_FRONTEND",
+			"TARGET_INCLUDE_DIRECTORIES",
+			"TARGET_LINK_LIBRARIES",
+			"SET_TARGET_PROPERTIES"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt",
+			"src/cmake/macros/WINDOWS_Frontend.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 152,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 370,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 436,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 17,
+				"parent" : 3
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 16,
+				"parent" : 3
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 15,
+				"parent" : 3
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 18,
+				"parent" : 3
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 19,
+				"parent" : 3
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 367,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 1,
+				"line" : 12,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 0,
+				"line" : 362,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/DWIN32 /D_WINDOWS /W3 /MDd /Zi /Ob0 /Od /RTC1"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 2,
+					"define" : "ALLOW_BORG"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "SOUND"
+				},
+				{
+					"backtrace" : 5,
+					"define" : "USE_PRIVATE_PATHS"
+				},
+				{
+					"backtrace" : 6,
+					"define" : "USE_WIN"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "WINDOWS"
+				},
+				{
+					"backtrace" : 8,
+					"define" : "_CRT_SECURE_NO_WARNINGS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 9,
+					"path" : "C:/Users/ilkka/source/repos/ewert/angband/src"
+				},
+				{
+					"backtrace" : 10,
+					"isSystem" : true,
+					"path" : "C:/Users/ilkka/source/repos/ewert/angband/src/win/include"
+				}
+			],
+			"language" : "C",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					11
+				],
+				"standard" : "99"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43,
+				44,
+				45,
+				46,
+				47,
+				48,
+				49,
+				50,
+				51,
+				52,
+				53,
+				54,
+				55,
+				56,
+				57,
+				58,
+				59,
+				60,
+				61,
+				62,
+				63,
+				64,
+				65,
+				66,
+				67,
+				68,
+				69,
+				70,
+				71,
+				72,
+				73,
+				74,
+				75,
+				76,
+				77,
+				78,
+				79,
+				80,
+				81,
+				82,
+				83,
+				84,
+				85,
+				86,
+				87,
+				88,
+				89,
+				90,
+				91,
+				92,
+				93,
+				94,
+				95,
+				96,
+				97,
+				98,
+				99,
+				100,
+				101,
+				102,
+				103,
+				104,
+				105,
+				106,
+				107,
+				108,
+				109,
+				110,
+				111,
+				112,
+				113,
+				114,
+				115,
+				116,
+				117,
+				118,
+				119,
+				120,
+				121,
+				122,
+				123,
+				124,
+				125,
+				126,
+				127,
+				128,
+				129,
+				130,
+				131,
+				132,
+				133,
+				134,
+				135,
+				136,
+				137,
+				138,
+				139,
+				140,
+				141,
+				142,
+				143,
+				144,
+				145,
+				146,
+				147,
+				148,
+				149,
+				150,
+				151,
+				152,
+				153,
+				154,
+				155,
+				156,
+				157,
+				158,
+				159,
+				160,
+				161,
+				162,
+				163,
+				164,
+				165,
+				166,
+				167,
+				168,
+				169,
+				170,
+				171,
+				172,
+				173,
+				174,
+				175,
+				176,
+				177,
+				178,
+				179,
+				180,
+				181,
+				182,
+				183,
+				184,
+				185,
+				186,
+				187,
+				188,
+				189,
+				190,
+				191,
+				192,
+				193,
+				194,
+				195,
+				196,
+				197,
+				198,
+				199,
+				200,
+				201,
+				202,
+				203,
+				204,
+				205,
+				206
+			]
+		}
+	],
+	"id" : "OurCoreLib::@6890427a1f51a3e7e1df",
+	"name" : "OurCoreLib",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40,
+				41,
+				42,
+				43,
+				44,
+				45,
+				46,
+				47,
+				48,
+				49,
+				50,
+				51,
+				52,
+				53,
+				54,
+				55,
+				56,
+				57,
+				58,
+				59,
+				60,
+				61,
+				62,
+				63,
+				64,
+				65,
+				66,
+				67,
+				68,
+				69,
+				70,
+				71,
+				72,
+				73,
+				74,
+				75,
+				76,
+				77,
+				78,
+				79,
+				80,
+				81,
+				82,
+				83,
+				84,
+				85,
+				86,
+				87,
+				88,
+				89,
+				90,
+				91,
+				92,
+				93,
+				94,
+				95,
+				96,
+				97,
+				98,
+				99,
+				100,
+				101,
+				102,
+				103,
+				104,
+				105,
+				106,
+				107,
+				108,
+				109,
+				110,
+				111,
+				112,
+				113,
+				114,
+				115,
+				116,
+				117,
+				118,
+				119,
+				120,
+				121,
+				122,
+				123,
+				124,
+				125,
+				126,
+				127,
+				128,
+				129,
+				130,
+				131,
+				132,
+				133,
+				134,
+				135,
+				136,
+				137,
+				138,
+				139,
+				140,
+				141,
+				142,
+				143,
+				144,
+				145,
+				146,
+				147,
+				148,
+				149,
+				150,
+				151,
+				152,
+				153,
+				154,
+				155,
+				156,
+				157,
+				158,
+				159,
+				160,
+				161,
+				162,
+				163,
+				164,
+				165,
+				166,
+				167,
+				168,
+				169,
+				170,
+				171,
+				172,
+				173,
+				174,
+				175,
+				176,
+				177,
+				178,
+				179,
+				180,
+				181,
+				182,
+				183,
+				184,
+				185,
+				186,
+				187,
+				188,
+				189,
+				190,
+				191,
+				192,
+				193,
+				194,
+				195,
+				196,
+				197,
+				198,
+				199,
+				200,
+				201,
+				202,
+				203,
+				204,
+				205,
+				206
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/buildid.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cave-map.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cave-square.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cave-view.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cave.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cmd-cave.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cmd-core.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cmd-misc.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cmd-obj.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cmd-pickup.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cmd-spoil.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/cmd-wizard.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/datafile.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/debug.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/effect-handler-attack.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/effect-handler-general.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/effects.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/effects-info.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/game-event.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/game-input.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/game-world.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/gen-cave.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/gen-chunk.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/gen-monster.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/gen-room.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/gen-util.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/generate.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/grafmode.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/guid.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/init.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/load.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/message.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-attack.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-blows.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-desc.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-group.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-init.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-list.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-lore.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-make.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-move.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-msg.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-predicate.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-spell.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-summon.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-timed.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/mon-util.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-chest.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-curse.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-desc.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-gear.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-ignore.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-info.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-init.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-knowledge.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-list.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-make.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-pile.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-power.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-properties.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-randart.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-slays.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-tval.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/obj-util.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/option.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/parser.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-attack.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-birth.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-calcs.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-class.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-history.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-path.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-properties.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-quest.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-race.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-spell.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-timed.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player-util.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/player.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/project-feat.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/project-mon.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/project-obj.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/project-player.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/project.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/randname.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/save.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/save-charoutput.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/savefile.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/score.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/sound-core.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/source.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/store.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/target.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/trap.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-birth.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-command.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-context.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-curse.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-death.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-display.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-effect.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-entry-combiner.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-entry-renderers.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-entry.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-equip-cmp.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-event.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-game.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-help.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-history.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-init.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-input.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-keymap.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-knowledge.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-map.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-menu.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-mon-list.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-mon-lore.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-obj-list.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-object.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-options.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-output.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-player-properties.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-player.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-prefs.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-score.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-signals.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-spell.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-spoil.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-store.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-target.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-term.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-visuals.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ui-wizard.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/wiz-debug.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/wiz-spoil.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/wiz-stats.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-bitflag.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-color.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-dice.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-expression.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-file.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-form.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-quark.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-queue.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-rand.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-textblock.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-type.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-util.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/z-virt.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-attack-munchkin.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-caution.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-cave-light.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-cave-util.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-cave-view.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-cave.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-danger.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-escape.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-fight-attack.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-fight-defend.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-fight-perm.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-flow-dark.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-flow-glyph.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-flow-kill.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-flow-misc.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-flow-stairs.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-flow-take.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-flow.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-formulas.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-formulas-calc.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-home-notice.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-home-power.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-init.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-inventory.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-io.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-item-activation.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-item-analyze.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-item-decurse.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-item-enchant.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-item-id.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-item-use.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-item-val.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-item-wear.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-item.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-junk.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-light.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-log.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-magic-play.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-magic.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-messages-react.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-messages.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-power.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-prepared.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-projection.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-recover.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-reincarnate.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-store-buy.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-store-sell.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-store.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-think-dungeon-util.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-think-dungeon.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-think-store.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-think.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-trait-swap.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-trait.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-update.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg-util.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/borg/borg.c",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "OBJECT_LIBRARY"
+}

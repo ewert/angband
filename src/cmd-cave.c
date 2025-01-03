@@ -68,9 +68,9 @@ void do_cmd_go_up(struct command *cmd)
 		msg("Nothing happens!");
 		return;
 	}
-	
+
 	ascend_to = dungeon_get_next_level(player, player->depth, -1);
-	
+
 	if (ascend_to == player->depth) {
 		msg("You can't go up from here!");
 		return;
@@ -85,7 +85,7 @@ void do_cmd_go_up(struct command *cmd)
 	/* Create a way back */
 	player->upkeep->create_up_stair = false;
 	player->upkeep->create_down_stair = true;
-	
+
 	/* Change level */
 	dungeon_change_level(player, ascend_to);
 }
@@ -594,7 +594,7 @@ static bool do_cmd_tunnel_aux(struct loc grid)
 						&& square_isseen(cave, grid)) {
 					msg("You have found something!");
 				}
-			} 
+			}
 		} else if (gold) {
 			/* Found treasure */
 			place_gold(cave, grid, player->depth, ORIGIN_FLOOR);
@@ -1287,7 +1287,7 @@ void do_cmd_walk(struct command *cmd)
 	/* Confused movements use energy no matter what */
 	if (player_confuse_dir(player, &dir, false))
 		player->upkeep->energy_use = z_info->move_energy;
-	
+
 	/* Verify walkability */
 	grid = loc_sum(player->grid, ddgrid[dir]);
 	if (!do_cmd_walk_test(player, grid))
@@ -1372,7 +1372,7 @@ void do_cmd_run(struct command *cmd)
 		grid = loc_sum(player->grid, ddgrid[dir]);
 		if (!do_cmd_walk_test(player, grid))
 			return;
-			
+
 		/* Hack: convert repeat count to running count */
 		if (cmd->nrepeats > 0) {
 			player->upkeep->running = cmd->nrepeats;
@@ -1394,8 +1394,6 @@ void do_cmd_run(struct command *cmd)
  */
 void do_cmd_navigate_down(struct command *cmd)
 {
-	int visible_monster_count = 0;
-
 	/* cancel if confused */
 	if (player->timed[TMD_CONFUSED]) {
 		msg("You cannot explore while confused.");
@@ -1411,30 +1409,16 @@ void do_cmd_navigate_down(struct command *cmd)
 		player->upkeep->energy_use = z_info->move_energy;
 		return;
 	}
-	
 
-	/* Screen for visible monsters */
-	for (int y = 0; y < cave->height; y++) {
-		for (int x = 0; x < cave->width; x++) {
-			struct loc grid = loc(x, y);
-			
-			if (loc_eq(grid, player->grid)) continue;
-
-			if (square_isoccupied(cave, grid)) {
-				int m_idx = square(cave, grid)->mon;
-				struct monster *mon = cave_monster(cave, m_idx);
-				if (monster_is_obvious(mon)) {
-					visible_monster_count++;
-					break;
-				}
-			}
-		}
-	}
-
-	if (visible_monster_count > 0) {
-		msg("Something is here.");
-		return;
-	}
+    /* Screen for visible monsters */
+    for (int i = 1; i < cave_monster_max(cave); i++) {
+        struct monster *mon = cave_monster(cave, i);
+        if (monster_is_obvious(mon))	{
+            msg("Something is here.");
+            disturb(player);
+            return;
+        }
+    }
 
 	assert(!player->upkeep->steps);
 	player->upkeep->step_count = path_nearest_known(player, player->grid,
@@ -1442,8 +1426,6 @@ void do_cmd_navigate_down(struct command *cmd)
 		&player->upkeep->steps);
 	if (player->upkeep->step_count > 0) {
 		player->upkeep->running = player->upkeep->step_count;
-		/* Calculate torch radius */
-		player->upkeep->update |= (PU_TORCH);
 		run_step(0);
 		return;
 	}
@@ -1458,13 +1440,11 @@ void do_cmd_navigate_down(struct command *cmd)
  */
 void do_cmd_navigate_up(struct command *cmd)
 {
-	int visible_monster_count = 0;
 	/* cancel if confused */
 	if (player->timed[TMD_CONFUSED]) {
 		msg("You cannot explore while confused.");
 	   	return;
 	}
-
 
 	/* If we're in a web, deal with that */
 	if (square_iswebbed(cave, player->grid)) {
@@ -1474,30 +1454,16 @@ void do_cmd_navigate_up(struct command *cmd)
 		player->upkeep->energy_use = z_info->move_energy;
 		return;
 	}
-	
 
-	/* Screen for visible monsters */
-	for (int y = 0; y < cave->height; y++) {
-		for (int x = 0; x < cave->width; x++) {
-			struct loc grid = loc(x, y);
-
-			if (loc_eq(grid, player->grid)) continue;
-
-			if (square_isoccupied(cave, grid)) {
-				int m_idx = square(cave, grid)->mon;
-				struct monster *mon = cave_monster(cave, m_idx);
-				if (monster_is_obvious(mon)) {
-					visible_monster_count++;
-					break;
-				}
-			}
-		}
-	}
-
-	if (visible_monster_count > 0) {
-		msg("Something is here.");
-		return;
-	}
+    /* Screen for visible monsters */
+    for (int i = 1; i < cave_monster_max(cave); i++) {
+        struct monster *mon = cave_monster(cave, i);
+        if (monster_is_obvious(mon))	{
+            msg("Something is here.");
+            disturb(player);
+            return;
+        }
+    }
 
 	assert(!player->upkeep->steps);
 	player->upkeep->step_count = path_nearest_known(player, player->grid,
@@ -1505,8 +1471,6 @@ void do_cmd_navigate_up(struct command *cmd)
 		&player->upkeep->steps);
 	if (player->upkeep->step_count > 0) {
 		player->upkeep->running = player->upkeep->step_count;
-		/* Calculate torch radius */
-		player->upkeep->update |= (PU_TORCH);
 		run_step(0);
 		return;
 	}
@@ -1517,65 +1481,117 @@ void do_cmd_navigate_up(struct command *cmd)
 /**
  * Start exploring.
  *
- * Note that exploring while confused is not allowed.
+ * Note that exploring is not allowed when unable to see nearby or confused.
  */
 void do_cmd_explore(struct command *cmd)
 {
-	bool visible_monster = false;
-	/* cancel if confused */
-	if (player->timed[TMD_CONFUSED]) {
-		msg("You cannot explore while confused.");
-	   	return;
-	}
+    struct object *obj;
+    struct monster *mon;
+    struct loc ogrid = loc(-1, -1);
+    struct loc pgrid = player->grid;
+    int objdistance = -1;
+    int tempdistance;
+    int i;
 
+    /* cancel if confused, blind or in darkness */
+    if (player->timed[TMD_CONFUSED]) {
+        msg("You cannot explore while confused.");
+        return;
+    }
 
-	/* If we're in a web, deal with that */
-	if (square_iswebbed(cave, player->grid)) {
-		/* Clear the web, finish turn */
-		msg("You clear the web.");
-		square_destroy_trap(cave, player->grid);
-		player->upkeep->energy_use = z_info->move_energy;
-		return;
-	}
-	
+    if (!square_islit(cave, player->grid) && !player_has(player, PF_UNLIGHT)) {
+        msg("You cannot explore without seeing things near you.");
+        return;
+    }
 
-	/* Screen for visible monsters */
-	for (int y = 0; y < cave->height && !visible_monster; y++) {
-		for (int x = 0; x < cave->width; x++) {
-			struct loc grid = loc(x, y);
-			
-			if (loc_eq(grid, player->grid)) continue;
+    if (player->timed[TMD_BLIND]) {
+        msg("You cannot explore while blind.");
+        return;
+    }
 
-			if (square_isoccupied(cave, grid)) {
-				int m_idx = square(cave, grid)->mon;
-				struct monster *mon = cave_monster(cave, m_idx);
-				if (monster_is_obvious(mon)) {
-					visible_monster = true;
-					break; /* only breaks the inner loop */
-				}
-			}
-		}
-	}
+    /* If we're in a web, deal with that */
+    if (square_iswebbed(cave, player->grid)) {
+        /* Clear the web, finish turn */
+        msg("You clear the web.");
+        square_destroy_trap(cave, player->grid);
+        player->upkeep->energy_use = z_info->move_energy;
+        return;
+    }
 
-	if (visible_monster) {
-		msg("Something is here.");
-		return;
-	}
+    /* Stop at closed doors and rubble */
+    if (count_feats(NULL, square_iscloseddoor, false) || count_feats(NULL, square_isrubble, false)) {
+        msg("Closed but passable terrain nearby.");
+        disturb(player);
+        return;
+    }
 
-	assert(!player->upkeep->steps);
-	player->upkeep->step_count = path_nearest_unknown(player, player->grid,
-		&player->upkeep->path_dest, &player->upkeep->steps);
-	if (player->upkeep->step_count > 0) {
-		player->upkeep->running = player->upkeep->step_count;
-		/* Calculate torch radius */
-		player->upkeep->update |= (PU_TORCH);
-		run_step(0);
-		return;
-	}
+    /* Screen for visible monsters */
+    for (i = 1; i < cave_monster_max(cave); i++) {
+        mon = cave_monster(cave, i);
+        if (monster_is_obvious(mon))	{
+            msg("Something is here.");
+            disturb(player);
+            return;
+        }
+    }
 
-	msg("No apparent path for exploration.");
+    /* Find any visible object and go to it instead */
+
+    for (i = 1; i < player->cave->obj_max; i++) {
+        obj = player->cave->objects[i];
+
+        /* Skip non-visible / non-ignored objects */
+		if (!obj) continue;
+		if (loc_is_zero(obj->grid)) continue;
+        if (ignore_known_item_ok(player, obj)) continue;
+
+        /* Look no further */
+        if (loc_eq(obj->grid, player->grid)) {
+            msg("You are standing on something interesting.");
+            disturb(player);
+            return;
+        }
+
+        if (!projectable(cave, player->grid, obj->grid, PROJECT_NONE)) continue;
+
+        /* Find closest object */
+        tempdistance = ((obj->grid.y - pgrid.y) * (obj->grid.y - pgrid.y) +
+			(obj->grid.x - pgrid.x) * (obj->grid.x - pgrid.x));
+
+        if (tempdistance < objdistance || objdistance < 0) {
+            ogrid = obj->grid;
+            objdistance = tempdistance;
+        }
+    }
+
+    /* If object within LoS, set destination */
+    if (objdistance > 0) {
+        player->upkeep->step_count = find_path(player, player->grid,
+            ogrid, &player->upkeep->steps);
+    }
+
+    /* If already have run target, keep running to stop checking between steps */
+
+    if (player->upkeep->steps) {
+        run_step(0);
+        cmdq_push(CMD_EXPLORE);
+    } else {
+
+        disturb(player);
+        player->upkeep->step_count = path_nearest_unknown(player, player->grid,
+            &player->upkeep->path_dest, &player->upkeep->steps);
+
+        if (!player->upkeep->steps) {
+            msg("No apparent path for exploration.");
+            disturb(player);
+            return;
+        } else {
+
+        /* If exploration available */
+        cmdq_push(CMD_EXPLORE);
+        }
+    }
 }
-
 
 /**
  * Start running with pathfinder.
@@ -1598,8 +1614,6 @@ void do_cmd_pathfind(struct command *cmd)
 	if (player->upkeep->step_count > 0) {
 		player->upkeep->path_dest = grid;
 		player->upkeep->running = player->upkeep->step_count;
-		/* Calculate torch radius */
-		player->upkeep->update |= (PU_TORCH);
 		run_step(0);
 	}
 }
@@ -1657,9 +1671,9 @@ void do_cmd_rest(struct command *cmd)
 	if (cmd_get_arg_choice(cmd, "choice", &n) != CMD_OK)
 		return;
 
-	/* 
-	 * A little sanity checking on the input - only the specified negative 
-	 * values are valid. 
+	/*
+	 * A little sanity checking on the input - only the specified negative
+	 * values are valid.
 	 */
 	if (n < 0 && !player_resting_is_special(n))
 		return;
@@ -1739,7 +1753,7 @@ static const char *obj_feeling_text[] =
  */
 static const char *mon_feeling_text[] =
 {
-	/* first string is just a place holder to 
+	/* first string is just a place holder to
 	 * maintain symmetry with obj_feeling.
 	 */
 	"You are still uncertain about this place",
