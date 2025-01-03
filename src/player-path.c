@@ -105,12 +105,11 @@ static bool is_valid_pf(struct player *p, struct loc grid, bool only_known,
 	}
 
 	/*
-	 * Some impassable terrain can be traversed fairly easily by modifying
-	 * the terrain so allow those kinds.
+	 * Stop at doors and rubble
 	 */
 	if (square_iscloseddoor(p->cave, grid)
 			|| square_isrubble(p->cave, grid)) {
-		return true;
+		return false;
 	}
 
 	/* Reject all other impassable terrain. */
@@ -1675,6 +1674,14 @@ static bool run_test(const struct player *p)
 	option = 0;
 	option2 = 0;
 
+    /* No running when visible monsters around */
+	for (i = 1; i < cave_monster_max(cave); i++) {
+		struct monster *mon = cave_monster(cave, i);
+		if (monster_is_obvious(mon))	{
+            return true;
+		}
+	}
+
 	/* Where we came from */
 	prev_dir = run_old_dir;
 
@@ -1694,7 +1701,7 @@ static bool run_test(const struct player *p)
 		/* Visible monsters abort running */
 		if (square(cave, grid)->mon > 0) {
 			struct monster *mon = square_monster(cave, grid);
-			if (monster_is_visible(mon)) {
+			if (monster_is_obvious(mon)) {
 				return true;
 			}
 		}
@@ -1759,15 +1766,14 @@ static bool run_test(const struct player *p)
 		}
 	}
 
-
 	/* Look at every soon to be newly adjacent square. */
-	for (i = -max; i <= max; i++) {		
+	for (i = -max; i <= max; i++) {
 		/* New direction */
 		new_dir = cycle[chome[prev_dir] + i];
-		
+
 		/* New location */
 		grid = loc_sum(p->grid, loc_sum(ddgrid[prev_dir], ddgrid[new_dir]));
-		
+
 		/* HACK: Ugh. Sometimes we come up with illegal bounds. This will
 		 * treat the symptom but not the disease. */
 		if (!square_in_bounds(cave, grid)) continue;
@@ -1854,6 +1860,8 @@ static bool run_test(const struct player *p)
  */
 void run_step(int dir)
 {
+    int i = 0;
+
 	/* Trapsafe player will treat the trap as if it isn't there */
 	bool disarm = player_is_trapsafe(player) ? false : true;
 
@@ -1866,8 +1874,6 @@ void run_step(int dir)
 		if (player->upkeep->running == 0)
 			player->upkeep->running = 9999;
 
-		/* Calculate torch radius */
-		player->upkeep->update |= (PU_TORCH);
 	} else {
 		/* Continue running */
 		if (!player->upkeep->steps) {
