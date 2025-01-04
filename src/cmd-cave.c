@@ -1494,10 +1494,14 @@ void do_cmd_explore(struct command *cmd)
     int tempdistance;
     int i;
 
-    /* cancel if confused, blind or in darkness */
+    /* Cancel if confused, blind, weak from hunger or without visibility */
     if (player->timed[TMD_CONFUSED]) {
         msg("You cannot explore while confused.");
         return;
+    }
+
+    if (player->timed[TMD_FOOD] <= PY_FOOD_WEAK) {
+        msg("You are too weak from hunger to explore.");
     }
 
     if (!square_islit(cave, player->grid) && !player_has(player, PF_UNLIGHT)) {
@@ -1521,7 +1525,7 @@ void do_cmd_explore(struct command *cmd)
 
     /* Stop at closed doors and rubble */
     if (count_feats(NULL, square_iscloseddoor, false) || count_feats(NULL, square_isrubble, false)) {
-        msg("Closed but passable terrain nearby.");
+        msg("Closed off but passable terrain nearby.");
         disturb(player);
         return;
     }
@@ -1608,7 +1612,7 @@ void do_cmd_meleeclosest(struct command *cmd)
     target_get(&tgrid);
     dir = pathfind_direction_to(player->grid, tgrid);
 
-    /* Walk towards a monster and done */
+    /* Walk towards a monster */
     cmdq_push(CMD_WALK);
 	cmd_set_arg_direction(cmdq_peek(), "direction", dir);
 }

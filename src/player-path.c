@@ -1701,7 +1701,7 @@ static bool run_test(const struct player *p)
 		/* Visible monsters abort running */
 		if (square(cave, grid)->mon > 0) {
 			struct monster *mon = square_monster(cave, grid);
-			if (monster_is_obvious(mon)) {
+			if (monster_is_visible(mon)) {
 				return true;
 			}
 		}
