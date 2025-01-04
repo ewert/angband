@@ -48,6 +48,7 @@
 #include "player-util.h"
 #include "project.h"
 #include "store.h"
+#include "target.h"
 #include "trap.h"
 
 /**
@@ -1591,6 +1592,25 @@ void do_cmd_explore(struct command *cmd)
         cmdq_push(CMD_EXPLORE);
         }
     }
+}
+
+/**
+ * Walk towards closest monster to melee them.
+ */
+
+void do_cmd_meleeclosest(struct command *cmd)
+{
+    int dir;
+    struct loc tgrid;
+
+	/* Require foe */
+	if (!target_set_closest((TARGET_KILL | TARGET_QUIET), NULL)) return;
+    target_get(&tgrid);
+    dir = pathfind_direction_to(player->grid, tgrid);
+
+    /* Walk towards a monster and done */
+    cmdq_push(CMD_WALK);
+	cmd_set_arg_direction(cmdq_peek(), "direction", dir);
 }
 
 /**

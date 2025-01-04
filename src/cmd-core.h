@@ -31,14 +31,14 @@ struct player;
 typedef enum cmd_code {
 	CMD_NULL = 0,	/* A "do nothing" command so that there's something
 					   UIs can use as a "no command yet" sentinel. */
-	/* 
-	 * Splash screen commands 
+	/*
+	 * Splash screen commands
 	 */
 	CMD_LOADFILE,
 	CMD_NEWGAME,
 
-	/* 
-	 * Birth commands 
+	/*
+	 * Birth commands
 	 */
 	CMD_BIRTH_INIT,
 	CMD_BIRTH_RESET,
@@ -54,7 +54,7 @@ typedef enum cmd_code {
 	CMD_HISTORY_CHOICE,
 	CMD_ACCEPT_CHARACTER,
 
-	/* 
+	/*
 	 * The main game commands
 	 */
 	CMD_GO_UP,
@@ -93,6 +93,7 @@ typedef enum cmd_code {
 	CMD_CLOSE,
 	CMD_RUN,
 	CMD_EXPLORE,
+	CMD_MELEECLOSEST,
 	CMD_NAVIGATE_UP,
 	CMD_NAVIGATE_DOWN,
 	CMD_HOLD,
@@ -187,12 +188,12 @@ typedef enum cmd_context {
  */
 union cmd_arg_data {
 	const char *string;
-	
+
 	int choice;
 	struct object *obj;
 	int number;
 	int direction;
-	
+
 	struct loc point;
 };
 

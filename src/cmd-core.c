@@ -76,6 +76,7 @@ static const struct command_info game_cmds[] =
 	{ CMD_WALK, "walk", do_cmd_walk, true, true, 0 },
 	{ CMD_RUN, "run", do_cmd_run, true, true, 0 },
 	{ CMD_EXPLORE, "explore", do_cmd_explore, false, true, 0 },
+	{ CMD_MELEECLOSEST, "melee closest", do_cmd_meleeclosest, false, true, 0 },
 	{ CMD_NAVIGATE_UP, "navigate up", do_cmd_navigate_up, false, true, 0 },
 	{ CMD_NAVIGATE_DOWN, "navigate down", do_cmd_navigate_down, false, true, 0 },
 	{ CMD_JUMP, "jump", do_cmd_jump, false, true, 0 },
@@ -320,7 +321,7 @@ errr cmdq_push_copy(struct command *cmd)
 	cmd_head++;
 	if (cmd_head == CMD_QUEUE_SIZE) cmd_head = 0;
 
-	return 0;	
+	return 0;
 }
 
 /**
@@ -446,7 +447,7 @@ errr cmdq_push_repeat(cmd_code c, int nrepeats)
 }
 
 /**
- * Inserts a command in the queue to be carried out. 
+ * Inserts a command in the queue to be carried out.
  */
 errr cmdq_push(cmd_code c)
 {
@@ -646,7 +647,7 @@ static int cmd_get_arg(struct command *cmd, const char *arg,
 	return CMD_ARG_NOT_PRESENT;
  }
 
- 
+
 
 /**
  * ------------------------------------------------------------------------

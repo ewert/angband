@@ -37,6 +37,7 @@ void do_cmd_walk(struct command *cmd);
 void do_cmd_jump(struct command *cmd);
 void do_cmd_run(struct command *cmd);
 void do_cmd_explore(struct command *cmd);
+void do_cmd_meleeclosest(struct command *cmd);
 void do_cmd_navigate_up(struct command *cmd);
 void do_cmd_navigate_down(struct command *cmd);
 void do_cmd_pathfind(struct command *cmd);
