@@ -1542,40 +1542,39 @@ void do_cmd_explore(struct command *cmd)
 
     /* Find any visible object and go to it instead, if no destination set */
 
-    if (!player->upkeep->running) {
-        for (i = 1; i < player->cave->obj_max; i++) {
-            obj = player->cave->objects[i];
+    for (i = 1; i < player->cave->obj_max; i++) {
+        obj = player->cave->objects[i];
 
-            /* Skip non-visible / non-ignored objects */
-            if (!obj) continue;
-            if (loc_is_zero(obj->grid)) continue;
-            if (ignore_known_item_ok(player, obj)) continue;
+        /* Skip non-visible / non-ignored objects */
+        if (!obj) continue;
+        if (loc_is_zero(obj->grid)) continue;
+        if (ignore_known_item_ok(player, obj)) continue;
 
-            /* Look no further */
-            if (loc_eq(obj->grid, player->grid)) {
-                msg("You are standing on something interesting.");
-                disturb(player);
-                return;
-            }
-
-            if (!projectable(cave, player->grid, obj->grid, PROJECT_NONE)) continue;
-
-            /* Find closest object */
-            tempdistance = ((obj->grid.y - pgrid.y) * (obj->grid.y - pgrid.y) +
-                (obj->grid.x - pgrid.x) * (obj->grid.x - pgrid.x));
-
-            if (tempdistance < objdistance || objdistance < 0) {
-                ogrid = obj->grid;
-                objdistance = tempdistance;
-            }
+        /* Look no further */
+        if (loc_eq(obj->grid, player->grid)) {
+            msg("You are standing on something interesting.");
+            disturb(player);
+            return;
         }
 
-        /* If object within LoS, set destination */
-        if (objdistance > 0) {
-            player->upkeep->step_count = find_path(player, player->grid,
-                ogrid, &player->upkeep->steps);
-            player->upkeep->running = player->upkeep->step_count;
+        if (!projectable(cave, player->grid, obj->grid, PROJECT_NONE)) continue;
+
+        /* Find closest object */
+        tempdistance = ((obj->grid.y - pgrid.y) * (obj->grid.y - pgrid.y) +
+            (obj->grid.x - pgrid.x) * (obj->grid.x - pgrid.x));
+
+        if (tempdistance < objdistance || objdistance < 0) {
+            ogrid = obj->grid;
+            objdistance = tempdistance;
         }
+    }
+
+    /* If object within LoS, re/set destination */
+    if (objdistance > 0) {
+        disturb(player);
+        player->upkeep->step_count = find_path(player, player->grid,
+            ogrid, &player->upkeep->steps);
+        player->upkeep->running = player->upkeep->step_count;
     }
 
     /* If not running, find destination */
