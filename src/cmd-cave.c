@@ -1497,20 +1497,25 @@ void do_cmd_explore(struct command *cmd)
     /* Cancel if confused, blind, weak from hunger or without visibility */
     if (player->timed[TMD_CONFUSED]) {
         msg("You cannot explore while confused.");
+        disturb(player);
         return;
     }
 
     if (player->timed[TMD_FOOD] <= PY_FOOD_WEAK) {
         msg("You are too weak from hunger to explore.");
+        disturb(player);
+        return;
     }
 
     if (!square_islit(cave, player->grid) && !player_has(player, PF_UNLIGHT)) {
         msg("You cannot explore without seeing things near you.");
+        disturb(player);
         return;
     }
 
     if (player->timed[TMD_BLIND]) {
         msg("You cannot explore while blind.");
+        disturb(player);
         return;
     }
 
@@ -1520,6 +1525,7 @@ void do_cmd_explore(struct command *cmd)
         msg("You clear the web.");
         square_destroy_trap(cave, player->grid);
         player->upkeep->energy_use = z_info->move_energy;
+        disturb(player);
         return;
     }
 
@@ -1574,32 +1580,35 @@ void do_cmd_explore(struct command *cmd)
         disturb(player);
         player->upkeep->step_count = find_path(player, player->grid,
             ogrid, &player->upkeep->steps);
-        player->upkeep->running = player->upkeep->step_count;
     }
 
-    /* If not running, find destination */
+    /* If none, find destination */
 
-    if (!player->upkeep->running) {
-        disturb(player);
-        player->upkeep->step_count = path_nearest_unknown(player, player->grid,
-            &player->upkeep->path_dest, &player->upkeep->steps);
-		player->upkeep->running = player->upkeep->step_count;
+	if (player->upkeep->step_count <= 0) {
+		player->upkeep->step_count = path_nearest_unknown(player, player->grid,
+			&player->upkeep->path_dest, &player->upkeep->steps);
+	}
 
-        if (!player->upkeep->running) {
-            msg("No apparent path for exploration.");
-            disturb(player);
-            return;
-        }
+    if (player->upkeep->step_count <= 0) {
+		msg("No apparent path for exploration.");
+		disturb(player);
+        return;
     }
 
     /* We should have a destination, move and check again */
-    int next_step_ind = player->upkeep->step_count - 1;
-    int next_step_dir = player->upkeep->steps[next_step_ind];
-    cmdq_push(CMD_WALK);
-	cmd_set_arg_direction(cmdq_peek(), "direction", next_step_dir);
-    player->upkeep->step_count = next_step_ind;
-    --player->upkeep->running;
-    cmdq_push(CMD_EXPLORE);
+
+    if (player->upkeep->step_count > 0) {
+        int next_step_ind = player->upkeep->step_count - 1;
+        int next_step_dir = player->upkeep->steps[next_step_ind];
+        cmdq_push(CMD_WALK);
+        cmd_set_arg_direction(cmdq_peek(), "direction", next_step_dir);
+        --player->upkeep->step_count;
+        if (!player->upkeep->step_count) disturb(player);
+        cmdq_push(CMD_EXPLORE);
+        return;
+    }
+    /* Failsafe reset */
+    disturb(player);
 }
 
 /**
