@@ -1545,7 +1545,7 @@ void do_cmd_explore(struct command *cmd)
     for (i = 1; i < player->cave->obj_max; i++) {
         obj = player->cave->objects[i];
 
-        /* Skip non-visible / non-ignored objects */
+        /* Skip non-visible / ignored objects */
         if (!obj) continue;
         if (loc_is_zero(obj->grid)) continue;
         if (ignore_known_item_ok(player, obj)) continue;
@@ -1585,16 +1585,20 @@ void do_cmd_explore(struct command *cmd)
             &player->upkeep->path_dest, &player->upkeep->steps);
 		player->upkeep->running = player->upkeep->step_count;
 
-        if (!player->upkeep->steps) {
+        if (!player->upkeep->running) {
             msg("No apparent path for exploration.");
             disturb(player);
             return;
         }
     }
 
-    /* We should have a destination, start running and check again */
-
-    run_step(0);
+    /* We should have a destination, move and check again */
+    int next_step_ind = player->upkeep->step_count - 1;
+    int next_step_dir = player->upkeep->steps[next_step_ind];
+    cmdq_push(CMD_WALK);
+	cmd_set_arg_direction(cmdq_peek(), "direction", next_step_dir);
+    player->upkeep->step_count = next_step_ind;
+    --player->upkeep->running;
     cmdq_push(CMD_EXPLORE);
 }
 
