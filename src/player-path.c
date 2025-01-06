@@ -944,6 +944,8 @@ int path_nearest_unknown(struct player *p, struct loc start,
 						grid)) {
 					continue;
 				}
+
+/* old code for checking 
 				if (passable) {
 					if (!square_ispassable(p->cave, grid)
 							|| count_neighbors(NULL,
@@ -972,6 +974,20 @@ int path_nearest_unknown(struct player *p, struct loc start,
 						continue;
 					}
 				}
+old code for testing */
+
+/* New testing code, check the target is passable, reachable, unknown grids next to it
+   or is next to a door or rubble */
+
+				if (!square_ispassable(p->cave, grid)) continue;
+
+				if (count_neighbors(NULL, p->cave, grid, square_isknownpassable, false) == 0 ||
+					count_neighbors(NULL, p->cave, grid, square_isknown, false) == 8) {
+					if (count_neighbors(NULL, p->cave, grid, square_iscloseddoor, false) == 0 &&
+						count_neighbors(NULL, p->cave, grid, square_isrubble, false) == 0 ) continue;
+				}
+
+				test_grid = grid;
 
 				if (!distances) {
 					distances = prepare_pfdistances(

@@ -1421,7 +1421,7 @@ void do_cmd_navigate_down(struct command *cmd)
         }
     }
 
-	assert(!player->upkeep->steps);
+	// assert(!player->upkeep->steps);
 	player->upkeep->step_count = path_nearest_known(player, player->grid,
 		square_isdownstairs, &player->upkeep->path_dest,
 		&player->upkeep->steps);
@@ -1466,7 +1466,7 @@ void do_cmd_navigate_up(struct command *cmd)
         }
     }
 
-	assert(!player->upkeep->steps);
+	// assert(!player->upkeep->steps);
 	player->upkeep->step_count = path_nearest_known(player, player->grid,
 		square_isupstairs, &player->upkeep->path_dest,
 		&player->upkeep->steps);
@@ -1494,28 +1494,39 @@ void do_cmd_explore(struct command *cmd)
     int tempdistance;
     int i;
 
-    /* Cancel if confused, blind, weak from hunger or without visibility */
+    /* Cancel if confused, blind, weak from hunger or without visibility etc. */
     if (player->timed[TMD_CONFUSED]) {
         msg("You cannot explore while confused.");
+		center_panel();
         disturb(player);
         return;
     }
 
+	if (player->timed[TMD_POISONED]) {
+		msg("You cannot explore while poisoned.");
+		center_panel();
+		disturb(player);
+		return;
+	}
+
     if (player->timed[TMD_FOOD] <= PY_FOOD_WEAK) {
         msg("You are too weak from hunger to explore.");
+		center_panel();
         disturb(player);
         return;
     }
 
     if (!square_islit(cave, player->grid) && !player_has(player, PF_UNLIGHT)) {
         msg("You cannot explore without seeing things near you.");
-        disturb(player);
+		center_panel();
+		disturb(player);
         return;
     }
 
     if (player->timed[TMD_BLIND]) {
         msg("You cannot explore while blind.");
-        disturb(player);
+		center_panel();
+		disturb(player);
         return;
     }
 
@@ -1525,23 +1536,33 @@ void do_cmd_explore(struct command *cmd)
         msg("You clear the web.");
         square_destroy_trap(cave, player->grid);
         player->upkeep->energy_use = z_info->move_energy;
-        disturb(player);
+		center_panel();
+		disturb(player);
         return;
     }
 
     /* Stop at closed doors and rubble */
     if (count_feats(NULL, square_iscloseddoor, false) || count_feats(NULL, square_isrubble, false)) {
         msg("Closed off but passable terrain nearby.");
-        disturb(player);
+		center_panel();
+		disturb(player);
         return;
     }
+
+	if (count_feats(NULL, square_istrap, false)) {
+		msg("You are next to a trap.");
+		center_panel();
+		disturb(player);
+		return;
+	}
 
     /* Screen for visible monsters */
     for (i = 1; i < cave_monster_max(cave); i++) {
         mon = cave_monster(cave, i);
         if (monster_is_obvious(mon))	{
             msg("Something is here.");
-            disturb(player);
+			center_panel();
+			disturb(player);
             return;
         }
     }
@@ -1559,7 +1580,8 @@ void do_cmd_explore(struct command *cmd)
         /* Look no further */
         if (loc_eq(obj->grid, player->grid)) {
             msg("You are standing on something interesting.");
-            disturb(player);
+			center_panel();
+			disturb(player);
             return;
         }
 
@@ -1591,6 +1613,7 @@ void do_cmd_explore(struct command *cmd)
 
     if (player->upkeep->step_count <= 0) {
 		msg("No apparent path for exploration.");
+		center_panel();
 		disturb(player);
         return;
     }
@@ -1600,10 +1623,10 @@ void do_cmd_explore(struct command *cmd)
     if (player->upkeep->step_count > 0) {
         int next_step_ind = player->upkeep->step_count - 1;
         int next_step_dir = player->upkeep->steps[next_step_ind];
-        cmdq_push(CMD_WALK);
+		--player->upkeep->step_count;
+		cmdq_push(CMD_WALK);
         cmd_set_arg_direction(cmdq_peek(), "direction", next_step_dir);
-        --player->upkeep->step_count;
-        if (!player->upkeep->step_count) disturb(player);
+        if (player->upkeep->step_count < 0) disturb(player);
         cmdq_push(CMD_EXPLORE);
         return;
     }
@@ -1645,7 +1668,7 @@ void do_cmd_pathfind(struct command *cmd)
 	if (player->timed[TMD_CONFUSED])
 		return;
 
-	assert(!player->upkeep->steps);
+//	assert(!player->upkeep->steps);
 	player->upkeep->step_count =
 		find_path(player, player->grid, grid, &player->upkeep->steps);
 	if (player->upkeep->step_count > 0) {
