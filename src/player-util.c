@@ -1644,7 +1644,7 @@ void disturb(struct player *p)
 	}
 
 	/* Cancel running */
-	if (p->upkeep->running) {
+	if ((p->upkeep->running) || (p->upkeep->steps)) {
 		p->upkeep->running = 0;
 		mem_free(p->upkeep->steps);
 		p->upkeep->steps = NULL;

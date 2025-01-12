@@ -1421,7 +1421,7 @@ void do_cmd_navigate_down(struct command *cmd)
         }
     }
 
-	// assert(!player->upkeep->steps);
+	assert(!player->upkeep->steps);
 	player->upkeep->step_count = path_nearest_known(player, player->grid,
 		square_isdownstairs, &player->upkeep->path_dest,
 		&player->upkeep->steps);
@@ -1466,7 +1466,7 @@ void do_cmd_navigate_up(struct command *cmd)
         }
     }
 
-	// assert(!player->upkeep->steps);
+	assert(!player->upkeep->steps);
 	player->upkeep->step_count = path_nearest_known(player, player->grid,
 		square_isupstairs, &player->upkeep->path_dest,
 		&player->upkeep->steps);
@@ -1482,7 +1482,7 @@ void do_cmd_navigate_up(struct command *cmd)
 /**
  * Start exploring.
  *
- * Note that exploring is not allowed when unable to see nearby or confused.
+ * Note that exploring is not allowed when unable to see nearby or affected by certain flags.
  */
 void do_cmd_explore(struct command *cmd)
 {
@@ -1495,6 +1495,7 @@ void do_cmd_explore(struct command *cmd)
     int i;
 
     /* Cancel if confused, blind, weak from hunger or without visibility etc. */
+	/* Also flush queue and steps by using disturb as might happen midrun and we are looping */
     if (player->timed[TMD_CONFUSED]) {
         msg("You cannot explore while confused.");
 		center_panel();
@@ -1537,7 +1538,6 @@ void do_cmd_explore(struct command *cmd)
         square_destroy_trap(cave, player->grid);
         player->upkeep->energy_use = z_info->move_energy;
 		center_panel();
-		disturb(player);
         return;
     }
 
@@ -1559,7 +1559,7 @@ void do_cmd_explore(struct command *cmd)
     /* Screen for visible monsters */
     for (i = 1; i < cave_monster_max(cave); i++) {
         mon = cave_monster(cave, i);
-        if (monster_is_obvious(mon))	{
+        if (monster_is_in_view(mon)) {
             msg("Something is here.");
 			center_panel();
 			disturb(player);
@@ -1581,13 +1581,14 @@ void do_cmd_explore(struct command *cmd)
         if (loc_eq(obj->grid, player->grid)) {
             msg("You are standing on something interesting.");
 			center_panel();
+			do_autopickup(player);
 			disturb(player);
             return;
         }
 
         if (!projectable(cave, player->grid, obj->grid, PROJECT_NONE)) continue;
 
-        /* Find closest object */
+        /* Find closest visible object */
         tempdistance = ((obj->grid.y - pgrid.y) * (obj->grid.y - pgrid.y) +
             (obj->grid.x - pgrid.x) * (obj->grid.x - pgrid.x));
 
@@ -1599,17 +1600,19 @@ void do_cmd_explore(struct command *cmd)
 
     /* If object within LoS, re/set destination */
     if (objdistance > 0) {
-        disturb(player);
-        player->upkeep->step_count = find_path(player, player->grid,
+		disturb(player);
+		player->upkeep->step_count = find_path(player, player->grid,
             ogrid, &player->upkeep->steps);
     }
 
-    /* If none, find destination */
+    /* Do we already have a destination? If not, find exploration grid */
 
 	if (player->upkeep->step_count <= 0) {
 		player->upkeep->step_count = path_nearest_unknown(player, player->grid,
 			&player->upkeep->path_dest, &player->upkeep->steps);
 	}
+
+	/* Couldn't find anything to explore so give up */
 
     if (player->upkeep->step_count <= 0) {
 		msg("No apparent path for exploration.");
@@ -1619,38 +1622,42 @@ void do_cmd_explore(struct command *cmd)
     }
 
     /* We should have a destination, move and check again */
-
-    if (player->upkeep->step_count > 0) {
-        int next_step_ind = player->upkeep->step_count - 1;
-        int next_step_dir = player->upkeep->steps[next_step_ind];
-		--player->upkeep->step_count;
+	
+	if (player->upkeep->step_count) {
+		int next_step_ind = player->upkeep->step_count - 1;
+		int next_step_dir = player->upkeep->steps[next_step_ind];
 		cmdq_push(CMD_WALK);
-        cmd_set_arg_direction(cmdq_peek(), "direction", next_step_dir);
-        if (player->upkeep->step_count < 0) disturb(player);
-        cmdq_push(CMD_EXPLORE);
-        return;
-    }
-    /* Failsafe reset */
-    disturb(player);
+		cmd_set_arg_direction(cmdq_peek(), "direction", next_step_dir);
+		--player->upkeep->step_count;
+	}
+	cmdq_push(CMD_EXPLORE);
+	return;
 }
 
 /**
  * Walk towards closest monster to melee them.
  */
 
-void do_cmd_meleeclosest(struct command *cmd)
+void do_cmd_meleeclosest(struct command* cmd)
 {
-    int dir;
-    struct loc tgrid;
+	struct loc tgrid;
+	int next_step_dir = 0, next_step_ind = 0;
 
 	/* Require foe */
 	if (!target_set_closest((TARGET_KILL | TARGET_QUIET), NULL)) return;
-    target_get(&tgrid);
-    dir = pathfind_direction_to(player->grid, tgrid);
+	target_get(&tgrid);
+	player->upkeep->step_count = find_path(player, player->grid, tgrid, &player->upkeep->steps);
+	if (player->upkeep->steps) {
+		next_step_ind = player->upkeep->step_count - 1;
+		next_step_dir = player->upkeep->steps[next_step_ind];
+		cmdq_push(CMD_WALK);
+		cmd_set_arg_direction(cmdq_peek(), "direction", next_step_dir);
 
-    /* Walk towards a monster */
-    cmdq_push(CMD_WALK);
-	cmd_set_arg_direction(cmdq_peek(), "direction", dir);
+		player->upkeep->running = 0;
+		mem_free(player->upkeep->steps);
+		player->upkeep->steps = NULL;
+		player->upkeep->step_count = 0;
+	}
 }
 
 /**
