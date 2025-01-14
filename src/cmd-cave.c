@@ -1498,35 +1498,30 @@ void do_cmd_explore(struct command *cmd)
 	/* Also flush queue and steps by using disturb as might happen midrun and we are looping */
     if (player->timed[TMD_CONFUSED]) {
         msg("You cannot explore while confused.");
-		center_panel();
-        disturb(player);
-        return;
+		disturb(player);
+		return;
     }
 
 	if (player->timed[TMD_POISONED]) {
 		msg("You cannot explore while poisoned.");
-		center_panel();
 		disturb(player);
 		return;
 	}
 
     if (player->timed[TMD_FOOD] <= PY_FOOD_WEAK) {
         msg("You are too weak from hunger to explore.");
-		center_panel();
-        disturb(player);
-        return;
+		disturb(player);
+		return;
     }
 
     if (!square_islit(cave, player->grid) && !player_has(player, PF_UNLIGHT)) {
         msg("You cannot explore without seeing things near you.");
-		center_panel();
 		disturb(player);
-        return;
+		return;
     }
 
     if (player->timed[TMD_BLIND]) {
         msg("You cannot explore while blind.");
-		center_panel();
 		disturb(player);
         return;
     }
@@ -1544,14 +1539,12 @@ void do_cmd_explore(struct command *cmd)
     /* Stop at closed doors and rubble */
     if (count_feats(NULL, square_iscloseddoor, false) || count_feats(NULL, square_isrubble, false)) {
         msg("Closed off but passable terrain nearby.");
-		center_panel();
 		disturb(player);
-        return;
+		return;
     }
 
 	if (count_feats(NULL, square_istrap, false)) {
 		msg("You are next to a trap.");
-		center_panel();
 		disturb(player);
 		return;
 	}
@@ -1561,9 +1554,8 @@ void do_cmd_explore(struct command *cmd)
         mon = cave_monster(cave, i);
         if (monster_is_in_view(mon)) {
             msg("Something is here.");
-			center_panel();
 			disturb(player);
-            return;
+			return;
         }
     }
 
@@ -1580,10 +1572,9 @@ void do_cmd_explore(struct command *cmd)
         /* Look no further */
         if (loc_eq(obj->grid, player->grid)) {
             msg("You are standing on something interesting.");
-			center_panel();
-			do_autopickup(player);
 			disturb(player);
-            return;
+			do_autopickup(player);
+			return;
         }
 
         if (!projectable(cave, player->grid, obj->grid, PROJECT_NONE)) continue;
@@ -1600,7 +1591,9 @@ void do_cmd_explore(struct command *cmd)
 
     /* If object within LoS, re/set destination */
     if (objdistance > 0) {
-		disturb(player);
+		player->upkeep->running = 0;
+		mem_free(player->upkeep->steps);
+		player->upkeep->steps = NULL;
 		player->upkeep->step_count = find_path(player, player->grid,
             ogrid, &player->upkeep->steps);
     }
@@ -1616,14 +1609,13 @@ void do_cmd_explore(struct command *cmd)
 
     if (player->upkeep->step_count <= 0) {
 		msg("No apparent path for exploration.");
-		center_panel();
 		disturb(player);
-        return;
+		return;
     }
 
     /* We should have a destination, move and check again */
 	
-	if (player->upkeep->step_count) {
+	if (player->upkeep->step_count > 0) {
 		int next_step_ind = player->upkeep->step_count - 1;
 		int next_step_dir = player->upkeep->steps[next_step_ind];
 		cmdq_push(CMD_WALK);

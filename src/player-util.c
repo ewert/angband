@@ -1643,11 +1643,12 @@ void disturb(struct player *p)
 		p->upkeep->redraw |= PR_STATE;
 	}
 
-	/* Cancel running */
-	if ((p->upkeep->running) || (p->upkeep->steps)) {
+	/* Cancel running or pathfinding */
+//	if ((p->upkeep->running) || (p->upkeep->steps)) {
 		p->upkeep->running = 0;
 		mem_free(p->upkeep->steps);
 		p->upkeep->steps = NULL;
+		p->upkeep->step_count = 0;
 
 		/* Cancel queued commands */
 		cmdq_flush();
@@ -1658,10 +1659,12 @@ void disturb(struct player *p)
 
 		/* Mark the whole map to be redrawn */
 		event_signal_point(EVENT_MAP, -1, -1);
-	}
+//	}
 
-	/* Flush input */
+	/* Flush input and center panel view */
 	event_signal(EVENT_INPUT_FLUSH);
+	center_panel();
+
 }
 
 /**

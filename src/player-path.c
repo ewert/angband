@@ -1714,14 +1714,6 @@ static bool run_test(const struct player *p)
 		/* New location */
 		grid = loc_sum(p->grid, ddgrid[new_dir]);
 
-//		/* Visible monsters abort running */
-//		if (square(cave, grid)->mon > 0) {
-//			struct monster *mon = square_monster(cave, grid);
-//			if (monster_is_visible(mon)) {
-//				return true;
-//			}
-//		}
-
 		/* Visible traps abort running (unless trapsafe) */
 		if (square_isvisibletrap(cave, grid) &&
 			!player_is_trapsafe(p)) {
