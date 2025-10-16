@@ -1488,7 +1488,8 @@ void do_cmd_explore(struct command *cmd)
 {
     struct object *obj;
     struct monster *mon;
-    struct loc ogrid = loc(-1, -1);
+	struct loc testgrid = player->grid;
+	struct loc ogrid;
     struct loc pgrid = player->grid;
     int objdistance = -1;
     int tempdistance;
@@ -1553,9 +1554,15 @@ void do_cmd_explore(struct command *cmd)
     for (i = 1; i < cave_monster_max(cave); i++) {
         mon = cave_monster(cave, i);
         if (monster_is_in_view(mon)) {
-            msg("Something is here.");
-			disturb(player);
-			return;
+			if (monster_is_camouflaged(mon)) {
+				tempdistance = abs(mon->grid.y - pgrid.y) + abs(mon->grid.x - pgrid.x);
+				ogrid = mon->grid;
+				objdistance = tempdistance;
+			} else {
+				msg("Something is here.");
+				disturb(player);
+				return;
+			}
         }
     }
 
@@ -1572,33 +1579,206 @@ void do_cmd_explore(struct command *cmd)
         /* Look no further */
         if (loc_eq(obj->grid, player->grid)) {
             msg("You are standing on something interesting.");
-			disturb(player);
 			do_autopickup(player);
+			disturb(player);
 			return;
         }
 
+		/* Find closest visible object */
         if (!projectable(cave, player->grid, obj->grid, PROJECT_NONE)) continue;
 
-        /* Find closest visible object */
-        tempdistance = ((obj->grid.y - pgrid.y) * (obj->grid.y - pgrid.y) +
-            (obj->grid.x - pgrid.x) * (obj->grid.x - pgrid.x));
+        tempdistance = abs(obj->grid.y - pgrid.y) + abs(obj->grid.x - pgrid.x);
 
         if (tempdistance < objdistance || objdistance < 0) {
             ogrid = obj->grid;
             objdistance = tempdistance;
-        }
+        } 
     }
 
-    /* If object within LoS, re/set destination */
-    if (objdistance > 0) {
-		player->upkeep->running = 0;
-		mem_free(player->upkeep->steps);
-		player->upkeep->steps = NULL;
+    /* If object within LoS, set destination */
+    if (objdistance > 0 && player->upkeep->step_count <= 0) {
 		player->upkeep->step_count = find_path(player, player->grid,
             ogrid, &player->upkeep->steps);
     }
 
-    /* Do we already have a destination? If not, find exploration grid */
+    /* Do we already have a destination? If not, first search close then everywhere to find an exploration grid */
+	/* First check for LOS grids */
+
+	if (player->upkeep->step_count <= 0) {
+
+		int maxwidth = player->cave->width;
+		int maxheight = player->cave->height;
+		int player_x = player->grid.x;
+		int player_y = player->grid.y;
+
+		for (int radius = 1; radius <= 20; ++radius) {
+			if (player->upkeep->step_count) break;
+			int x_min = max(player_x - radius, 0);
+			int x_max = min(player_x + radius, maxwidth - 1);
+			int y_min = max(player_y - radius, 0);
+			int y_max = min(player_y + radius, maxheight - 1);
+
+			// Top and bottom edges
+			for (int x = x_min; x <= x_max; ++x) {
+				testgrid.x = x;
+				testgrid.y = y_min;
+
+				if (!square_isknownpassable(player->cave, testgrid)) continue;
+				if (!projectable(cave, player->grid, testgrid, PROJECT_NONE)) continue;
+				if (count_neighbors(NULL, player->cave, testgrid, square_isknown, false) == 8) {
+					if (count_neighbors(NULL, player->cave, testgrid, square_iscloseddoor, false) == 0 &&
+						count_neighbors(NULL, player->cave, testgrid, square_isrubble, false) == 0) continue;
+				}
+				player->upkeep->step_count = find_path(player, player->grid,
+					testgrid, &player->upkeep->steps);
+			}
+
+			for (int x = x_min; x <= x_max; ++x) {
+				testgrid.x = x;
+				testgrid.y = y_max;
+				if (!square_isknownpassable(player->cave, testgrid)) continue;
+				if (!projectable(cave, player->grid, testgrid, PROJECT_NONE)) continue;
+				if (count_neighbors(NULL, player->cave, testgrid, square_isknown, false) == 8) {
+					if (count_neighbors(NULL, player->cave, testgrid, square_iscloseddoor, false) == 0 &&
+						count_neighbors(NULL, player->cave, testgrid, square_isrubble, false) == 0) continue;
+				}
+				player->upkeep->step_count = find_path(player, player->grid,
+					testgrid, &player->upkeep->steps);
+			}
+
+			// Left and right edges (excluding corners already processed)
+			for (int y = y_min + 1; y <= y_max - 1; ++y) {
+				testgrid.x = x_min;
+				testgrid.y = y;
+				if (!square_isknownpassable(player->cave, testgrid)) continue;
+				if (!projectable(cave, player->grid, testgrid, PROJECT_NONE)) continue;
+				if (count_neighbors(NULL, player->cave, testgrid, square_isknown, false) == 8) {
+					if (count_neighbors(NULL, player->cave, testgrid, square_iscloseddoor, false) == 0 &&
+						count_neighbors(NULL, player->cave, testgrid, square_isrubble, false) == 0) continue;
+				}
+				player->upkeep->step_count = find_path(player, player->grid,
+					testgrid, &player->upkeep->steps);
+			}
+
+			for (int y = y_min + 1; y <= y_max - 1; ++y) {
+				testgrid.x = x_max;
+				testgrid.y = y;
+				if (!square_isknownpassable(player->cave, testgrid)) continue;
+				if (!projectable(cave, player->grid, testgrid, PROJECT_NONE)) continue;
+				if (count_neighbors(NULL, player->cave, testgrid, square_isknown, false) == 8) {
+					if (count_neighbors(NULL, player->cave, testgrid, square_iscloseddoor, false) == 0 &&
+						count_neighbors(NULL, player->cave, testgrid, square_isrubble, false) == 0) continue;
+				}
+				player->upkeep->step_count = find_path(player, player->grid,
+					testgrid, &player->upkeep->steps);
+			}
+		}
+	}
+
+	/* Then check for nearby out of LOS grids */
+
+	if (player->upkeep->step_count <= 0) {
+
+		int maxwidth = player->cave->width;
+		int maxheight = player->cave->height;
+		int player_x = player->grid.x;
+		int player_y = player->grid.y;
+
+		for (int radius = 1; radius <= 20; ++radius) {
+			if (player->upkeep->step_count) break;
+			int x_min = max(player_x - radius, 0);
+			int x_max = min(player_x + radius, maxwidth - 1);
+			int y_min = max(player_y - radius, 0);
+			int y_max = min(player_y + radius, maxheight - 1);
+
+			// Top and bottom edges
+			for (int x = x_min; x <= x_max; ++x) {
+				testgrid.x = x;
+				testgrid.y = y_min;
+
+				if (!square_isknownpassable(player->cave, testgrid)) continue;
+				if (count_neighbors(NULL, player->cave, testgrid, square_isknown, false) == 8) {
+					if (count_neighbors(NULL, player->cave, testgrid, square_iscloseddoor, false) == 0 &&
+						count_neighbors(NULL, player->cave, testgrid, square_isrubble, false) == 0) continue;
+				}
+				player->upkeep->step_count = find_path(player, player->grid,
+					testgrid, &player->upkeep->steps);
+			}
+
+			for (int x = x_min; x <= x_max; ++x) {
+				testgrid.x = x;
+				testgrid.y = y_max;
+				if (!square_isknownpassable(player->cave, testgrid)) continue;
+				if (count_neighbors(NULL, player->cave, testgrid, square_isknown, false) == 8) {
+					if (count_neighbors(NULL, player->cave, testgrid, square_iscloseddoor, false) == 0 &&
+						count_neighbors(NULL, player->cave, testgrid, square_isrubble, false) == 0) continue;
+				}
+				player->upkeep->step_count = find_path(player, player->grid,
+					testgrid, &player->upkeep->steps);
+			}
+
+			// Left and right edges (excluding corners already processed)
+			for (int y = y_min + 1; y <= y_max - 1; ++y) {
+				testgrid.x = x_min;
+				testgrid.y = y;
+				if (!square_isknownpassable(player->cave, testgrid)) continue;
+				if (count_neighbors(NULL, player->cave, testgrid, square_isknown, false) == 8) {
+					if (count_neighbors(NULL, player->cave, testgrid, square_iscloseddoor, false) == 0 &&
+						count_neighbors(NULL, player->cave, testgrid, square_isrubble, false) == 0) continue;
+				}
+				player->upkeep->step_count = find_path(player, player->grid,
+					testgrid, &player->upkeep->steps);
+			}
+
+			for (int y = y_min + 1; y <= y_max - 1; ++y) {
+				testgrid.x = x_max;
+				testgrid.y = y;
+				if (!square_isknownpassable(player->cave, testgrid)) continue;
+				if (count_neighbors(NULL, player->cave, testgrid, square_isknown, false) == 8) {
+					if (count_neighbors(NULL, player->cave, testgrid, square_iscloseddoor, false) == 0 &&
+						count_neighbors(NULL, player->cave, testgrid, square_isrubble, false) == 0) continue;
+				}
+				player->upkeep->step_count = find_path(player, player->grid,
+					testgrid, &player->upkeep->steps);
+			}
+		}
+	}
+
+
+	/* Or maybe there are item's somewhere else? */
+	objdistance = -1;
+
+	for (i = 1; i < player->cave->obj_max; i++) {
+		obj = player->cave->objects[i];
+
+		/* Skip ignored objects */
+		if (!obj) continue;
+		if (loc_is_zero(obj->grid)) continue;
+		if (ignore_known_item_ok(player, obj)) continue;
+
+		/* Look no further */
+		if (loc_eq(obj->grid, player->grid)) {
+			msg("You are standing on something interesting.");
+			disturb(player);
+			do_autopickup(player);
+			return;
+		}
+
+		/* Find closest object */
+		tempdistance = abs(obj->grid.y - pgrid.y) + abs(obj->grid.x - pgrid.x);
+
+		if (tempdistance < objdistance || objdistance < 0) {
+			ogrid = obj->grid;
+			objdistance = tempdistance;
+		}
+	}
+
+	if (objdistance > 0 && player->upkeep->step_count <= 0) {
+		player->upkeep->step_count = find_path(player, player->grid,
+			ogrid, &player->upkeep->steps);
+	}
+
+	/* Then find a spot with something to explore elsewhere */
 
 	if (player->upkeep->step_count <= 0) {
 		player->upkeep->step_count = path_nearest_unknown(player, player->grid,

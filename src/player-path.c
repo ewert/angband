@@ -1690,14 +1690,6 @@ static bool run_test(const struct player *p)
 	option = 0;
 	option2 = 0;
 
-    /* No running when visible monsters around */
-	for (i = 1; i < cave_monster_max(cave); i++) {
-		struct monster *mon = cave_monster(cave, i);
-		if (monster_is_obvious(mon))	{
-            return true;
-		}
-	}
-
 	/* Where we came from */
 	prev_dir = run_old_dir;
 
@@ -1713,6 +1705,14 @@ static bool run_test(const struct player *p)
 
 		/* New location */
 		grid = loc_sum(p->grid, ddgrid[new_dir]);
+
+		/* Visible monsters abort running */
+		if (square(cave, grid)->mon > 0) {
+			struct monster* mon = square_monster(cave, grid);
+			if (monster_is_visible(mon)) {
+				return true;
+			}
+		}
 
 		/* Visible traps abort running (unless trapsafe) */
 		if (square_isvisibletrap(cave, grid) &&
